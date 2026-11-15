@@ -505,3 +505,6 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   numbers replace the 400-request ones everywhere. Per new token LoopBridge 4/1 takes 35.5 ms vs 35.0 (Original 1/1):
   "about as fast", no longer "no slower". MMLU-Pro length-limit answers: 29/200, 21, 15, 4. Batched serving of the
   second block (batch_set2.sh, btB/btBb/btBc) running; `USE_SET2_BATCH` switches it in.
+- 2026-11-16 06:31: batched serving of the second block done (batch_set2.sh; `USE_SET2_BATCH = True`): batched results
+  are on the same 800 requests. Batch 32: LoopBridge 4/1 +18.5 [14.9, 22.1] over Original 1/1 at 1.18x, +11.2 [7.8,
+  14.9] over Distilled 1/1 at 1.19x (first 400 alone: +20.5 / +13.0); prefill 26.7% of the wall time at batch 32.

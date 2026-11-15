@@ -107,7 +107,7 @@ loop on the same data reaches
 only 49.5 (49.3 with as many parameters as our adapter). With two decode loops, the average rises from 63.7 to 69.0
 and 69.1 with our two adapters (Table~\ref{tab:main}).
 \item \textbf{A little more time, much higher accuracy.} At one decode loop, our models take 14--21\% more time per request than the original model and are 17--19 points more accurate (Figure~\ref{fig:budget}). At the same mean time, they beat a mix of the original model's one- and two-loop settings by 10--14 points. Served in batches of 32,
-LoopBridge 4/1 keeps a 20.5-point lead over Original 1/1 for 21\% more time.
+LoopBridge 4/1 keeps an 18.5-point lead over Original 1/1 for 18\% more time.
 \item \textbf{A few prefill loops are enough.} Two to five prefill loops give most of the gain (Figure~\ref{fig:depth}).
 \item \textbf{The gain carries over.} The gain holds on Ouro-1.4B, on looped decision models and on Ouro-2.6B-Thinking.
 On Ouro-2.6B-Thinking, LoopBridge with four prefill loops and two decode loops comes within 0.8 points of Original 4/4
@@ -412,8 +412,8 @@ of LoopBridge 4/1, such a mix of Original 1/1 and 2/2 scores 34.5, and LoopBridg
 
 The gain also holds when many requests are served together. In continuous batching, each prompt is prefilled alone
 while the batch waits (Figure~\ref{fig:batched} in Appendix~\ref{app:serve}). At batch 32, LoopBridge 4/1 stays
-$+20.5$\ci{15.5}{25.8} and $+13.0$\ci{8.0}{18.2} points above Original 1/1 and Distilled 1/1. It takes $1.21\times$ and
-$1.18\times$ their time per request.
+$+18.5$\ci{14.9}{22.1} and $+11.2$\ci{7.8}{14.9} points above Original 1/1 and Distilled 1/1. It takes $1.18\times$ and
+$1.19\times$ their time per request.
 
 The Thinking model shows an even better trade-off. When served in batches (Figure~\ref{fig:tbatched}),
 Ouro-2.6B-Thinking with LoopBridge 4/2 matches Original 4/4 on 400 GSM8K problems (96.5 against 95.5) in 0.46--0.56 of
@@ -1082,7 +1082,7 @@ Table~\ref{tab:t14} lists the scores and paired intervals behind Figure~\ref{fig
 \section{End-to-End Time and Decode Throughput}
 \label{app:serve}
 
-\paragraph{Batched serving.} We also serve the first 400 timed requests of Figure~\ref{fig:budget} (100 per task) in batches
+\paragraph{Batched serving.} We also serve the 800 timed requests of Figure~\ref{fig:budget} in batches
 (Figure~\ref{fig:batched}, Table~\ref{tab:batched}). With continuous batching, up to $B$ requests decode in lockstep.
 When a request finishes, it leaves the batch at once.
 The server prefills the next request alone at batch 1 while the other requests wait.
@@ -1092,7 +1092,7 @@ Decode attention reads only that request's tokens using flash attention with var
 Decoding is the same for every configuration.
 Each setup runs the $n$-loop model on per-loop prompt caches with LoRA merged into the weights.
 For LoopBridge, we fold the maps into the caches.
-Time per request is the total wall time divided by the 400 requests, averaged over three timing passes.
+Time per request is the total wall time divided by the 800 requests, averaged over three timing passes.
 Single runs of one task vary by 10--30\% between passes, although the generated tokens are identical.
 This variation occurs because host-side work on a shared machine limits eager decoding.
 Batch 1 results are in Figure~\ref{fig:budget}.
@@ -1100,7 +1100,8 @@ Batch 1 results are in Figure~\ref{fig:budget}.
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.66\textwidth]{../figs/fig_batched.pdf}
-\caption{\textbf{Batched serving keeps the one-decode-loop advantage.} The first 400 timed requests of Figure~\ref{fig:budget} served with continuous batching on one B300, each prompt prefilled alone: mean accuracy of
+\caption{\textbf{Batched serving keeps the one-decode-loop advantage.} The 800 timed requests of
+Figure~\ref{fig:budget} served with continuous batching on one B300, each prompt prefilled alone: mean accuracy of
 the served answers against wall seconds per request (mean of three timing passes), one decode loop; grey: Original
 1/1 and 2/2.}
 \label{fig:batched}

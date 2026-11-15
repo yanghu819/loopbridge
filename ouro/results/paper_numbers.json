@@ -12373,6 +12373,7 @@
    ]
   }
  ],
+ "think_seeds": {},
  "smaller": {
   "seconds": [
    69.6,
@@ -27650,382 +27651,382 @@
   "native1st@8": {
    "cond": "native1st",
    "batch": 8,
-   "n": 400,
+   "n": 800,
    "acc": 28.0,
-   "s_per_request": 1.381,
-   "prefill_pct": 6.8,
-   "tokens": 297.7
+   "s_per_request": 1.334,
+   "prefill_pct": 7.0,
+   "tokens": 303.3
   },
   "D1st@8": {
    "cond": "D1st",
    "batch": 8,
-   "n": 400,
-   "acc": 35.5,
-   "s_per_request": 1.344,
+   "n": 800,
+   "acc": 34.5,
+   "s_per_request": 1.337,
    "prefill_pct": 7.3,
-   "tokens": 301.5
+   "tokens": 306.4
   },
   "D1r80st@8": {
    "cond": "D1r80st",
    "batch": 8,
-   "n": 400,
-   "acc": 32.8,
-   "s_per_request": 1.435,
-   "prefill_pct": 6.2,
-   "tokens": 327.7
+   "n": 800,
+   "acc": 32.0,
+   "s_per_request": 1.499,
+   "prefill_pct": 6.1,
+   "tokens": 345.8
   },
   "a4x1pm@8": {
    "cond": "a4x1pm",
    "batch": 8,
-   "n": 400,
-   "acc": 47.0,
-   "s_per_request": 1.594,
+   "n": 800,
+   "acc": 45.2,
+   "s_per_request": 1.614,
    "prefill_pct": 12.0,
-   "tokens": 353.7
+   "tokens": 357.4
   },
   "f4x1pm@8": {
    "cond": "f4x1pm",
    "batch": 8,
-   "n": 400,
-   "acc": 46.8,
-   "s_per_request": 1.601,
-   "prefill_pct": 12.3,
-   "tokens": 346.0
+   "n": 800,
+   "acc": 46.0,
+   "s_per_request": 1.574,
+   "prefill_pct": 13.0,
+   "tokens": 336.8
   },
   "native2st@8": {
    "cond": "native2st",
    "batch": 8,
-   "n": 400,
-   "acc": 60.2,
-   "s_per_request": 2.506,
-   "prefill_pct": 6.2,
-   "tokens": 292.3
+   "n": 800,
+   "acc": 58.0,
+   "s_per_request": 2.47,
+   "prefill_pct": 6.4,
+   "tokens": 278.5
   },
   "D2st@8": {
    "cond": "D2st",
    "batch": 8,
-   "n": 400,
-   "acc": 63.2,
-   "s_per_request": 2.527,
-   "prefill_pct": 6.3,
-   "tokens": 284.6
+   "n": 800,
+   "acc": 60.2,
+   "s_per_request": 2.532,
+   "prefill_pct": 6.5,
+   "tokens": 286.8
   },
   "D2r80st@8": {
    "cond": "D2r80st",
    "batch": 8,
-   "n": 400,
-   "acc": 62.0,
-   "s_per_request": 2.556,
-   "prefill_pct": 6.4,
-   "tokens": 301.0
+   "n": 800,
+   "acc": 58.8,
+   "s_per_request": 2.596,
+   "prefill_pct": 6.3,
+   "tokens": 303.2
   },
   "a4x2pm@8": {
    "cond": "a4x2pm",
    "batch": 8,
-   "n": 400,
-   "acc": 63.0,
-   "s_per_request": 2.568,
-   "prefill_pct": 9.4,
-   "tokens": 288.8
+   "n": 800,
+   "acc": 62.6,
+   "s_per_request": 2.535,
+   "prefill_pct": 9.6,
+   "tokens": 288.0
   },
   "f4x2pm@8": {
    "cond": "f4x2pm",
    "batch": 8,
-   "n": 400,
-   "acc": 66.8,
-   "s_per_request": 2.271,
-   "prefill_pct": 10.4,
-   "tokens": 264.1
+   "n": 800,
+   "acc": 64.1,
+   "s_per_request": 2.448,
+   "prefill_pct": 9.8,
+   "tokens": 270.7
   },
   "a4x1pm vs native1st@8": {
    "a": "a4x1pm",
    "b": "native1st",
    "batch": 8,
-   "n": 400,
-   "diff": 19.0,
-   "lo": 14.0,
-   "hi": 24.2,
-   "ratio": 1.15
+   "n": 800,
+   "diff": 17.2,
+   "lo": 13.7,
+   "hi": 20.8,
+   "ratio": 1.21
   },
   "a4x1pm vs D1st@8": {
    "a": "a4x1pm",
    "b": "D1st",
    "batch": 8,
-   "n": 400,
-   "diff": 11.5,
-   "lo": 6.2,
-   "hi": 16.8,
-   "ratio": 1.19
+   "n": 800,
+   "diff": 10.8,
+   "lo": 7.0,
+   "hi": 14.4,
+   "ratio": 1.21
   },
   "a4x1pm vs D1r80st@8": {
    "a": "a4x1pm",
    "b": "D1r80st",
    "batch": 8,
-   "n": 400,
-   "diff": 14.2,
-   "lo": 9.0,
-   "hi": 19.8,
-   "ratio": 1.11
+   "n": 800,
+   "diff": 13.2,
+   "lo": 9.5,
+   "hi": 16.9,
+   "ratio": 1.08
   },
   "f4x1pm vs native1st@8": {
    "a": "f4x1pm",
    "b": "native1st",
    "batch": 8,
-   "n": 400,
-   "diff": 18.8,
-   "lo": 13.5,
-   "hi": 24.2,
-   "ratio": 1.16
+   "n": 800,
+   "diff": 18.0,
+   "lo": 14.4,
+   "hi": 21.6,
+   "ratio": 1.18
   },
   "f4x1pm vs D1st@8": {
    "a": "f4x1pm",
    "b": "D1st",
    "batch": 8,
-   "n": 400,
-   "diff": 11.2,
-   "lo": 6.0,
-   "hi": 16.5,
-   "ratio": 1.19
+   "n": 800,
+   "diff": 11.5,
+   "lo": 8.0,
+   "hi": 15.1,
+   "ratio": 1.18
   },
   "native2st vs a4x1pm@8": {
    "a": "native2st",
    "b": "a4x1pm",
    "batch": 8,
-   "n": 400,
-   "diff": 13.2,
-   "lo": 8.0,
-   "hi": 18.5,
-   "ratio": 1.57
+   "n": 800,
+   "diff": 12.8,
+   "lo": 9.1,
+   "hi": 16.5,
+   "ratio": 1.53
   },
   "D2st vs a4x1pm@8": {
    "a": "D2st",
    "b": "a4x1pm",
    "batch": 8,
-   "n": 400,
-   "diff": 16.2,
-   "lo": 11.2,
-   "hi": 21.2,
-   "ratio": 1.59
+   "n": 800,
+   "diff": 15.0,
+   "lo": 11.4,
+   "hi": 18.6,
+   "ratio": 1.57
   },
   "a4x2pm vs native2st@8": {
    "a": "a4x2pm",
    "b": "native2st",
    "batch": 8,
-   "n": 400,
-   "diff": 2.8,
-   "lo": -1.5,
-   "hi": 7.0,
-   "ratio": 1.02
+   "n": 800,
+   "diff": 4.6,
+   "lo": 1.4,
+   "hi": 7.9,
+   "ratio": 1.03
   },
   "a4x2pm vs D2st@8": {
    "a": "a4x2pm",
    "b": "D2st",
    "batch": 8,
-   "n": 400,
-   "diff": -0.2,
-   "lo": -5.0,
-   "hi": 4.2,
-   "ratio": 1.02
+   "n": 800,
+   "diff": 2.4,
+   "lo": -0.9,
+   "hi": 5.8,
+   "ratio": 1.0
   },
   "a4x2pm vs D2r80st@8": {
    "a": "a4x2pm",
    "b": "D2r80st",
    "batch": 8,
-   "n": 400,
-   "diff": 1.0,
-   "lo": -3.2,
-   "hi": 5.2,
-   "ratio": 1.0
+   "n": 800,
+   "diff": 3.9,
+   "lo": 0.8,
+   "hi": 7.1,
+   "ratio": 0.98
   },
   "native1st@32": {
    "cond": "native1st",
    "batch": 32,
-   "n": 400,
+   "n": 800,
    "acc": 27.3,
-   "s_per_request": 0.582,
-   "prefill_pct": 14.8,
-   "tokens": 289.6
+   "s_per_request": 0.586,
+   "prefill_pct": 15.3,
+   "tokens": 300.2
   },
   "D1st@32": {
    "cond": "D1st",
    "batch": 32,
-   "n": 400,
-   "acc": 34.8,
-   "s_per_request": 0.595,
-   "prefill_pct": 14.3,
-   "tokens": 306.7
+   "n": 800,
+   "acc": 34.5,
+   "s_per_request": 0.583,
+   "prefill_pct": 14.6,
+   "tokens": 305.4
   },
   "D1r80st@32": {
    "cond": "D1r80st",
    "batch": 32,
-   "n": 400,
-   "acc": 35.5,
-   "s_per_request": 0.581,
+   "n": 800,
+   "acc": 33.1,
+   "s_per_request": 0.597,
    "prefill_pct": 14.2,
-   "tokens": 317.2
+   "tokens": 338.4
   },
   "a4x1pm@32": {
    "cond": "a4x1pm",
    "batch": 32,
-   "n": 400,
-   "acc": 47.8,
-   "s_per_request": 0.704,
-   "prefill_pct": 25.9,
-   "tokens": 355.0
+   "n": 800,
+   "acc": 45.8,
+   "s_per_request": 0.691,
+   "prefill_pct": 26.7,
+   "tokens": 353.8
   },
   "f4x1pm@32": {
    "cond": "f4x1pm",
    "batch": 32,
-   "n": 400,
-   "acc": 47.2,
-   "s_per_request": 0.714,
-   "prefill_pct": 26.1,
-   "tokens": 338.9
+   "n": 800,
+   "acc": 46.2,
+   "s_per_request": 0.707,
+   "prefill_pct": 26.9,
+   "tokens": 328.4
   },
   "native2st@32": {
    "cond": "native2st",
    "batch": 32,
-   "n": 400,
-   "acc": 61.3,
-   "s_per_request": 1.106,
-   "prefill_pct": 13.3,
-   "tokens": 283.6
+   "n": 800,
+   "acc": 58.2,
+   "s_per_request": 1.122,
+   "prefill_pct": 13.5,
+   "tokens": 280.5
   },
   "D2st@32": {
    "cond": "D2st",
    "batch": 32,
-   "n": 400,
-   "acc": 63.2,
-   "s_per_request": 1.112,
-   "prefill_pct": 13.0,
-   "tokens": 290.6
+   "n": 800,
+   "acc": 60.2,
+   "s_per_request": 1.08,
+   "prefill_pct": 13.7,
+   "tokens": 291.0
   },
   "D2r80st@32": {
    "cond": "D2r80st",
    "batch": 32,
-   "n": 400,
-   "acc": 62.3,
-   "s_per_request": 1.161,
-   "prefill_pct": 13.4,
-   "tokens": 289.4
+   "n": 800,
+   "acc": 58.8,
+   "s_per_request": 1.122,
+   "prefill_pct": 13.5,
+   "tokens": 296.0
   },
   "a4x2pm@32": {
    "cond": "a4x2pm",
    "batch": 32,
-   "n": 400,
-   "acc": 63.7,
-   "s_per_request": 1.132,
-   "prefill_pct": 20.9,
-   "tokens": 292.5
+   "n": 800,
+   "acc": 62.7,
+   "s_per_request": 1.157,
+   "prefill_pct": 20.6,
+   "tokens": 288.8
   },
   "f4x2pm@32": {
    "cond": "f4x2pm",
    "batch": 32,
-   "n": 400,
-   "acc": 66.8,
-   "s_per_request": 1.17,
-   "prefill_pct": 20.7,
-   "tokens": 273.1
+   "n": 800,
+   "acc": 64.0,
+   "s_per_request": 1.186,
+   "prefill_pct": 20.1,
+   "tokens": 279.3
   },
   "a4x1pm vs native1st@32": {
    "a": "a4x1pm",
    "b": "native1st",
    "batch": 32,
-   "n": 400,
-   "diff": 20.5,
-   "lo": 15.5,
-   "hi": 25.8,
-   "ratio": 1.21
+   "n": 800,
+   "diff": 18.5,
+   "lo": 14.9,
+   "hi": 22.1,
+   "ratio": 1.18
   },
   "a4x1pm vs D1st@32": {
    "a": "a4x1pm",
    "b": "D1st",
    "batch": 32,
-   "n": 400,
-   "diff": 13.0,
-   "lo": 8.0,
-   "hi": 18.2,
-   "ratio": 1.18
+   "n": 800,
+   "diff": 11.2,
+   "lo": 7.8,
+   "hi": 14.9,
+   "ratio": 1.19
   },
   "a4x1pm vs D1r80st@32": {
    "a": "a4x1pm",
    "b": "D1r80st",
    "batch": 32,
-   "n": 400,
-   "diff": 12.2,
-   "lo": 7.2,
-   "hi": 17.8,
-   "ratio": 1.21
+   "n": 800,
+   "diff": 12.6,
+   "lo": 8.9,
+   "hi": 16.4,
+   "ratio": 1.16
   },
   "f4x1pm vs native1st@32": {
    "a": "f4x1pm",
    "b": "native1st",
    "batch": 32,
-   "n": 400,
-   "diff": 20.0,
-   "lo": 14.8,
-   "hi": 25.2,
-   "ratio": 1.23
+   "n": 800,
+   "diff": 19.0,
+   "lo": 15.4,
+   "hi": 22.6,
+   "ratio": 1.21
   },
   "f4x1pm vs D1st@32": {
    "a": "f4x1pm",
    "b": "D1st",
    "batch": 32,
-   "n": 400,
-   "diff": 12.5,
-   "lo": 7.5,
-   "hi": 17.5,
-   "ratio": 1.2
+   "n": 800,
+   "diff": 11.8,
+   "lo": 8.2,
+   "hi": 15.2,
+   "ratio": 1.21
   },
   "native2st vs a4x1pm@32": {
    "a": "native2st",
    "b": "a4x1pm",
    "batch": 32,
-   "n": 400,
-   "diff": 13.5,
-   "lo": 8.0,
-   "hi": 18.8,
-   "ratio": 1.57
+   "n": 800,
+   "diff": 12.5,
+   "lo": 8.9,
+   "hi": 16.2,
+   "ratio": 1.62
   },
   "D2st vs a4x1pm@32": {
    "a": "D2st",
    "b": "a4x1pm",
    "batch": 32,
-   "n": 400,
-   "diff": 15.5,
-   "lo": 10.5,
-   "hi": 20.5,
-   "ratio": 1.58
+   "n": 800,
+   "diff": 14.5,
+   "lo": 10.9,
+   "hi": 18.1,
+   "ratio": 1.56
   },
   "a4x2pm vs native2st@32": {
    "a": "a4x2pm",
    "b": "native2st",
    "batch": 32,
-   "n": 400,
-   "diff": 2.5,
-   "lo": -1.8,
-   "hi": 6.8,
-   "ratio": 1.02
+   "n": 800,
+   "diff": 4.5,
+   "lo": 1.4,
+   "hi": 7.8,
+   "ratio": 1.03
   },
   "a4x2pm vs D2st@32": {
    "a": "a4x2pm",
    "b": "D2st",
    "batch": 32,
-   "n": 400,
-   "diff": 0.5,
-   "lo": -3.8,
-   "hi": 4.8,
-   "ratio": 1.02
+   "n": 800,
+   "diff": 2.5,
+   "lo": -0.6,
+   "hi": 5.8,
+   "ratio": 1.07
   },
   "a4x2pm vs D2r80st@32": {
    "a": "a4x2pm",
    "b": "D2r80st",
    "batch": 32,
-   "n": 400,
-   "diff": 1.5,
-   "lo": -2.8,
-   "hi": 5.8,
-   "ratio": 0.97
+   "n": 800,
+   "diff": 4.0,
+   "lo": 0.9,
+   "hi": 7.2,
+   "ratio": 1.03
   }
  },
  "thinking_batched": {

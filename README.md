@@ -25,8 +25,8 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
    the original model and are +18.6 / +17.2 points more accurate (+12.1 / +10.8 over the distilled one; paired over 800
    timed requests, MATH-500 zero-shot). At the same mean time they beat a mix of the original model's 1/1 and 2/2
    settings by 10-14 points. With two decode loops they take 0.93-0.99x the time of Original 2/2 and Distilled 2/2 and
-   score 3-7 points higher. Served at batch 32 (first 400 requests), LoopBridge 4/1 keeps +20.5 / +13.0 points for
-   1.21x / 1.18x their time.
+   score 3-7 points higher. Served at batch 32, LoopBridge 4/1 keeps +18.5 / +11.2 points for 1.18x / 1.19x their
+   time.
 4. **A few prefill loops suffice.** The gain peaks after two to five prefill loops (also for an adapter trained up to
    16 loops, over seeds, and when the prefill loops are trained too).
 5. **It transfers** to Ouro-1.4B (both adapters 44.2-44.6 on average over three seeds, against 40.5 for the distilled

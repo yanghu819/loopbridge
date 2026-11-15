@@ -1089,7 +1089,7 @@ LM_RULES = {"gsm8k_cot": (r"The answer is (\-?[0-9\.\,]+).", dict(case=True, dro
 OVERHEAD_PRINTED = (19, 40)   # Limitations: adapter decode time per token vs Original at the same decode loops (%)
 MMLUPRO_LIMIT_PRINTED = {"a4x1pm": 29, "f4x1pm": 21, "D1st": 15, "native1st": 4}   # Section 5.5 and Appendix A (of 200)
 USE_SET2 = True   # the second block of timed requests at batch 1 (time_set2.sh, files clnB*-*)
-USE_SET2_BATCH = False   # the same requests served in batches (batch_set2.sh, files btB*-*) once every condition has them
+USE_SET2_BATCH = True   # the same requests served in batches (batch_set2.sh, files btB*-*)
 TIME_BLOCKS = (("clean", "clean3"),) + ((("clnB", "clnB3"),) if USE_SET2 else ())   # passes of each request block
 BATCH_BLOCKS = (("batch", "batchb", "batchc"),) + ((("btB", "btBb", "btBc"),) if USE_SET2_BATCH else ())   # batched serving
 TIME_TASKS = {"gsmfull": "GSM8K", "math0shot": "MATH-500", "bbh": "BBH", "mmlupro": "MMLU-Pro"}   # MATH-500 zero-shot as in Table 1 (time_math0.sh)
@@ -1196,7 +1196,7 @@ def batched_requests(cond, b, prefix="batch", model="2.6B"):
 
 def batched_serving(reps=5000):
     """Review 11-13 (W1): complete requests served in batches (batch_requests.py: continuous batching, every prefill at
-    batch 1 and stalling the batch) on the 400 timed requests: accuracy of the served answers, wall seconds per request
+    batch 1 and stalling the batch) on the 800 timed requests: accuracy of the served answers, wall seconds per request
     (total wall time / requests), prefill share of the wall time; paired accuracy differences with a bootstrap over
     requests and the wall-time ratio."""
     out = {}
@@ -1239,14 +1239,14 @@ def batched_serving(reps=5000):
             print(f"Batched      batch {b:2d} {a:10s} vs {c:10s} n={row['n']}  acc {row['diff']:+5.1f} [{row['lo']:+5.1f},"
                   f" {row['hi']:+5.1f}]  time x{row['ratio']:.2f}")
     # Section 5.5, introduction and Limitations (batch 32)
-    want = {"a4x1pm vs native1st@32": ((20.5, 15.5, 25.8), 1.21), "a4x1pm vs D1st@32": ((13.0, 8.0, 18.2), 1.18)}   # mean of three passes
+    want = {"a4x1pm vs native1st@32": ((18.5, 14.9, 22.1), 1.18), "a4x1pm vs D1st@32": ((11.2, 7.8, 14.9), 1.19)}   # mean of three passes
     for k, (acc, ratio) in want.items():
         r = out.get(k)
         if r and ((acc and (r["diff"], r["lo"], r["hi"]) != acc) or r["ratio"] != ratio):
             print(f"Batched      {k}: {r}  !! paper: {acc} x{ratio}")
     r = out.get("a4x1pm@32")
-    if r and round(r["prefill_pct"]) != 26:
-        print(f"Batched      a4x1pm@32 prefill {r['prefill_pct']}%  !! paper: 26%")
+    if r and round(r["prefill_pct"]) != 27:   # Table 13
+        print(f"Batched      a4x1pm@32 prefill {r['prefill_pct']}%  !! paper: 27%")
     return out
 
 
