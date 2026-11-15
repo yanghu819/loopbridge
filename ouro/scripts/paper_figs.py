@@ -726,82 +726,48 @@ def fig_sametime():
     save(fig, "fig_sametime")
 
 
-def fig_budget(batch=None, name="fig_budget"):
-    """Figure 3: mean accuracy over the timed tasks against time per request on the same replayed requests: measured at
-    batch 1 (left) and estimated at batch 32 from the decode cost per step (right, batch_time), for Original n/n,
-    Distilled 1/1 and 2/2, Ours m/1 and m/2."""
-    tasks = [t for t in TIMED if _time(t, "native4st")]
+def fig_budget(name="fig_budget"):
+    """Figure 6: accuracy against measured time per request on the same 400 replayed requests (batch 1, one B300, mean
+    of two passes; paper_numbers time_breakdown). Filled: one decode loop, hollow: two. Ours sits up and to the left of
+    the original and distilled models at both decode depths. The arrow marks the time-matched comparison of Section 5.5:
+    at LoopBridge 4/1's mean time, a mix of Original 1/1 and 2/2 requests lies on the grey segment (time_matched)."""
+    tasks = [t for t in TIMED if _time(t, "native1st")]
     if not tasks:
         return drop(name)
-    bt = PN.get("batch_time", [])
-    if batch and not any(r["batch"] == batch for r in bt):
-        return drop(name)
-    panels = [(f"batch {batch}, estimated from measured step times", batch)] if batch else [("batch 1, measured", None)]
 
-    def point(cond, b):
-        if b is None:
-            rs = [_time(t, cond) for t in tasks]
-            return None if None in rs else (float(np.mean([r["total_s"] for r in rs])), float(np.mean([r["quality"] for r in rs])))
-        rs = [next((r for r in bt if r["batch"] == b and r["task"] == t and r["cond"] == cond), None) for t in tasks]
-        return None if None in rs else (float(np.mean([r["est_s"] for r in rs])), float(np.mean([r["quality"] for r in rs])))
+    def point(cond):
+        rs = [_time(t, cond) for t in tasks]
+        return None if None in rs else (float(np.mean([r["total_s"] for r in rs])), float(np.mean([r["quality"] for r in rs])))
 
-    fig, axes = plt.subplots(len(panels), 1, figsize=(3.3, 2.85 * len(panels)), squeeze=False)   # one column wide
-
-    def draw(ax, b, inset=False):
-        lab = (lambda *a, **k: None) if inset and False else ax.annotate
-        for n, fill in ((1, OURS),):   # one decode loop: the regime of Section 5.5
-            col = OURS
-            # batch 1: maps folded into the prompt banks at prefill (the decode path of the original model), m = 1, 3, 4;
-            # batch estimates exist only for the per-step implementation (sb), m = 1..16
-            kind, ms = ("pm", (1, 3, 4)) if b is None else ("sb", (1, 2, 3, 4, 6, 8, 12, 16))
-            ours = [(*point(f"a{m}x{n}{kind}", b), str(m)) for m in ms if point(f"a{m}x{n}{kind}", b)]
-            if ours:
-                ax.plot([p[0] for p in ours], [p[1] for p in ours], "-" if n == 1 else "--", color=col, marker="s", ms=3.5,
-                        mfc=fill, mec=col, lw=1.3, label=f"Ours, LoopBridge, m/{n}")
-                for x, y, lab_ in [p for p in ours if p[2] in ("1", "4", "16")]:   # m = 3 sits next to 4: only the ends
-                    if n == 2 and not inset:
-                        continue   # the two-decode-loop cluster is labelled in the inset
-                    dx = {"3": -4, "4": 4}.get(lab_, 0) if b is None else 0
-                    ax.annotate(lab_, (x, y), xytext=(dx, 3), textcoords="offset points", fontsize=6.5, color=INK, ha="center")
-            p4 = point(f"f4x{n}pm", b)
-            if p4:   # prefill-4 LoRA with identity maps
-                ax.scatter(*p4, marker="D", s=20, zorder=3, facecolors=OURS if n == 1 else "white", edgecolors=OURS,
-                           label=f"Ours, fixed m=4, 4/{n}")
-        nat = [(*point(f"native{d}st", b), f"{d}/{d}") for d in (1, 2, 3, 4) if point(f"native{d}st", b)]
-        if nat:
-            ax.plot([p[0] for p in nat], [p[1] for p in nat], "-", color=NAT_LIGHT, marker="o", ms=3, lw=1.3, label="Original n/n")
-            for x, y, lab_ in nat:
-                if inset and lab_ != "2/2":
-                    continue
-                ax.annotate(lab_, (x, y), xytext=(0, -9), textcoords="offset points", fontsize=6.5, color=NAT, ha="center")
-        for d in (1,):
-            p = point(f"D{d}st", b)
+    fig, ax = plt.subplots(figsize=(3.3, 2.75))
+    nat = [(point(f"native{d}st"), f"{d}/{d}") for d in (1, 2)]
+    ax.plot([p[0][0] for p in nat], [p[0][1] for p in nat], "-", color=NAT_LIGHT, marker="o", ms=4, lw=1.4, zorder=2)
+    for (x, y), lab in nat:
+        ax.annotate(f"Original {lab}", (x, y), xytext=(0, -10), textcoords="offset points", fontsize=6.5, color=NAT, ha="center")
+    for n, fill in ((1, None), (2, "white")):
+        for c, m, col, sz in ((f"D{n}st", "^", DIST, 30), (f"D{n}r80st", "v", DIST, 30), (f"f4x{n}pm", "D", OURS, 26),
+                              (f"a4x{n}pm", "s", OURS, 30)):
+            p = point(c)
             if p:
-                ax.scatter(*p, marker="^", s=20, zorder=3, facecolors=DIST if d == 1 else "white", edgecolors=DIST,
-                           label=f"Distilled {d}/{d}")
-            p = point(f"D{d}r80st", b)
-            if p:   # rank 80: as many trainable parameters as the adapter
-                ax.scatter(*p, marker="v", s=20, zorder=3, facecolors=DIST if d == 1 else "white", edgecolors=DIST,
-                           label=f"Distilled {d}/{d}, rank 80")
-
-    for ax, (title, b) in zip(axes[:, 0], panels):
-        draw(ax, b)
-        if b is not None:
-            ax.set_title(title, fontsize=8.5, color=INK, pad=4)
-        else:   # the low-latency end, where one decode loop runs (about 11 s per request)
-            ax.axvspan(9.2, 12.4, color="#F3F3F3", zorder=0, lw=0)
-            ax.set_ylim(23.5, None)   # room for the 1/1 label under its point
-            ax.text(10.8, 66.5, "one decode\nloop", ha="center", va="top", fontsize=6.5, color=NAT)
-        ax.set_xlabel("seconds per request"); ax.grid(color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
-    for ax in axes[:, 0]:
-        ax.set_ylabel("mean accuracy (%)")
-    L = plt.Line2D   # one entry per method and marker; filled = one decode loop, hollow = two (caption)
-    h = [L([], [], color=OURS, marker="s", ms=4, lw=1.3), L([], [], color=OURS, marker="D", ms=4, ls="none"),
-         L([], [], color=DIST, marker="^", ms=4.5, ls="none"), L([], [], color=DIST, marker="v", ms=4.5, ls="none"),
-         L([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.3)]
-    l = ["Ours, LoopBridge (m/1)", "Ours, fixed m=4, 4/1", "Distilled 1/1", "Distilled 1/1, rank 80", "Original n/n"]
+                ax.scatter(*p, marker=m, s=sz, zorder=4, facecolors=fill or col, edgecolors=col, lw=1.0)
+    # time-matched comparison at LoopBridge 4/1 (Section 5.5): the grey segment at the same mean time
+    (x1, y1), (x2, y2) = nat[0][0], nat[1][0]
+    xo, yo = point("a4x1pm")
+    ym = y1 + (xo - x1) / (x2 - x1) * (y2 - y1)
+    ax.annotate("", (xo, yo - 1.0), xytext=(xo, ym + 1.2), arrowprops=dict(arrowstyle="->", color=INK, lw=0.9), zorder=5)
+    ax.text(xo + 0.45, (yo + ym) / 2, f"+{yo - ym:.0f} at the\nsame time", fontsize=6.5, color=INK, va="center", ha="left")
+    ax.text(12.55, 51.0, "one decode loop", ha="center", va="bottom", fontsize=6.5, color=NAT)
+    ax.text(20.75, 70.8, "two decode loops", ha="center", va="top", fontsize=6.5, color=NAT)
+    ax.set_xlim(9.0, 23.5); ax.set_ylim(21.5, 72)
+    ax.set_xlabel("seconds per request"); ax.set_ylabel("mean accuracy (%)")
+    ax.grid(color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
+    L = plt.Line2D
+    h = [L([], [], color=OURS, marker="s", ms=4.5, ls="none"), L([], [], color=OURS, marker="D", ms=4, ls="none"),
+         L([], [], color=DIST, marker="^", ms=5, ls="none"), L([], [], color=DIST, marker="v", ms=5, ls="none"),
+         L([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4)]
+    l = ["Ours, LoopBridge, 4/n", "Ours, fixed m=4, 4/n", "Distilled n/n", "Distilled n/n, rank 80", "Original n/n"]
     fig.legend(h, l, fontsize=6.5, loc="lower center", frameon=False, handlelength=1.6, ncol=2, columnspacing=1.0)
-    fig.subplots_adjust(left=0.15, right=0.97, top=0.95, bottom=0.34)
+    fig.subplots_adjust(left=0.15, right=0.97, top=0.97, bottom=0.36)
     save(fig, name)
 
 
@@ -937,7 +903,7 @@ def tab_longctx():
 def tab_time():
     """Appendix: per-request distributions behind Figure 1 (100 requests per task, batch 1)."""
     rows = [r for r in PN.get("time_breakdown", []) if "total_median" in r]
-    confs = [("a1x1sb", "Ours 1/1"), ("a1x2sb", "Ours 1/2"), ("native1st", "Original 1/1"), ("native2st", "Original 2/2"),
+    confs = [("a4x1pm", "Ours 4/1"), ("a4x2pm", "Ours 4/2"), ("native1st", "Original 1/1"), ("native2st", "Original 2/2"),
              ("native4st", "Original 4/4")]
     lines = []
     for t in TIMED:

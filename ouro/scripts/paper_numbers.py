@@ -431,6 +431,8 @@ def keys():
     ks |= {k for _, k, _ in REPRO}
     ks |= {k.replace("S42", c) for _, _, ka, _ in equal_specs() for k in (ka,) for c in ("a42", "a22")}
     ks |= {main_key(b, kind, c, "Ouro-1.4B") for b in MAIN_BENCH for _, kind, c in MAIN_ROWS}
+    ks |= {seed14_key(main_key(b, kind, c, "Ouro-1.4B"), sd) for b in MAIN_BENCH
+           for kind, c in (("aligned", "a41"), ("dist", 1), ("fixed4", "a41")) for sd in SEEDS_14}
     ks |= {main_key(b, "aligned", f"a{m}{n}") for b in MAIN_BENCH for m in range(1, 5) for n in range(1, 5)}
     ks |= {main_key("GSM8K", kind, c).replace(GF, GFLEX) for _, kind, c in MAIN_ROWS}
     ks |= {sweep_key(b, m, n, w) for b in MAIN_BENCH for m in SWEEP_M for n in (1, 2) for w in (False, True)}
@@ -942,6 +944,8 @@ def main_key(bench, kind, c, model="Ouro-2.6B"):
     if kind == "dist80":   # rank-80 LoRA (as many trainable parameters as the adapter), RANK=80 launch_x26_distill.sh
         return dkey.format(d=DISTILLED[c] + "r80") if model == "Ouro-2.6B" else f"L:none-{kind}-{c}:none"
     if kind == "fixed4":   # trained only at prefill 4 with identity maps (launch_variant.sh fixed4, runs X26f4-a4<n>)
+        if model == "Ouro-1.4B" and c == "a41":   # runs_scripts/fixed14.sh: O14xf4-a41-<task>, RULER O14f4-a41f
+            return main_key(bench, "aligned", c, model).replace("O14x-", "O14xf4-", 1).replace("B:O14-", "B:O14f4-", 1)
         if model != "Ouro-2.6B":
             return f"L:none-{kind}-{c}:none"   # no such control for the other checkpoints: the row stays empty
         return main_key(bench, "aligned", c).replace("X26-", "X26f4-", 1)
@@ -1018,7 +1022,7 @@ LM_RULES = {"gsm8k_cot": (r"The answer is (\-?[0-9\.\,]+).", dict(case=True, dro
             "bbh": (r"(?<=the answer is )(.*)(?=.)", {}),
             "mmlu_pro": (r"answer is \(?([ABCDEFGHIJ])\)?", dict(case=True, punct=True))}
 OVERHEAD_PRINTED = (19, 40)   # Limitations: adapter decode time per token vs Original at the same decode loops (%)
-TIME_TASKS = {"gsmfull": "GSM8K", "math": "MATH-500", "bbh": "BBH", "mmlupro": "MMLU-Pro"}
+TIME_TASKS = {"gsmfull": "GSM8K", "math0shot": "MATH-500", "bbh": "BBH", "mmlupro": "MMLU-Pro"}   # MATH-500 zero-shot as in Table 1 (time_math0.sh)
 
 
 _REPLAY_CACHE = None
@@ -1159,18 +1163,14 @@ def batched_serving(reps=5000):
             print(f"Batched      batch {b:2d} {a:10s} vs {c:10s} n={row['n']}  acc {row['diff']:+5.1f} [{row['lo']:+5.1f},"
                   f" {row['hi']:+5.1f}]  time x{row['ratio']:.2f}")
     # Section 5.5, introduction and Limitations (batch 32)
-    want = {"a4x1pm vs native1st@32": ((14.5, 9.0, 19.8), 1.15), "a4x1pm vs D1st@32": ((8.0, 2.8, 13.5), 1.16),
-            "native2st vs a4x1pm@32": (None, 1.52), "D2st vs a4x1pm@32": (None, 1.44)}   # mean of three passes
+    want = {"a4x1pm vs native1st@32": ((20.5, 15.5, 25.8), 1.21), "a4x1pm vs D1st@32": ((13.0, 8.0, 18.2), 1.18)}   # mean of three passes
     for k, (acc, ratio) in want.items():
         r = out.get(k)
         if r and ((acc and (r["diff"], r["lo"], r["hi"]) != acc) or r["ratio"] != ratio):
             print(f"Batched      {k}: {r}  !! paper: {acc} x{ratio}")
     r = out.get("a4x1pm@32")
-    if r and round(r["prefill_pct"]) != 27:
-        print(f"Batched      a4x1pm@32 prefill {r['prefill_pct']}%  !! paper: 27%")
-    r = out.get("D2r80st@32")
-    if r and out.get("a4x1pm@32") and not 1.44 <= round(r["s_per_request"] / out["a4x1pm@32"]["s_per_request"], 2) <= 1.52:
-        print(f"Batched      D2r80st@32 / a4x1pm@32 outside 1.44-1.52  !! paper")
+    if r and round(r["prefill_pct"]) != 26:
+        print(f"Batched      a4x1pm@32 prefill {r['prefill_pct']}%  !! paper: 26%")
     return out
 
 
@@ -1273,7 +1273,44 @@ def thinking_batched(reps=5000):
 
 BUDGET_PAIRS = [("a4x1pm", "native1st"), ("a4x1pm", "D1st"), ("a4x1pm", "D1r80st"), ("a4x2pm", "D2st"),
                 ("a4x2pm", "D2r80st"), ("a4x2pm", "f4x2pm"), ("a4x2pm", "native2st"), ("a3x2pm", "D2st"),
-                ("native2st", "a4x1pm"), ("f4x1pm", "native1st"), ("f4x1pm", "D1st")]   # Ours fixed m=4 (Figure 3)
+                ("native2st", "a4x1pm"), ("f4x1pm", "native1st"), ("f4x1pm", "D1st"),   # Ours fixed m=4 (Figure 3)
+                ("f4x2pm", "native2st"), ("f4x2pm", "D2st"), ("f4x2pm", "D2r80st")]   # two decode loops
+
+
+def time_matched(reps=5000):
+    """Section 5.5: accuracy at the same mean time per request. A baseline family (Original or Distilled) can reach any
+    mean time between its one- and two-loop settings by serving a fraction p of the requests with two loops; its
+    accuracy is then linear in p. For each of our one-decode-loop models, p is set so that the mix has our mean time,
+    and the paired bootstrap over the 400 timed requests resamples requests (and so both times and scores)."""
+    out = {}
+    fams = {"Original": ("native1st", "native2st"), "Distilled": ("D1st", "D2st")}
+    for ours in ("a4x1pm", "f4x1pm"):
+        O = timed_requests(ours)
+        for fam, (c1, c2) in fams.items():
+            A, B = timed_requests(c1), timed_requests(c2)
+            ids = sorted(set(O) & set(A) & set(B))
+            if len(ids) < 400:
+                print(f"Time-matched {ours} vs {fam}: MISSING"); continue
+            arr = lambda D, k: np.array([D[i][k] for i in ids])
+            qo, to, q1, t1, q2, t2 = arr(O, 0), arr(O, 1), arr(A, 0), arr(A, 1), arr(B, 0), arr(B, 1)
+            def gap(ix):
+                T1, T2, TO = t1[ix].mean(), t2[ix].mean(), to[ix].mean()
+                p = float(np.clip((TO - T1) / (T2 - T1), 0, 1))
+                return 100 * (qo[ix].mean() - ((1 - p) * q1[ix].mean() + p * q2[ix].mean())), p
+            d, p = gap(np.arange(len(ids)))
+            rng = np.random.default_rng(0)
+            ds = [gap(rng.integers(0, len(ids), len(ids)))[0] for _ in range(reps)]
+            row = dict(ours=ours, family=fam, n=len(ids), p=round(p, 3), mix_acc=round(100 * ((1 - p) * q1.mean() + p * q2.mean()), 1),
+                       ours_acc=round(100 * qo.mean(), 1), diff=round(d, 1), lo=round(float(np.percentile(ds, 2.5)), 1),
+                       hi=round(float(np.percentile(ds, 97.5)), 1))
+            out[f"{ours} vs {fam}"] = row
+            want = {("a4x1pm", "Original"): (33.9, 13.3, 5.8, 20.8), ("a4x1pm", "Distilled"): (38.6, 8.7, 1.5, 15.8),
+                    ("f4x1pm", "Original"): (31.5, 15.0, 7.9, 21.9), ("f4x1pm", "Distilled"): (36.7, 9.8, 3.2, 15.7)}[(ours, fam)]
+            if (row["mix_acc"], row["diff"], row["lo"], row["hi"]) != want:   # Section 5.5, Figure 6
+                print(f"Time-matched {ours} vs {fam}: {row}  !! paper: {want}")
+            print(f"Time-matched {ours} vs {fam:9s} mix of {c1}/{c2} with p={row['p']:.3f}: {row['mix_acc']:5.1f} vs "
+                  f"{row['ours_acc']:5.1f}  {row['diff']:+5.1f} [{row['lo']:+5.1f}, {row['hi']:+5.1f}]")
+    return out
 
 
 def budget_pairs(reps=5000):
@@ -1296,16 +1333,13 @@ def budget_pairs(reps=5000):
                    ratio=round(float(ta.sum() / tb.sum()), 2), ratio_lo=round(float(np.percentile(rt, 2.5)), 2),
                    ratio_hi=round(float(np.percentile(rt, 97.5)), 2))
         out.append(row)
-        want = {("a4x1pm", "native1st"): (14.2, 9.0, 19.8), ("a4x1pm", "D1st"): (7.0, 1.8, 12.5),
-                ("native2st", "a4x1pm"): (15.5, 10.2, 20.8), ("f4x1pm", "native1st"): (15.0, 9.8, 20.5),
-                ("f4x1pm", "D1st"): (7.8, 2.5, 13.2)}.get((a, b))   # Section 5
+        want = {("a4x1pm", "native1st"): (20.0, 15.0, 25.2), ("a4x1pm", "D1st"): (12.0, 6.5, 17.5),
+                ("f4x1pm", "native1st"): (19.2, 14.0, 24.5), ("f4x1pm", "D1st"): (11.2, 6.0, 16.5)}.get((a, b))   # Section 5.5
         if want and (row["diff"], row["diff_lo"], row["diff_hi"]) != want:
             print(f"Budget pair  {a} vs {b}: {row}  !! paper: {want}")
-        if (a, b) == ("native2st", "a4x1pm") and row["ratio"] != 1.40:
-            print(f"Budget pair  time ratio {row['ratio']}  !! paper: 1.40")
-        if a == "a4x2pm" and b in ("D2st", "D2r80st", "f4x2pm") and not (row["diff_lo"] < 0 < row["diff_hi"]
-                                                                          and -1.5 <= row["diff"] <= 0.5):
-            print(f"Budget pair  {a} vs {b}: {row}  !! paper: within [-1.5, +0.5], interval contains 0")
+        if a in ("a4x2pm", "f4x2pm") and b in ("native2st", "D2st") and not (0.87 <= row["ratio"] <= 0.96
+                                                                             and 1.75 <= row["diff"] <= 5.0):
+            print(f"Budget pair  {a} vs {b}: {row}  !! paper (Section 5.5): 0.87-0.96 of the time, 2 to 5 points higher")
         print(f"Budget pair  {a:10s} vs {b:10s} n={row['n']}  acc {row['diff']:+5.1f} [{row['diff_lo']:+5.1f}, {row['diff_hi']:+5.1f}]"
               f"  time x{row['ratio']:.2f} [{row['ratio_lo']:.2f}, {row['ratio_hi']:.2f}]")
     return out
@@ -1361,7 +1395,8 @@ def time_breakdown():
                         decode_s=round(sum(r["gen_s"] for r in rows) / len(rows), 3), total_s=round(tot / len(rows), 3),
                         prefill_share=round(100 * pre / tot, 3), in_tokens=round(float(np.mean([r["prompt_tokens"] for r in rows])), 1),
                         out_tokens=round(float(np.mean([r["new_tokens"] for r in rows])), 1)))
-    for conds, want in ((("native1st", "native2st", "native4st", "a1x1sb", "a1x2sb"), (0.3, 2.8)),):   # Section 3
+    for conds, want in ((("native1st",), (0.4, 2.8)), (("native1st", "native2st", "native4st"), (0.3, 2.8)),
+                        (("a4x1pm", "a4x2pm", "f4x1pm", "f4x2pm"), (0.5, 4.8))):   # abstract, Section 5.1 (folded maps)
         sh = [r["prefill_share"] for r in out if r["model"] == "Ouro-2.6B" and r["cond"] in conds]
         if len(sh) == 4 * len(conds):   # range of the prefill share over the four timed tasks
             got = (round(min(sh), 1), round(max(sh), 1))
@@ -1374,11 +1409,10 @@ def time_breakdown():
         mp = {c: round(next(r["out_tokens"] for r in v if r["task"] == "MMLU-Pro")) for c, v in base.items()}
         got = (round(q["a1x1pm"], 1), round(q["a4x1pm"], 1), round(100 * (t["a4x1pm"] / t["a1x1pm"] - 1)),
                o["a1x1pm"], o["a4x1pm"], mp["a1x1pm"], mp["a4x1pm"])
-        want = (31.2, 41.2, 16, 276, 319, 134, 397)
-        print(f"Time         abstract: quality, time %, out tokens, MMLU-Pro out tokens {got}" + ("" if got == want else f"  !! paper: {want}"))
-    for c, w in (("a4x1pm", (41.2, 11.2)), ("native1st", (27.0, 11.1)), ("D1st", (34.2, 10.2)), ("native2st", (56.8, 15.7)),
-                 ("a3x2pm", (59.5, 16.1)), ("a4x2pm", (59.0, 17.2)), ("D2st", (58.5, 16.1)), ("D2r80st", (60.5, 15.5)),
-                 ("f4x2pm", (59.5, 15.5)), ("f4x1pm", (42.0, 10.9)), ("a4x1sb", (43.0, None))):
+        print(f"Time         prefill 1 -> 4 at decode 1: quality, time %, out tokens, MMLU-Pro out tokens {got} (not quoted)")
+    for c, w in (("a4x1pm", (47.2, 13.0)), ("native1st", (27.2, 10.9)), ("D1st", (35.2, 11.7)), ("native2st", (60.5, 21.0)),
+                 ("a4x2pm", (63.5, 20.3)), ("D2st", (61.8, 22.1)), ("f4x2pm", (65.5, 19.3)), ("f4x1pm", (46.5, 12.2)),
+                 ("a4x1sb", (47.5, None))):   # Section 5.5, Figure 6, Appendix A
         v = [r for r in out if r["model"] == "Ouro-2.6B" and r["cond"] == c]   # abstract and Section 5, batch 1
         if len(v) == 4:
             got = (round(float(np.mean([r["quality"] for r in v])), 1), round(float(np.mean([r["total_s"] for r in v])), 1))
@@ -1400,13 +1434,29 @@ def time_breakdown():
             print(f"Time         decode time per token {ours} vs {nat}: +{over[-1]:.0f}%")
     if len(over) == 4:
         got = (round(min(over)), round(max(over)))
-        print(f"Time         decode overhead range {got}" + ("" if got == OVERHEAD_PRINTED else f"  !! paper: {OVERHEAD_PRINTED}"))
+        print(f"Time         decode overhead range {got} (per-step maps; not quoted in the paper)")
     ms = lambda v: sum(r["decode_s"] for r in v) / sum(r["out_tokens"] for r in v)
     folded = [100 * (ms(tok(a)) / ms(tok(b)) - 1) for a, b in (("a1x1pm", "native1st"), ("a4x1pm", "native1st"),
               ("a1x2pm", "native2st"), ("a3x2pm", "native2st"), ("a4x2pm", "native2st")) if len(tok(a)) == len(tok(b)) == 4]
-    if len(folded) == 5:   # Section 5: folded maps within 10% of the original model per decode token
+    if len(folded) == 5:   # Section 5.5: with folded maps LoopBridge decodes each token no slower than the original model
         print(f"Time         folded maps decode per token vs Original: {[round(x) for x in folded]}"
-              + ("" if max(abs(x) for x in folded) < 10 else "  !! paper: within 10%"))
+              + ("" if max(folded) <= 0 else "  !! paper: no slower"))
+    # Appendix A: answers that run to the length limit on MMLU-Pro (clean pass; the answers are the same in every pass)
+    cap = {}
+    for c in ("a4x1pm", "f4x1pm", "D1st", "native1st"):
+        f = E2E / f"clean-{c}-mmlupro.jsonl"
+        if f.exists():
+            cap[c] = sum(json.loads(l)["stop"] == "length" for l in open(f))
+    if len(cap) == 4:
+        want = {"a4x1pm": 14, "f4x1pm": 11, "D1st": 8, "native1st": 2}
+        print(f"Time         MMLU-Pro answers at the length limit (of 100): {cap}" + ("" if cap == want else f"  !! paper: {want}"))
+    # Appendix A: 90th-percentile prefill share over the rows of Table 4
+    p90 = {t: [r["share_p90"] for r in out if r["model"] == "Ouro-2.6B" and r["task"] == t and "share_p90" in r
+               and r["cond"] in ("a4x1pm", "a4x2pm", "native1st", "native2st", "native4st")] for t in TIME_TASKS.values()}
+    if all(len(v) == 5 for v in p90.values()):
+        got = (max(p90["MATH-500"]) < 2, round(max(p90["GSM8K"] + p90["BBH"])), (round(min(p90["MMLU-Pro"])), round(max(p90["MMLU-Pro"]))))
+        print(f"Time         p90 prefill share: MATH < 2%, GSM8K/BBH max, MMLU-Pro range {got}"
+              + ("" if got == (True, 8, (6, 17)) else "  !! paper: (True, 8, (6, 17))"))
     want = {"native2st": (44.0, 1.37), "Df2st": (54.2, 1.31), "a42sb": (59.1, 2.10), "native4st": (65.7, 2.33)}   # Section 5
     share = {"native2st": 27, "native4st": 30}   # Section 3, HELMET prefill share (rounded)
     for r in out:
@@ -1985,7 +2035,7 @@ def timing_repeat():
         d = [abs(r["total_diff"]) for r in out if r["pass_"] == p]
         if d:
             got = (round(float(np.median(d)), 1), round(max(d), 1), len(d))
-            bad = p == "clean3" and got != (5.9, 22.5, 128)   # Appendix (Per-Request Time)
+            bad = False   # the spread is not quoted any more; Appendix A only states that the answers are identical
             same = min(r["same_text"] for r in out if r["pass_"] == p)
             print(f"Repeat time  {p:6s} vs previous pass: |difference in time per request| median {got[0]:.1f}%, "
                   f"max {got[1]:.1f}% over {got[2]} configuration-task cells, min same answer {same:.2f}"
@@ -2015,10 +2065,25 @@ def gsm_protocol():
     return out
 
 
+SEEDS_14 = (2, 3)   # Ouro-1.4B training seeds 2 and 3 (runs_scripts/seed14.sh)
+SEEDS14_OUT = {}
+
+
+def seed14_key(key, sd):
+    """Item key of another training seed of an Ouro-1.4B Table 9 row: LoopBridge 4/1 (O14xs<k>-a41-*, RULER
+    O14s<k>-a41f) or Distilled 1/1 (O14x-E48fs<k>-*, RULER O14-E48fs<k>f)."""
+    return (key.replace("O14x-a41-", f"O14xs{sd}-a41-").replace("B:O14-a41f:", f"B:O14s{sd}-a41f:")
+               .replace("O14x-E48f-", f"O14x-E48fs{sd}-").replace("B:O14-E48ff:", f"B:O14-E48fs{sd}f:")
+               .replace("O14xf4-a41-", f"O14xf4s{sd}-a41-").replace("B:O14f4-a41f:", f"B:O14f4s{sd}-a41f:"))
+
+
 def main_table_14():
     """Appendix: Table 1 on Ouro-1.4B with its own adapters and controls (GSM8K 400 and MMLU 20 per subject, as its
-    task map); each benchmark on the items all rows share."""
+    task map); each benchmark on the items all rows share. LoopBridge 4/1 and Distilled 1/1 also over SEEDS_14
+    (11-benchmark mean and s.d. over seeds, on the items all seeds of the row share)."""
     out = []
+    seed_rows = {"aligned adapter 4/1": ("aligned", "a41"), "LoRA-distilled 1/1": ("dist", 1), "fixed-4 LoRA 4/1": ("fixed4", "a41")}
+    per_seed = {label: [] for label in seed_rows}
     for bench in MAIN_BENCH:
         sets = {label: load(main_key(bench, kind, c, "Ouro-1.4B")) for label, kind, c in MAIN_ROWS}
         have = [v for v in sets.values() if v]
@@ -2026,6 +2091,20 @@ def main_table_14():
         out.append(dict(bench=bench, items=len(ids),
                         **{label: (round(100 * float(np.mean([v[i] for i in ids])), 2) if v else None)
                            for label, v in sets.items()}))
+        for label, (kind, c) in seed_rows.items():
+            k = main_key(bench, kind, c, "Ouro-1.4B")
+            vs = [load(k)] + [load(seed14_key(k, sd)) for sd in SEEDS_14]
+            if all(vs):
+                sid = set.intersection(*(set(v) for v in vs))
+                per_seed[label].append([100 * float(np.mean([v[i] for i in sid])) for v in vs])
+            else:
+                per_seed[label].append(None)
+    for label, rows in per_seed.items():
+        if None not in rows:
+            avgs = [float(np.mean(x)) for x in zip(*rows)]
+            print(f"Main 1.4B    {label:20s} seeds: " + " ".join(f"{a:5.1f}" for a in avgs)
+                  + f"  mean {np.mean(avgs):5.1f} sd {np.std(avgs, ddof=1):.1f}")
+            SEEDS14_OUT[label] = [round(a, 2) for a in avgs]   # exported as main_table_14_seeds
     want = {"native 1/1": 34.7, "LoRA-distilled 1/1": 40.5, "aligned adapter 4/1": 44.5}   # Appendix (Ouro-1.4B)
     for label, _, _ in MAIN_ROWS:
         vals = [r[label] for r in out]
@@ -2478,7 +2557,7 @@ def _compute(counter):
         print(f"{sec:12s} {label:52s} {means[-1]['mean']:6.1f}  n={len(s)}")
     e2e_rows, ratios = e2e_table()
     _TB = time_breakdown()   # printed once (its checks count); later callers reuse it through time_breakdown_rows
-    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), sn_equal=sn_equal(), taskmap_select=taskmap_select(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), batched_serving=batched_serving(), thinking_batched=thinking_batched(), batched_serving_14=batched_serving_14(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
+    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), sn_equal=sn_equal(), taskmap_select=taskmap_select(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), time_matched=time_matched(), batched_serving=batched_serving(), thinking_batched=thinking_batched(), batched_serving_14=batched_serving_14(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), main_table_14_seeds=SEEDS14_OUT, aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
     print(f"wrote {OUT}; {counter.flags} printed values differ ({bad} in the paired comparisons)")
 
 

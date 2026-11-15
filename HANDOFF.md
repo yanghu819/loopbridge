@@ -26,8 +26,9 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 - **Seeds in Table 1 caption** (zero-shot MATH): fixed 58.3+-0.2 / 69.0+-0.3, LoopBridge 58.3+-0.1 / 68.6+-0.4,
   Distilled 49.6+-0.3 / 66.1+-0.1, rank 80 49.2 (2 seeds) / 65.6+-0.2.
 - **2026-11-15: MATH-500 zero-shot everywhere** (runs `<name>-math0shot`, `TASK_MAP`, `MATH0_ROWS`). The timed requests
-  are being re-timed with the zero-shot prompt (`runs_scripts/time_math0.sh` on idle a2, files `*-math0shot.jsonl`);
-  until `TIME_TASKS` is switched to `math0shot`, Figures 2/6/9/13 and Section 5.5 still use the 4-shot timing. 42
+  were re-timed with the zero-shot prompt (`runs_scripts/time_math0.sh`, files `*-math0shot.jsonl`, `TIME_TASKS`
+  switched 11-15); Section 5.5 now reports +20 points for 12-19% more time and +13-15 at the same mean time
+  (`time_matched()`), Figure 6 is the accuracy-time frontier. 42
   depth-sweep cells missing a zero-shot run are being filled on a1 (`m0fill_q.txt`). Ouro-1.4B seeds 2/3
   (`runs_scripts/seed14.sh`) training on a1. LoopBridge at m = n = 4 is not ours (nothing untied): Figure 4 and
   Table 8 show n <= 3 (4/4 MATH-500 is 65.6 vs 72.2 for the original).

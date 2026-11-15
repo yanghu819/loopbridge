@@ -21,9 +21,11 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
    44.2 (original model) to 58.6 (fixed-depth adapter) and 58.2 (LoopBridge), above the original model distilled to
    one loop on the same data (49.5; 49.3 at rank 80); with two decode loops, 63.7 -> 69.0 / 69.1. Both adapters beat
    the original 1/1 on all 11 benchmarks. MATH-500 is scored zero-shot (Minerva prompt without exemplars).
-3. **Same measured time, more accuracy.** At one decode loop and about 11 s per request, +15.0 and +14.2 points over
-   the original model and +7.8 and +7.0 over the distilled one (paired over 400 requests). Served with continuous
-   batching at batch 32, LoopBridge 4/1 keeps +14.5 / +8.0 points for 1.15x / 1.16x their time per request.
+3. **A little more time, much more accuracy.** At one decode loop, our models take 12-19% more time per request than
+   the original model and are +19.2 / +20.0 points more accurate (+11.2 / +12.0 over the distilled one; paired over 400
+   timed requests, MATH-500 zero-shot). At the same mean time they beat a mix of the original model's 1/1 and 2/2
+   settings by 13-15 points. With two decode loops they take 0.87-0.96x the time of Original 2/2 and Distilled 2/2 and
+   score 2-5 points higher. Served at batch 32, LoopBridge 4/1 keeps +20.5 / +13.0 points for 1.21x / 1.18x their time.
 4. **A few prefill loops suffice.** The gain peaks after two to five prefill loops (also for an adapter trained up to
    16 loops, over seeds, and when the prefill loops are trained too).
 5. **It transfers** to Ouro-1.4B, Ouro-2.6B-Thinking (prefill 4 / decode 2 within 1.3 points of the original 4/4 on average;

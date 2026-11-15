@@ -458,3 +458,14 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
 - Ouro-1.4B training seeds 2 and 3 (`seed14.sh`): LoopBridge O14-a-seed2 (a1 GPUs 0-3), Distilled 1/1
   X14-E48f-p1d1-s2 (a1 5-7) and -s3 (a1 4); seed 3 of LoopBridge still to start. Each queues its 1.4B benchmarks.
 - Guards of results no longer in the paper (per-task depth selection, Ouro-1.4B batched) now print without `!!`.
+- Zero-shot MATH re-timing done (a2, 16:44): `TIME_TASKS` now uses `math0shot`; Table 4 shows Ours 4/1 and 4/2 (folded
+  maps). Batch 1, one decode loop: LoopBridge 47.2 at 13.0 s, fixed 46.5 at 12.2 s, Original 1/1 27.2 at 10.9 s,
+  Distilled 1/1 35.2 at 11.7 s; paired +20.0 [15.0, 25.2] / +12.0 [6.5, 17.5] (fixed +19.2 / +11.2). Per decoded token
+  ours is no slower (35.7 vs 36.3 ms); the extra time is MMLU-Pro answers that run to the 2,048-token limit (14/100
+  LoopBridge 4/1, 11 fixed, 8 Distilled 1/1, 2 Original 1/1; half are repetition loops). New `time_matched()`: at our
+  mean time a mix of Original 1/1+2/2 scores 33.9 -> +13.3 [5.8, 20.8] (fixed +15.0), Distilled mix +8.7 / +9.8.
+  Two decode loops: ours take 0.87-0.96x the time of Original 2/2 / Distilled 2/2 and score +1.8..+5.0. Batch 32:
+  +20.5 / +13.0 at 1.21x / 1.18x. Figure 6 is now the accuracy-time frontier (both decode depths, arrow = time-matched
+  gap); the bars moved to Appendix A (Figure 9).
+- Ouro-1.4B "Ours, fixed m=4" (`runs_scripts/fixed14.sh`, O14-a-fixed4-lora[-s2], evals O14xf4[s2]-a41-*) training on
+  a2 GPUs 0-3 / 4-7 so Table 9 can show both adapters; LoopBridge and Distilled seeds 2/3 on a1.
