@@ -97,9 +97,8 @@ loop, Ouro-2.6B averages 28.7 points over 11 benchmarks. That is far below the 4
 (Table~\ref{tab:main}). Its decoder has never seen prompt states from more loops than it runs itself.
 
 We fix this with a small adapter, distilled from the original four-loop model (Section~\ref{sec:method}). If the
-prefill depth is fixed, LoRA on the decoder is enough. LoopBridge goes one step further. One adapter serves every pair
-of prefill and decode loop counts. Small key and value maps keep retrieval over 16K-token prompts working. We fold
-these maps into the prompt cache, so each decoded token costs the same as in the original model. On Ouro-2.6B we find:
+prefill depth is fixed, LoRA on the decoder is enough. LoopBridge goes one step further. One adapter serves every trained pair of prefill and decode loop counts. Small key and value maps keep retrieval over 16K-token prompts working. We fold these maps into the prompt cache, so each decoded token costs
+about the same as in the original model. On Ouro-2.6B we find:
 \begin{itemize}\setlength\itemsep{1pt}
 \item \textbf{Same decode loops, much higher accuracy.} With one decode loop, four prefill loops lift the 11-benchmark
 average from 44.2 to 58.6 with the fixed-depth adapter (58.2 with LoopBridge). The original model distilled to one
