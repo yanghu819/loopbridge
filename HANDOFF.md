@@ -28,7 +28,12 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 - **2026-11-15: MATH-500 zero-shot everywhere** (runs `<name>-math0shot`, `TASK_MAP`, `MATH0_ROWS`). The timed requests
   were re-timed with the zero-shot prompt (`runs_scripts/time_math0.sh`, files `*-math0shot.jsonl`, `TIME_TASKS`
   switched 11-15); Section 5.5 now reports +20 points for 12-19% more time and +13-15 at the same mean time
-  (`time_matched()`), Figure 6 is the accuracy-time frontier. 42
+  (`time_matched()`), Figure 6 is the accuracy-time frontier.
+  11-15 late: agy (Antigravity, pro) co-edits and reviews (helpers in ~/.b300-handoff/agy; Codex out of quota to 11-17);
+  Ouro-1.4B seeds (44.2+-0.2 vs 40.5+-0.0) and BBH stop-rule check (*-bbhq) in Table 9; Thinking results switched to
+  the main LoopBridge (equal_aligned); speculative-decoding drafter check (spec_agree.sh) kept out of the paper (NOTES);
+  second timed block (time_set2.sh, USE_SET2) and Ouro-1.4B fixed m=4 / rank-80 Distilled rows (fixed14.sh,
+  dist14r80.sh) in flight. 42
   depth-sweep cells missing a zero-shot run are being filled on a1 (`m0fill_q.txt`). Ouro-1.4B seeds 2/3
   (`runs_scripts/seed14.sh`) training on a1. LoopBridge at m = n = 4 is not ours (nothing untied): Figure 4 and
   Table 8 show n <= 3 (4/4 MATH-500 is 65.6 vs 72.2 for the original).

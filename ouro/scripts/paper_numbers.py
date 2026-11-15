@@ -874,6 +874,18 @@ def equal(arm="S"):
               f"{row['vs4'][0]:+5.1f} [{row['vs4'][1]:+.1f}, {row['vs4'][2]:+.1f}]"
               + (f" | same 2/2 {row['same22']:5.1f} {row['vs22'][0]:+5.1f} [{row['vs22'][1]:+.1f}, {row['vs22'][2]:+.1f}]"
                  if "same22" in row else ""))
+    T = [r for r in out if r["model"] == "2.6B-T"]
+    if arm == "a" and len(T) == 8 and all("vs22" in r for r in T):   # Section 5.7, introduction, Appendix D.1
+        gap = round(float(np.mean([r["native4"] for r in T]) - np.mean([r["ours"] for r in T])), 1)
+        above = sum(r["vs2"][0] > 0 for r in T)
+        below = round(max(-r["vs2"][0] for r in T if r["vs2"][0] <= 0), 1)
+        up = {r["bench"]: round(r["vs2"][0]) for r in T if r["bench"] in ("HELMET", "MMLU-Pro", "BBH")}
+        near4 = sum(r["vs4"][0] >= -2 for r in T)
+        s22 = (sum(r["vs22"][0] > 0 for r in T), round(max(r["vs22"][0] for r in T), 1))
+        got = (gap, above, below, up, near4, s22)
+        want = (0.8, 6, 0.5, {"MMLU-Pro": 8, "BBH": 8, "HELMET": 15}, 6, (8, 9.5))
+        print(f"Equal a      2.6B-T LoopBridge 4/2: gap to 4/4, above 2/2, worst below, gains, within 2 of 4/4, same 2/2 lower {got}"
+              + ("" if got == want else f"  !! paper: {want}"))
     return out
 
 
@@ -1023,6 +1035,8 @@ LM_RULES = {"gsm8k_cot": (r"The answer is (\-?[0-9\.\,]+).", dict(case=True, dro
             "bbh": (r"(?<=the answer is )(.*)(?=.)", {}),
             "mmlu_pro": (r"answer is \(?([ABCDEFGHIJ])\)?", dict(case=True, punct=True))}
 OVERHEAD_PRINTED = (19, 40)   # Limitations: adapter decode time per token vs Original at the same decode loops (%)
+USE_SET2 = False   # the second block of timed requests (time_set2.sh, files clnB*-*) once every condition has it
+TIME_BLOCKS = (("clean", "clean3"),) + ((("clnB", "clnB3"),) if USE_SET2 else ())   # passes of each request block
 TIME_TASKS = {"gsmfull": "GSM8K", "math0shot": "MATH-500", "bbh": "BBH", "mmlupro": "MMLU-Pro"}   # MATH-500 zero-shot as in Table 1 (time_math0.sh)
 
 
@@ -1087,15 +1101,18 @@ def timed_requests(cond, model="Ouro-2.6B"):
     request's time averaged over the clean passes (clean, clean3), as in time_breakdown; {} if a task is missing."""
     out = {}
     for task in TIME_TASKS:
-        use = [f for f in (E2E / f"clean-{cond}-{task}.jsonl", E2E / f"clean3-{cond}-{task}.jsonl") if f.exists()]
-        passes = [[json.loads(l) for l in open(f)] for f in use]
-        passes = [p for p in passes if len(p) >= 100]
-        if not passes:
-            return {}
-        by_id = [{r["id"]: r for r in p} for p in passes]
-        for r in passes[0]:
-            t = float(np.mean([b[r["id"]]["total_s"] for b in by_id if r["id"] in b]))
-            out[f"{task}/{r['id']}"] = (replay_score(r["id"], r["text"], r["target"]), t)
+        for i, block in enumerate(TIME_BLOCKS):
+            use = [E2E / f"{p}-{cond}-{task}.jsonl" for p in block]
+            passes = [[json.loads(l) for l in open(f)] for f in use if f.exists()]
+            passes = [p for p in passes if len(p) >= 100]
+            if not passes:
+                if i == 0:
+                    return {}
+                continue
+            by_id = [{r["id"]: r for r in p} for p in passes]
+            for r in passes[0]:
+                t = float(np.mean([b[r["id"]]["total_s"] for b in by_id if r["id"] in b]))
+                out[f"{task}/{r['id']}"] = (replay_score(r["id"], r["text"], r["target"]), t)
     return out
 
 
@@ -1407,21 +1424,27 @@ def time_breakdown():
     # orders) replace the first pass (base-, some of whose GPUs also ran evaluations); with several clean passes each
     # request's times are averaged over them (the replayed answers are the same in every pass).
     files = {}
-    for f in sorted(E2E.glob("base-*.jsonl")) + sorted(E2E.glob("thinkb-*.jsonl")) + sorted(E2E.glob("clean*-*.jsonl")):
+    extra = sorted(E2E.glob("clnB*-*.jsonl")) if USE_SET2 else []
+    for f in sorted(E2E.glob("base-*.jsonl")) + sorted(E2E.glob("thinkb-*.jsonl")) + sorted(E2E.glob("clean*-*.jsonl")) + extra:
         model = "Ouro-2.6B-Thinking" if f.stem.startswith("thinkb-") else "Ouro-2.6B"
         src, rest = f.stem.split("-", 1)
         cond, task = rest.rsplit("-", 1)
         if task in TIME_TASKS and sum(1 for _ in open(f)) >= 100:
             files.setdefault((model, cond, task), {})[src] = f
     for (model, cond, task), by_src in sorted(files.items()):
-        clean = [by_src[k] for k in sorted(by_src) if k.startswith("clean")]
-        use = clean or list(by_src.values())
-        passes = [[json.loads(l) for l in open(g)] for g in use]
-        rows = passes[0]
-        if len(passes) > 1:
+        rows, use = [], []
+        for block in TIME_BLOCKS:   # blocks of different requests; each request's times averaged over its block's passes
+            have = [by_src[k] for k in sorted(by_src) if k in block]
+            if not have:
+                continue
+            passes = [[json.loads(l) for l in open(g)] for g in have]
             by_id = [{r["id"]: r for r in p} for p in passes]
-            rows = [dict(r, **{k: float(np.mean([b[r["id"]][k] for b in by_id if r["id"] in b]))
-                               for k in ("prefill_s", "decode_s", "total_s")}) for r in passes[0]]
+            rows += [dict(r, **{k: float(np.mean([b[r["id"]][k] for b in by_id if r["id"] in b]))
+                                for k in ("prefill_s", "decode_s", "total_s")}) for r in passes[0]]
+            use += have
+        if not rows:   # no clean pass: the first pass (base-)
+            use = list(by_src.values())
+            rows = [json.loads(l) for l in open(use[0])]
         f = use[0]
         sc = [replay_score(r["id"], r["text"], r["target"]) for r in rows]
         pre, tot = sum(r["prefill_s"] for r in rows), sum(r["total_s"] for r in rows)

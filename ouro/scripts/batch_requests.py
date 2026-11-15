@@ -41,7 +41,8 @@ for task, (_, f) in newest.items():
     for r in map(json.loads, open(f)):
         requests.setdefault(f"{task}/{r['doc_id']}", r)
 key = lambda i: hashlib.md5(i.encode()).hexdigest()
-chosen = sorted(requests, key=key)[:n]
+START = int(os.environ.get("OURO_TIME_START", 0))   # a further block of requests: the next n after the first START
+chosen = sorted(requests, key=key)[START:START + n]
 
 tok = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
 gen_cfg = Path(model_dir) / "generation_config.json"

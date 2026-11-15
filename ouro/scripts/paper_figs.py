@@ -195,13 +195,19 @@ def fig2():
 
 def fig_equal():
     """Ouro-2.6B-Thinking: native 2/2 and 4/4 against the loop adapter at prefill 4 / decode 2."""
-    E = {e["bench"]: e for e in PN["equal"] if e.get("model", "2.6B-T") == "2.6B-T"}
+    E = {e["bench"]: e for e in PN["equal_aligned"] if e.get("model", "2.6B-T") == "2.6B-T"}   # LoopBridge (per-loop caches)
     benches = ["GSM8K", "MATH-500", "MMLU-Pro", "ARC-C", "BBH", "HumanEval+", "MBPP+", "HELMET"]
     fig, axes = plt.subplots(2, 4, figsize=(6.9, 3.4))
     for ax, b in zip(axes.flat, benches):
         e = E[b]
-        frontier(ax, [(2, e["native2"], "2/2"), (4, e["native4"], "4/4")], [(2, e["ours"], "4/2")], b)
+        below = e["ours"] < e["native2"]   # ours under Original 2/2: its label goes below, 2/2's above
+        frontier(ax, [(2, e["native2"], "2/2", 5 if below else -10), (4, e["native4"], "4/4")],
+                 [(2, e["ours"], "4/2", -12 if below else 5)], b)
         ax.set_xlim(1.5, 4.5); ax.set_xticks([2, 3, 4])
+        lo, hi = ax.get_ylim()
+        if hi - lo < 6:   # at least 6 points per panel, so differences within noise are not drawn as large gaps
+            mid = (lo + hi) / 2
+            ax.set_ylim(mid - 3, mid + 3)
     fig.supxlabel("decode loops n", fontsize=8.5, y=0.01); fig.supylabel("score (%)", fontsize=8.5, x=0.005)
     legend(fig, "Ours, prefill 4 / decode 2", "", y=1.02, ncol=2)
     fig.subplots_adjust(wspace=0.35, hspace=0.45, left=0.07, right=0.99, bottom=0.1, top=0.9)
@@ -280,8 +286,9 @@ def fig_lev():
 def tab_equal(model="1.4B-T"):
     """Appendix table: the headline comparison on another Thinking checkpoint (LaTeX rows from paper_numbers.json)."""
     pm = lambda v: (r"\up{%.1f}" if v[0] >= 0 else r"\dn{%.1f}") % abs(v[0]) + ci(v[1], v[2])
-    rows = [e for e in PN["equal"] if e.get("model") == model]
-    lines = [rf"{e['bench']} & {e['n']:,} & {e['native2']:.1f} & {e['ours']:.1f} & {e['native4']:.1f} & {pm(e['vs2'])} \\"
+    rows = [e for e in PN["equal_aligned"] if e.get("model") == model]   # LoopBridge (per-loop caches), as Figure 11
+    s22 = lambda e: f"{e['same22']:.1f}" if "same22" in e else "--"   # the same adapter reading 2 prefill loops
+    lines = [rf"{e['bench']} & {e['n']:,} & {e['native2']:.1f} & {s22(e)} & {e['ours']:.1f} & {e['native4']:.1f} & {pm(e['vs2'])} \\"
              for e in rows]
     (OUT / f"tab_equal_{model.replace('.', '')}.tex").write_text("\n".join(lines) + "\n")
 

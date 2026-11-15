@@ -109,7 +109,7 @@ they beat a mix of the original model's one- and two-loop settings by 13--15 poi
 LoopBridge 4/1 keeps a 20.5-point lead over Original 1/1 for 21\% more time.
 \item \textbf{A few prefill loops are enough.} Two to five prefill loops give most of the gain (Figure~\ref{fig:depth}).
 \item \textbf{The gain carries over.} The gain holds on Ouro-1.4B, on looped decision models and on Ouro-2.6B-Thinking.
-On Ouro-2.6B-Thinking, four prefill loops and two decode loops come within 1.3 points of the original four-loop model
+On Ouro-2.6B-Thinking, four prefill loops and two decode loops come within 0.8 points of the original four-loop model
 on average (Section~\ref{sec:others}). Served in batches, they match Original 4/4 on 400 GSM8K problems in about half
 its time (Section~\ref{sec:budget}).
 \end{itemize}
@@ -463,11 +463,10 @@ the 11 benchmarks (with smaller MMLU and GSM8K subsets). Original 1/1 scores 34.
 (Table~\ref{tab:main14}). Over three training seeds, the two trained models average $44.2\pm0.2$ and $40.5\pm0.0$. Its BBH score is low because many of its
 answers end at a blank line, which the evaluation treats as the end of the answer (Table~\ref{tab:main14}).
 
-\paragraph{Thinking models.} On Ouro-2.6B-Thinking, prefill 4 / decode 2 (with the one-cache LoopBridge) scores
-higher than Original 2/2 on all eight benchmarks of Figure~\ref{fig:equal}. It leads by up to 13 points on HELMET and
-7 on MMLU-Pro and BBH.
-It comes within 1.3 points of Original 4/4 on average (Figure~\ref{fig:equal}, Table~\ref{tab:t14}). With the same
-adapter, four prefill loops instead of one raise
+\paragraph{Thinking models.} On Ouro-2.6B-Thinking, LoopBridge at prefill 4 / decode 2 scores higher than Original
+2/2 on six of the eight benchmarks of Figure~\ref{fig:equal} and is within 0.5 points on the other two. It leads by up
+to 15 points on HELMET and 8 on MMLU-Pro and BBH, and it comes within 0.8 points of Original 4/4 on average
+(Figure~\ref{fig:equal}, Table~\ref{tab:t14}). With the one-cache variant, four prefill loops instead of one raise
 MMLU-Pro by 18.6 points on Ouro-2.6B-Thinking and by 17.1 on Ouro-1.4B-Thinking (Table~\ref{tab:models}).
 
 \paragraph{Looped decision models.} Lev~\citep{lev} turns looped language models into decision models that read a
@@ -519,11 +518,11 @@ measurement each result uses.
 \toprule
 result & LoopBridge form & measurement \\
 \midrule
-Tables~\ref{tab:main}, \ref{tab:ablate}; Figures~\ref{fig:grid}, \ref{fig:depth} & per-loop caches, maps as in
-training & accuracy, full evaluation sets \\
+Tables~\ref{tab:main}, \ref{tab:ablate}, \ref{tab:t14}; Figures~\ref{fig:grid}, \ref{fig:depth}, \ref{fig:equal} & per-loop
+caches, maps as in training & accuracy, full evaluation sets \\
 Figures~\ref{fig:budget}, \ref{fig:budgetfull} & per-loop caches, maps folded in & batch 1, replayed requests \\
 Figures~\ref{fig:tbatched}, \ref{fig:batched} & per-loop caches, maps folded in & continuous batching, wall time \\
-Figures~\ref{fig:equal}, \ref{fig:frontier} & one shared cache & accuracy; decode
+Table~\ref{tab:models}, Figure~\ref{fig:frontier} & one shared cache & accuracy; decode
 microbenchmark \\
 \bottomrule
 \end{tabular}
@@ -666,9 +665,9 @@ Table~\ref{tab:main14}.}
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.94\textwidth]{../figs/fig_equal.pdf}
-\caption{\textbf{On a Thinking model, four prefill loops lift two decode loops on every benchmark.}
-Ouro-2.6B-Thinking, score against the number of decode loops. Grey: Original 2/2 and 4/4. Orange: LoopBridge (one
-cache) with prefill 4 / decode 2. Same items for all three in each panel; HELMET is averaged over its categories.
+\caption{\textbf{On a Thinking model, four prefill loops bring two decode loops close to four.}
+Ouro-2.6B-Thinking, score against the number of decode loops. Grey: Original 2/2 and 4/4. Orange: LoopBridge with
+prefill 4 / decode 2. Same items for all three in each panel; HELMET is averaged over its categories.
 Table~\ref{tab:t14} gives every score, the paired intervals, and scores for the same adapter at prefill 2 / decode 2.}
 \label{fig:equal}
 \end{figure*}
@@ -696,10 +695,10 @@ model already uses all four loops.}
 
 
 Figure~\ref{fig:equal} shows the Thinking model on each benchmark: Ouro-2.6B-Thinking at prefill 4 / decode 2. With the
-same number of decode loops as \nat{2}, \rw{4}{2} scores higher on all eight benchmarks. It scores higher by up to 13
-points on HELMET and 7 on MMLU-Pro and BBH. Against \nat{4}, which decodes with twice the loops, it is within two points
-on six of the eight. The prefill loops themselves provide the gain. At \rw{2}{2}, the same adapter is up to 8 points
-lower on MMLU-Pro and HELMET.
+same number of decode loops as \nat{2}, \rw{4}{2} scores higher on six of the eight benchmarks, by up to 15 points on
+HELMET and 8 on MMLU-Pro and BBH, and is within 0.5 points on MATH-500 and MBPP+. Against \nat{4}, which decodes with
+twice the loops, it is within two points or better on six of the eight. The prefill loops themselves provide the gain:
+at \rw{2}{2}, the same adapter scores lower on all eight benchmarks, by up to 9.5 points on MMLU-Pro.
 
 
 
@@ -1051,17 +1050,17 @@ a 0--100 scale; brackets are paired 95\% bootstrap intervals.}
 \begin{table*}[t]
 \centering\footnotesize
 \setlength\tabcolsep{3pt}
-\begin{tabular}{@{}lrcccc@{}}
+\begin{tabular}{@{}lrccccc@{}}
 \toprule
- & & \multicolumn{3}{c}{score} & \\
-\cmidrule(lr){3-5}
-benchmark & $N$ & Original 2/2 & Ours 4/2 & Original 4/4 & Ours 4/2 minus Original 2/2 \\
+ & & \multicolumn{4}{c}{score} & \\
+\cmidrule(lr){3-6}
+benchmark & $N$ & Original 2/2 & Ours 2/2 & Ours 4/2 & Original 4/4 & Ours 4/2 minus Original 2/2 \\
 \midrule
 \csname @@input\endcsname ../figs/tab_equal_26B-T.tex
 \bottomrule
 \end{tabular}
-\caption{\textbf{Figure~\ref{fig:equal} in numbers.} Ouro-2.6B-Thinking; Ours: the one-cache LoopBridge at prefill 4 /
-decode 2; $N$: items all three share. Differences are score points on a
+\caption{\textbf{Figure~\ref{fig:equal} in numbers.} Ouro-2.6B-Thinking; Ours: LoopBridge, the same weights at prefill 2
+or 4 and decode 2; $N$: items all configurations share. Differences are score points on a
 0--100 scale;
 brackets are paired 95\% bootstrap intervals.}
 \label{tab:t14}
@@ -1146,8 +1145,8 @@ $3.3\times$ at 15K tokens, where \rw{4}{2} also outpaces \nat{2} ($1.12\times$).
 \begin{figure}[h]
 \centering
 \includegraphics[width=\columnwidth]{../figs/fig2_frontier.pdf}
-\caption{\textbf{Two decode loops come within 1.3 points of four on average at $3.2\times$ the decode throughput.}
-Ouro-2.6B-Thinking with LoopBridge (one cache): average accuracy over eight benchmarks (each on the items all
+\caption{\textbf{With one prompt cache, two decode loops come within 1.3 points of four on average at $3.2\times$ the decode
+throughput.} Ouro-2.6B-Thinking with the one-cache LoopBridge: average accuracy over eight benchmarks (each on the items all
 configurations share) against a separate decode microbenchmark (best tokens/s over batch sizes at an 8K-token prompt,
 Appendix~\ref{app:serve}). Labels: prefill/decode loops; the four
 prefill loops add 3.1 points over 2/2 at the same decode cost.}

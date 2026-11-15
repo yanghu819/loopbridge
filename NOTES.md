@@ -477,3 +477,17 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
 - agy as area chair (Codex out of quota until 11-17): Overall 3.5/5; fixed: Table 8 vs Table 1 item sets and double
   rounding (cells now identical), first-seed note in Table 1, length-limit answers stated in Section 5.5, 1.4B subsets,
   speculative decoding in Related Work. Not done: a speculative-decoding baseline.
+- Speculative decoding check (agy review's top request; spec_agree.sh, files e2e/spec-*.jsonl, paper_numbers.
+  spec_decoding()): one-loop drafters teacher-forced on Original 4/4's greedy answers (400 timed requests). Token
+  agreement: Original 1/1 93.7%, Distilled 1/1 94.3% (r80 94.25%), Ours fixed 4/1 94.9%, LoopBridge 4/1 94.8%.
+  Estimated lossless speed-up of Original 4/4 at batch 1 (draft = drafter ms/token, verify = one 4/4 decode step):
+  2.29x (Original 1/1, k=8) vs 2.43-2.46x (ours) -> spec-decoded 4/4 at ~17 s/request with 70.8. Not in the paper:
+  ours is only marginally the better drafter, and the estimate makes spec-decoded 4/4 beat our 4/2 at ~20 s (batch 1);
+  at the one-decode-loop budget (~13 s) a time-matched mix of Original 1/1 and spec-decoded 4/4 would still score
+  ~41.6 vs our 47.2 (estimate). Related Work keeps one positioning sentence.
+- Thinking results now use the main LoopBridge (per-loop caches; `equal("a")`, Figure 11, Table 12 with an "Ours 2/2"
+  column), so "LoopBridge" means one method in every main-text result: 4/2 is above Original 2/2 on 6 of 8 (within 0.5
+  on MATH-500 and MBPP+), +15 HELMET, +8 MMLU-Pro and BBH, 0.8 below Original 4/4 on average; the same weights at 2/2
+  are lower on all 8 (up to 9.5 on MMLU-Pro). The one-cache variant stays in Table 11 and Figure 14 (labelled).
+- Second block of timed requests (time_set2.sh: OURO_TIME_START=100, files clnB/clnB3-*) starts on a2 once idle; the
+  merge is in paper_numbers (TIME_BLOCKS, switch USE_SET2 when every condition is complete).
