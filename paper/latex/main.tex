@@ -309,7 +309,7 @@ scores 79.8 against 78.7 for Original 3/3.
 \includegraphics[width=\textwidth]{../figs/fig_depth_main.pdf}
 \caption{\textbf{A few more prefill loops buy a lot of accuracy.} One decode loop, Ouro-2.6B, one LoopBridge trained on
 prefill depths 1 to 16 (the same weights for every $m$). Orange: gain from one prefill loop to the best depth; grey
-band: two to five loops, where the best depth lies on all four tasks. Two decode loops and the timed tasks:
+band: two to five loops, where the best depth lies on all four tasks. Every value: Table~\ref{tab:depthwide}; two decode loops and the timed tasks:
 Figure~\ref{fig:depthfull}; where the gain stops on every benchmark: Table~\ref{tab:plateau}.}
 \label{fig:depth}
 \end{figure*}
@@ -448,7 +448,8 @@ and
 parameters as LoopBridge, the all-pairs LoRA is still 8.8\ci{6.1}{11.7} points below LoopBridge on RULER-16K. Over
 three training seeds each, LoopBridge reaches 63.9$\pm$1.0 on RULER-16K, against 57.6$\pm$1.6 at rank 80 and
 44.7$\pm$4.4 at rank 16. So it is the key and value maps that keep retrieval over 16K-token prompts working when one
-adapter serves every depth. On average, one LoopBridge is as good as the fixed-depth adapter. Keeping a single shared
+adapter serves every depth. On average, one LoopBridge is as good as the fixed-depth adapter, and a server can change the depth of each request
+without loading other weights. With per-loop caches it stores as much prompt KV as Original $n/n$. Keeping a single shared
 prompt
 cache saves memory and costs 0.4 points.
 
@@ -644,6 +645,21 @@ adapter & benchmark & $n$ & $m^\ast$ & test $m{=}1$ & test $m^\ast$ \\
 extrapolates); ``trained $\le16$'': the adapter trained on $m\in\{1,2,3,4,6,8,12,16\}$. Accuracy (\%) on the held-out
 half at $m=1$ and at the stopping depth $m^\ast$.}
 \label{tab:plateau}
+\end{table*}
+
+\begin{table*}[t]
+\centering\small
+\begin{tabular}{@{}lrrrrrrrrrr@{}}
+\toprule
+benchmark & $n$ & $m{=}1$ & 2 & 3 & 4 & 5 & 6 & 8 & 12 & 16 \\
+\midrule
+\csname @@input\endcsname ../figs/tab_depthwide.tex
+\bottomrule
+\end{tabular}
+\caption{\textbf{Prefill depth for the adapter trained up to 16 loops} (Figure~\ref{fig:depth}). Ouro-2.6B, accuracy (\%)
+against prefill loops $m$ at decode $n$, the same weights for every $m$, full evaluation sets; best $m$ of each row in
+bold; --: not evaluated.}
+\label{tab:depthwide}
 \end{table*}
 
 \section{Prefill Depth on Ouro-1.4B}

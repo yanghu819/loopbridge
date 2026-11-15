@@ -931,6 +931,27 @@ def tab_plateau():
     (OUT / "tab_plateau.tex").write_text("\n".join(lines) + "\n")
 
 
+def tab_depthwide():
+    """Appendix: the depth sweep behind Figure 5, the adapter trained on m in {1,2,3,4,6,8,12,16} (paper_numbers
+    depth_sweep, adapter "wide"), accuracy per benchmark and decode depth against prefill loops m; best m in bold."""
+    rows = [r for r in PN.get("depth_sweep", []) if r["adapter"] == "wide"]
+    if not rows:
+        return (OUT / "tab_depthwide.tex").unlink(missing_ok=True)
+    ms = [1, 2, 3, 4, 5, 6, 8, 12, 16]
+    order = ["MMLU", "MMLU-Pro", "BBH 3-shot", "ARC-C", "GSM8K", "MATH-500", "HumanEval+", "MBPP+", "RULER-16K"]
+    lines = []
+    for n in (1, 2):
+        for b in order:
+            r = next((r for r in rows if r["n"] == n and r["bench"] == b), None)
+            if r is None:
+                continue
+            q = {int(k): v for k, v in r["quality"].items()}
+            best = max(q.values())
+            cell = lambda m: "--" if m not in q else (f"\\textbf{{{q[m]:.1f}}}" if q[m] == best else f"{q[m]:.1f}")
+            lines.append(f"{b.replace(' 3-shot', '')} & {n} & " + " & ".join(cell(m) for m in ms) + r" \\")
+    (OUT / "tab_depthwide.tex").write_text("\n".join(lines) + "\n")
+
+
 def tab_depth14():
     """Appendix: Ouro-1.4B depth sweep (paper_numbers.depth_sweep_14), accuracy per benchmark and decode depth against
     prefill loops m; the best m of each row in bold; '--' where that depth was not evaluated."""
@@ -991,5 +1012,5 @@ def tab_build():
     (OUT / "tab_build.tex").write_text("\n".join(lines) + "\n")
 
 if __name__ == "__main__":
-    fig_concept(); fig_time(); tab_time(); tab_plateau(); tab_depth14(); tab_prefilltrn(); tab_build(); tab_lr(); fig_depth_main(); fig_depth(); fig_sametime(); fig_budget(); fig_batched(); tab_batched(); fig_tbatched(); tab_tbatched(); fig0(); fig2(); fig_equal(); fig_lev(); fig_aligned(["MMLU", "BBH 3-shot", "ARC-C", "Winogrande", "GSM8K", "HumanEval+", "MBPP+", "RULER-16K"]); tab_equal("2.6B-T"); tab_lev(); tab_main(); tab_main("main_table_14", "tab_main14"); tab_ablation(); tab_tokens(); tab_e2e(); tab_repro(); tab_aligned()
+    fig_concept(); fig_time(); tab_time(); tab_plateau(); tab_depthwide(); tab_depth14(); tab_prefilltrn(); tab_build(); tab_lr(); fig_depth_main(); fig_depth(); fig_sametime(); fig_budget(); fig_batched(); tab_batched(); fig_tbatched(); tab_tbatched(); fig0(); fig2(); fig_equal(); fig_lev(); fig_aligned(["MMLU", "BBH 3-shot", "ARC-C", "Winogrande", "GSM8K", "HumanEval+", "MBPP+", "RULER-16K"]); tab_equal("2.6B-T"); tab_lev(); tab_main(); tab_main("main_table_14", "tab_main14"); tab_ablation(); tab_tokens(); tab_e2e(); tab_repro(); tab_aligned()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))
