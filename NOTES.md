@@ -469,3 +469,11 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   gap); the bars moved to Appendix A (Figure 9).
 - Ouro-1.4B "Ours, fixed m=4" (`runs_scripts/fixed14.sh`, O14-a-fixed4-lora[-s2], evals O14xf4[s2]-a41-*) training on
   a2 GPUs 0-3 / 4-7 so Table 9 can show both adapters; LoopBridge and Distilled seeds 2/3 on a1.
+- Ouro-1.4B BBH (Table 9, 13.4 at 4/1): the 1.4B decoder at 4/1 writes a blank line right after "Let's think step
+  by step." in 977 of 1,620 answers (Original 1/1: 6), and lm-eval's bbh_cot_fewshot stops at the first blank line
+  (until = ["</s>", "Q", "\n\n"]). Re-run with OURO_UNTIL='["</s>", "\n\nQ:"]' (runs *-bbhq, a1): Original 1/1 20.1
+  (19.9), Distilled 1/1 32.7 (32.8), LoopBridge 4/1 34.6 / 35.2 / 34.3 over three seeds. Stated in the Table 9 caption;
+  the table keeps the standard protocol.
+- agy as area chair (Codex out of quota until 11-17): Overall 3.5/5; fixed: Table 8 vs Table 1 item sets and double
+  rounding (cells now identical), first-seed note in Table 1, length-limit answers stated in Section 5.5, 1.4B subsets,
+  speculative decoding in Related Work. Not done: a speculative-decoding baseline.

@@ -431,6 +431,7 @@ def keys():
     ks |= {k for _, k, _ in REPRO}
     ks |= {k.replace("S42", c) for _, _, ka, _ in equal_specs() for k in (ka,) for c in ("a42", "a22")}
     ks |= {main_key(b, kind, c, "Ouro-1.4B") for b in MAIN_BENCH for _, kind, c in MAIN_ROWS}
+    ks |= {f"L:{r}-bbhq:exact_match" for r in BBHQ_RUNS}   # Ouro-1.4B BBH with the stop at the next question
     ks |= {seed14_key(main_key(b, kind, c, "Ouro-1.4B"), sd) for b in MAIN_BENCH
            for kind, c in (("aligned", "a41"), ("dist", 1), ("fixed4", "a41")) for sd in SEEDS_14}
     ks |= {main_key(b, "aligned", f"a{m}{n}") for b in MAIN_BENCH for m in range(1, 5) for n in range(1, 5)}
@@ -2066,6 +2067,23 @@ def gsm_protocol():
 
 
 SEEDS_14 = (2, 3)   # Ouro-1.4B training seeds 2 and 3 (runs_scripts/seed14.sh)
+BBHQ_RUNS = ("O14x-native1", "O14x-E48f", "O14x-a41", "O14xs2-a41", "O14xs3-a41")   # OURO_UNTIL='["</s>", "\\n\\nQ:"]'
+
+
+def bbh_stop_check():
+    """Table 9 caption: Ouro-1.4B BBH re-run with the answer stopped at the next question instead of the first blank line
+    (the 1.4B decoder at 4/1 often writes a blank line right after 'Let's think step by step.'); same 1,620 items."""
+    got = {}
+    for r in BBHQ_RUNS:
+        v = load(f"L:{r}-bbhq:exact_match")
+        if v:
+            got[r] = round(100 * float(np.mean(list(v.values()))), 1)
+    if len(got) == len(BBHQ_RUNS):
+        seeds = sorted(got[r] for r in ("O14x-a41", "O14xs2-a41", "O14xs3-a41"))
+        out = (got["O14x-native1"], got["O14x-E48f"], got["O14x-a41"], (seeds[0], seeds[-1]))
+        print(f"BBH stop     Ouro-1.4B BBH, stop at the next question: Original 1/1, Distilled 1/1, LoopBridge 4/1, seed range {out}"
+              + ("" if out == (20.1, 32.7, 34.6, (34.3, 35.2)) else "  !! paper (Table 9 caption): (20.1, 32.7, 34.6, (34.3, 35.2))"))
+    return got
 SEEDS14_OUT = {}
 
 
@@ -2102,8 +2120,10 @@ def main_table_14():
     for label, rows in per_seed.items():
         if None not in rows:
             avgs = [float(np.mean(x)) for x in zip(*rows)]
+            got = (round(float(np.mean(avgs)), 1), round(float(np.std(avgs, ddof=1)), 1))
+            want = {"aligned adapter 4/1": (44.2, 0.2), "LoRA-distilled 1/1": (40.5, 0.0)}.get(label)   # Section 5.7, Table 9
             print(f"Main 1.4B    {label:20s} seeds: " + " ".join(f"{a:5.1f}" for a in avgs)
-                  + f"  mean {np.mean(avgs):5.1f} sd {np.std(avgs, ddof=1):.1f}")
+                  + f"  mean {got[0]:5.1f} sd {got[1]:.1f}" + ("" if want is None or got == want else f"  !! paper: {want}"))
             SEEDS14_OUT[label] = [round(a, 2) for a in avgs]   # exported as main_table_14_seeds
     want = {"native 1/1": 34.7, "LoRA-distilled 1/1": 40.5, "aligned adapter 4/1": 44.5}   # Appendix (Ouro-1.4B)
     for label, _, _ in MAIN_ROWS:
@@ -2563,7 +2583,7 @@ def _compute(counter):
         print(f"{sec:12s} {label:52s} {means[-1]['mean']:6.1f}  n={len(s)}")
     e2e_rows, ratios = e2e_table()
     _TB = time_breakdown()   # printed once (its checks count); later callers reuse it through time_breakdown_rows
-    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), sn_equal=sn_equal(), taskmap_select=taskmap_select(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), time_matched=time_matched(), batched_serving=batched_serving(), thinking_batched=thinking_batched(), batched_serving_14=batched_serving_14(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), main_table_14_seeds=SEEDS14_OUT, aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
+    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), sn_equal=sn_equal(), taskmap_select=taskmap_select(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), time_matched=time_matched(), batched_serving=batched_serving(), thinking_batched=thinking_batched(), batched_serving_14=batched_serving_14(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), main_table_14_seeds=SEEDS14_OUT, bbh_stop=bbh_stop_check(), aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
     print(f"wrote {OUT}; {counter.flags} printed values differ ({bad} in the paired comparisons)")
 
 

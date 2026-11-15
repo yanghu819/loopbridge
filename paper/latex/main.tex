@@ -464,7 +464,7 @@ most 1.4. The worst LoopBridge setting (56.8) is still above the best distilled 
 
 \paragraph{Ouro-1.4B.} With its own LoopBridge, four prefill loops and one decode loop, Ouro-1.4B averages 44.5 over
 the 11 benchmarks (with smaller MMLU and GSM8K subsets). Original 1/1 scores 34.7, and Distilled 1/1 scores 40.5
-(Table~\ref{tab:main14}).
+(Table~\ref{tab:main14}). Over three training seeds, the two trained models average $44.2\pm0.2$ and $40.5\pm0.0$.
 
 \paragraph{Thinking models.} On Ouro-2.6B-Thinking, prefill 4 / decode 2 (with the one-cache LoopBridge) scores
 higher than Original 2/2 on all eight benchmarks of Figure~\ref{fig:equal}. It leads by up to 13 points on HELMET and
@@ -1015,9 +1015,11 @@ method & $m/n$ & MMLU & MMLU-Pro & BBH & ARC-C & HellaSw. & Winogr. & GSM8K & MA
 \bottomrule
 \end{tabular}
 \caption{\textbf{Table~\ref{tab:main} on Ouro-1.4B at one decode loop}, with its own adapter and controls (MMLU 20
-questions per subject and 400 GSM8K problems); each column uses the items all rows share. On BBH, 71\% of the 1.4B
-decoder's answers at 4/1 (48\% at Original 1/1) skip the answer sentence that strict matching needs, so its BBH score
-measures format more than reasoning.}
+questions per subject and 400 GSM8K problems); each column uses the items all rows share. On BBH, the 1.4B decoder at 4/1 often writes
+a blank line right after ``Let's think step by step.'', where the evaluation stops (60\% of its answers; Original 1/1:
+under 1\%). Stopping each answer at the next question instead leaves Original 1/1 and Distilled 1/1 at 20.1 and 32.7
+and raises LoopBridge 4/1 from 13.4 to 34.6 (34.3--35.2 over three training seeds). Over three training seeds, the
+11-benchmark average is $44.2\pm0.2$ for LoopBridge 4/1 and $40.5\pm0.0$ for Distilled 1/1.}
 \label{tab:main14}
 \end{table*}
 
