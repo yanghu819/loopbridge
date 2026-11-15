@@ -494,3 +494,14 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
 - Ouro-1.4B Table 9 now also has Ours fixed m=4 (fixed14.sh; seed 1 average 44.3) and the rank-80 Distilled 1/1
   (dist14r80.sh). BBH with the answer stopped at the next question: fixed m=4 33.8 / 33.4 (seeds 1-2; 14.0 under the
   standard stop), rank-80 Distilled 32.7 (as rank 16).
+- 2026-11-16: second block of timed requests done (a2, 05:05; requests 101-200 of each task, passes clnB/clnB3 in
+  opposite orders; a4x1sb one pass, for its accuracy). `USE_SET2 = True`: every batch-1 timing result is on 800
+  requests (200 per task); the depth-sweep points (a1..a16 x n sb, a1x*pm, a3x*pm, native3st) keep the first 400 and are
+  not quoted against the others. Batch 1, one decode loop: LoopBridge 45.0 at 12.8 s, fixed 46.4 at 12.0 s, Original 1/1
+  27.8 at 10.6 s, Distilled 1/1 34.2 at 11.7 s; paired +17.2 [13.6, 20.9] at 1.21x / +10.8 [7.0, 14.5] at 1.10x (fixed
+  +18.6 [15.1, 22.3] at 1.14x / +12.1 [8.4, 15.9] at 1.03x). Time-matched mixes: Original +10.5 [5.7, 15.4] (fixed
+  +14.3), Distilled +7.8 [3.0, 12.7] (fixed +11.3). Two decode loops: 0.93-0.99x the time, +3.2..+6.6. The second block
+  alone is harder for LoopBridge (about 42.8 vs 47.2 on the first), so the gains shrank by 1-3 points; the 800-request
+  numbers replace the 400-request ones everywhere. Per new token LoopBridge 4/1 takes 35.5 ms vs 35.0 (Original 1/1):
+  "about as fast", no longer "no slower". MMLU-Pro length-limit answers: 29/200, 21, 15, 4. Batched serving of the
+  second block (batch_set2.sh, btB/btBb/btBc) running; `USE_SET2_BATCH` switches it in.

@@ -19,15 +19,15 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 - **Removed from the paper (results stay in the repo)**: SenseNova-9B hybrid, one-cache task map and per-benchmark
   depth selection (cross-fitted), Nanbeige, the Ouro-1.4B-Thinking comparisons against Original. Kept: Ouro-2.6B core,
   Ouro-1.4B, the Thinking models, Lev decision models.
-- **Story**: (1) prefill is 0.4-2.8% of a chain-of-thought request (Figure 2); (2) same decode loops: 44.2 -> 58.6 /
-  58.2 at n=1 vs Distilled 49.5 (Table 1, MATH-500 zero-shot since 11-15); (3) the gain levels off at 2-4 prefill loops (Figure 6); (4) same measured
-  time: +15.0 / +14.2 over Original 1/1, +7.8 / +7.0 over Distilled 1/1 (Figure 7); (5) transfers to Ouro-1.4B,
-  Thinking (4/2 within 1.4 of 4/4 at 3.2x throughput) and Lev. Caveats live in Limitations and the appendix.
+- **Story**: (1) prefill is 0.4-2.6% of a chain-of-thought request (Figure 2); (2) same decode loops: 44.2 -> 58.6 /
+  58.2 at n=1 vs Distilled 49.5 (Table 1, MATH-500 zero-shot since 11-15); (3) the gain levels off at 2-4 prefill loops (Figure 6); (4) measured time
+  (800 requests): +18.6 / +17.2 over Original 1/1 for 1.14x / 1.21x the time, +10-14 at the same mean time (Figure 6);
+  (5) transfers to Ouro-1.4B, Thinking (4/2 within 0.8 of 4/4; batched GSM8K in about half its time) and Lev. Caveats live in Limitations and the appendix.
 - **Seeds in Table 1 caption** (zero-shot MATH): fixed 58.3+-0.2 / 69.0+-0.3, LoopBridge 58.3+-0.1 / 68.6+-0.4,
   Distilled 49.6+-0.3 / 66.1+-0.1, rank 80 49.2 (2 seeds) / 65.6+-0.2.
 - **2026-11-15: MATH-500 zero-shot everywhere** (runs `<name>-math0shot`, `TASK_MAP`, `MATH0_ROWS`). The timed requests
   were re-timed with the zero-shot prompt (`runs_scripts/time_math0.sh`, files `*-math0shot.jsonl`, `TIME_TASKS`
-  switched 11-15); Section 5.5 now reports +20 points for 12-19% more time and +13-15 at the same mean time
+  switched 11-15); Section 5.5 now reports +17-19 points for 14-21% more time and +10-14 at the same mean time (800 requests since 11-16)
   (`time_matched()`), Figure 6 is the accuracy-time frontier.
   11-15 late: agy (Antigravity, pro) co-edits and reviews (helpers in ~/.b300-handoff/agy; Codex out of quota to 11-17);
   Ouro-1.4B seeds (44.2+-0.2 vs 40.5+-0.0) and BBH stop-rule check (*-bbhq) in Table 9; Thinking results switched to

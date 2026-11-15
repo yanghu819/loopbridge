@@ -16,16 +16,17 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
 
 ## Key findings (Ouro-2.6B unless stated)
 
-1. **Generation is almost all decoding.** Prefill is 0.4-2.8% of the time of a chain-of-thought answer.
+1. **Generation is almost all decoding.** Prefill is 0.4-2.6% of the time of a chain-of-thought answer.
 2. **Same decode loops, more accuracy.** With one decode loop, four prefill loops raise the 11-benchmark average from
    44.2 (original model) to 58.6 (fixed-depth adapter) and 58.2 (LoopBridge), above the original model distilled to
    one loop on the same data (49.5; 49.3 at rank 80); with two decode loops, 63.7 -> 69.0 / 69.1. Both adapters beat
    the original 1/1 on all 11 benchmarks. MATH-500 is scored zero-shot (Minerva prompt without exemplars).
-3. **A little more time, much more accuracy.** At one decode loop, our models take 12-19% more time per request than
-   the original model and are +19.2 / +20.0 points more accurate (+11.2 / +12.0 over the distilled one; paired over 400
+3. **A little more time, much more accuracy.** At one decode loop, our models take 14-21% more time per request than
+   the original model and are +18.6 / +17.2 points more accurate (+12.1 / +10.8 over the distilled one; paired over 800
    timed requests, MATH-500 zero-shot). At the same mean time they beat a mix of the original model's 1/1 and 2/2
-   settings by 13-15 points. With two decode loops they take 0.87-0.96x the time of Original 2/2 and Distilled 2/2 and
-   score 2-5 points higher. Served at batch 32, LoopBridge 4/1 keeps +20.5 / +13.0 points for 1.21x / 1.18x their time.
+   settings by 10-14 points. With two decode loops they take 0.93-0.99x the time of Original 2/2 and Distilled 2/2 and
+   score 3-7 points higher. Served at batch 32 (first 400 requests), LoopBridge 4/1 keeps +20.5 / +13.0 points for
+   1.21x / 1.18x their time.
 4. **A few prefill loops suffice.** The gain peaks after two to five prefill loops (also for an adapter trained up to
    16 loops, over seeds, and when the prefill loops are trained too).
 5. **It transfers** to Ouro-1.4B (both adapters 44.2-44.6 on average over three seeds, against 40.5 for the distilled

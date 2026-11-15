@@ -600,7 +600,7 @@ def _time(task, cond, model="Ouro-2.6B"):
 def fig_time():
     """Figure 1, one point: on generation tasks the time of a request is almost all decoding. Share of the time per
     request spent in prefill and decode for the released model at one loop (Original 1/1, the start of the depth
-    sweep), base model, 100 requests per task; label: prefill share and total seconds. The other configurations and
+    sweep), base model, 200 requests per task; label: prefill share and total seconds. The other configurations and
     HELMET are in Section 3 and Table 2 (Appendix A)."""
     rows = [(t, _time(t, "native1st")) for t in TIMED]
     rows = [(t, r) for t, r in rows if r]
@@ -702,7 +702,7 @@ def fig_depth_main(mmax=8, n=1):
 def fig_sametime():
     """Figure 3, one point: in the same measured time per request, one decode loop with four prefill loops (Ours 4/1)
     is far more accurate than the original model and the distilled model at one loop. Mean accuracy and mean time per
-    request over the same 100 requests of each timed task (batch 1, one B300, two passes; Ours with folded maps).
+    request over the same 200 requests of each timed task (batch 1, one B300, two passes; Ours with folded maps).
     Every configuration against time: appendix figure (fig_budget)."""
     tasks = [t for t in TIMED if _time(t, "native1st")]
     bars = [("Original\n1/1", "native1st", NAT_LIGHT), ("Distilled\n1/1", "D1st", DIST),
@@ -734,7 +734,7 @@ def fig_sametime():
 
 
 def fig_budget(name="fig_budget"):
-    """Figure 6: accuracy against measured time per request on the same 400 replayed requests (batch 1, one B300, mean
+    """Figure 6: accuracy against measured time per request on the same 800 replayed requests (batch 1, one B300, mean
     of two passes; paper_numbers time_breakdown). Filled: one decode loop, hollow: two. Ours sits up and to the left of
     the original and distilled models at both decode depths. The arrow marks the time-matched comparison of Section 5.5:
     at LoopBridge 4/1's mean time, a mix of Original 1/1 and 2/2 requests lies on the grey segment (time_matched)."""
@@ -762,7 +762,7 @@ def fig_budget(name="fig_budget"):
     xo, yo = point("a4x1pm")
     ym = y1 + (xo - x1) / (x2 - x1) * (y2 - y1)
     ax.annotate("", (xo, yo - 1.0), xytext=(xo, ym + 1.2), arrowprops=dict(arrowstyle="->", color=INK, lw=0.9), zorder=5)
-    ax.text(xo + 0.45, (yo + ym) / 2, f"+{yo - ym:.0f} at the\nsame time", fontsize=6.5, color=INK, va="center", ha="left")
+    ax.text(xo + 0.45, (yo + ym) / 2, f"+{yo - ym:.1f} at the\nsame time", fontsize=6.5, color=INK, va="center", ha="left")
     ax.text(12.55, 51.0, "one decode loop", ha="center", va="bottom", fontsize=6.5, color=NAT)
     ax.text(20.75, 70.8, "two decode loops", ha="center", va="top", fontsize=6.5, color=NAT)
     ax.set_xlim(9.0, 23.5); ax.set_ylim(21.5, 72)
@@ -908,7 +908,7 @@ def tab_longctx():
 
 
 def tab_time():
-    """Appendix: per-request distributions behind Figure 1 (100 requests per task, batch 1)."""
+    """Appendix: per-request distributions behind Figure 1 (200 requests per task, batch 1)."""
     rows = [r for r in PN.get("time_breakdown", []) if "total_median" in r]
     confs = [("a4x1pm", "Ours 4/1"), ("a4x2pm", "Ours 4/2"), ("native1st", "Original 1/1"), ("native2st", "Original 2/2"),
              ("native4st", "Original 4/4")]
