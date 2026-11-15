@@ -1,4 +1,4 @@
-# Handoff (2026-11-12)
+# Handoff (2026-11-15)
 
 For the next agent taking over *Untying Prefill and Decode Loops in Looped Language Models*.
 Read this file, then `NOTES.md` (lab log), `REPRODUCE.md` (result -> script map) and `DEPRECATED.md`. Cluster addresses
@@ -19,11 +19,18 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 - **Removed from the paper (results stay in the repo)**: SenseNova-9B hybrid, one-cache task map and per-benchmark
   depth selection (cross-fitted), Nanbeige, the Ouro-1.4B-Thinking comparisons against Original. Kept: Ouro-2.6B core,
   Ouro-1.4B, the Thinking models, Lev decision models.
-- **Story**: (1) prefill is 0.4-2.8% of a chain-of-thought request (Figure 4); (2) same decode loops: 44.2 -> 57.1 /
-  56.8 at n=1 vs Distilled 49.8 (Table 1); (3) the gain levels off at 2-4 prefill loops (Figure 6); (4) same measured
+- **Story**: (1) prefill is 0.4-2.8% of a chain-of-thought request (Figure 2); (2) same decode loops: 44.2 -> 58.6 /
+  58.2 at n=1 vs Distilled 49.5 (Table 1, MATH-500 zero-shot since 11-15); (3) the gain levels off at 2-4 prefill loops (Figure 6); (4) same measured
   time: +15.0 / +14.2 over Original 1/1, +7.8 / +7.0 over Distilled 1/1 (Figure 7); (5) transfers to Ouro-1.4B,
   Thinking (4/2 within 1.4 of 4/4 at 3.2x throughput) and Lev. Caveats live in Limitations and the appendix.
-- **Seeds in Table 1 caption**: Ours 56.7+-0.1 / 67.1+-0.2, Distilled 2/2 65.1+-0.2 (3 seeds each).
+- **Seeds in Table 1 caption** (zero-shot MATH): fixed 58.3+-0.2 / 69.0+-0.3, LoopBridge 58.3+-0.1 / 68.6+-0.4,
+  Distilled 49.6+-0.3 / 66.1+-0.1, rank 80 49.2 (2 seeds) / 65.6+-0.2.
+- **2026-11-15: MATH-500 zero-shot everywhere** (runs `<name>-math0shot`, `TASK_MAP`, `MATH0_ROWS`). The timed requests
+  are being re-timed with the zero-shot prompt (`runs_scripts/time_math0.sh` on idle a2, files `*-math0shot.jsonl`);
+  until `TIME_TASKS` is switched to `math0shot`, Figures 2/6/9/13 and Section 5.5 still use the 4-shot timing. 42
+  depth-sweep cells missing a zero-shot run are being filled on a1 (`m0fill_q.txt`). Ouro-1.4B seeds 2/3
+  (`runs_scripts/seed14.sh`) training on a1. LoopBridge at m = n = 4 is not ours (nothing untied): Figure 4 and
+  Table 8 show n <= 3 (4/4 MATH-500 is 65.6 vs 72.2 for the original).
 - **Guards**: every number quoted in the text is checked in `ouro/scripts/paper_numbers.py` (`!!` lines); the pipeline
   must print "0 printed values differ" and no `!!`.
 - **Done since 11-09**: baseline LR check (Distilled at x0.3 / x3 and rank 80 x3: averages move <= 0.6, never reach
@@ -49,8 +56,9 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
     in Section 5.5. At batch 32 (mean of three passes, a2/a2/a1): Ours 4/1 1.15x / 1.16x the time of Original 1/1 / Distilled 1/1,
     +14.5 / +8.0 points; prefill 27% of wall time; 2/2 costs 1.44-1.52x. The batch-32 *estimate* figure (fig_budget32) was removed.
   - *Maps beyond RULER* (Q3): HELMET and LongBench at 4/1 and 4/2 for LoopBridge, all-pairs LoRA r16 and r80
-    (`longctx_maps()`, Table `tab_longctx` in Appendix L). The maps do not help there (LoopBridge within 0.3 of r16;
-    r80 +2.4/+2.9 on HELMET). Claims narrowed everywhere to "retrieval over 16K-token prompts"; one line in Limitations.
+    (`longctx_maps()`, Table `tab_longctx` in Appendix L). Official HELMET: LB within 0.3 of r16, r80 +2.4/+2.9, all
+    from the 34/41-item recall and re-rank categories; item average: LB = r80, LB +2.0 over r16 at 4/1. Table shows
+    both; claims narrowed to "retrieval over 16K-token prompts"; no Limitations sentence any more.
     Seeds (X26s2/s3, X26los2/3, X26los2r80/3r80) on HELMET/LongBench are exported but not yet quoted.
   - *Thinking batched serving* (`time_batch_think.sh`, TASK=gsm8k|math500, files `tbatch<B>-<cond>-{gsm,math}think`,
     second pass `tbatchb`; `thinking_batched()`, Table `tab_tbatched`): GSM8K, 400 requests, batch 16/32: LoopBridge 4/2
@@ -58,6 +66,12 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
     +3.8-4.2 over Distilled 2/2 at 0.80-0.98x their time (served-answer accuracy; lm-eval on the same 400 items: 95.0 / 95.2).
     MATH-500 (500, 8,192 tokens, batch 16): LoopBridge 86.2, Original 2/2 84.2, 4/4 89.8, Distilled 83.6; 0.58x the
     time of 4/4. Now Figure 8 (fig_tbatched); the old throughput frontier is in Appendix K. Third MATH pass (tbatchc) on a1.
+  - *Ouro-1.4B batched* (`time_batch14.sh`, files `batch*-14-*`, `batched_serving_14()`, lower block of Table
+    tab_batched): unfavourable at one decode loop -- Ours 4/1 +7.8 over Original 1/1 but +2.5 [-2.2, 7.5] over
+    Distilled 1/1 at 1.33x / 1.43x their time (batch 32); 2/2 reaches 51-54. Cause: runaway MMLU-Pro answers (53%
+    hit the length limit). Left OUT of the paper (user 11-14: analyse or avoid unfavourable results); see NOTES.
+  - *Maps by depth (Q3)*: RULER-16K of LoopBridge / all-pairs LoRA r16 / r80 at m = n and m > n cells
+    (`maps_by_depth()`, runs X26lo-a<mn>f, X26lor80-a<mn>f on a2).
   - *Three seeds of each all-pairs adapter* at 4/1 (`lora80()` a41_three_arms): avg 56.7/54.3/56.7, RULER-16K
     63.9+-1.0 (LoopBridge) / 44.7+-4.4 (r16) / 57.6+-1.6 (r80); in Section 5.6.
   - *Thinking MATH-500*: the distilled model's shard 3 had died twice on a cuDNN SDPA error at item 74; resumed with

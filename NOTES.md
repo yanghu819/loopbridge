@@ -37,6 +37,15 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   r16 32.0, r80 34.7; 4/2: 48.3 / 48.6 / 51.2. The HELMET gap is driven by the small recall (34 items) and re-rank
   (41) categories; on RAG (700) and ICL (333) LB = r80 and LB > r16 (+2.1, +2.4). LongBench (~9-13%) within 1.5.
   Conclusion: the maps preserve exact retrieval at 16K tokens with one decode loop; wording narrowed to that.
+- Deeper look (user 11-14: analyse unfavourable results, or leave them out):
+  * HELMET maps vs rank-80: the official (category-mean) gap of 2.4-2.9 points comes from the 34-item recall and
+    41-item re-rank categories (one item = 2.9 / 2.4 points). Item average: LB 43.9 / r16 41.9 / r80 44.3 at 4/1,
+    54.1 / 54.1 / 54.2 at 4/2; three seeds 43.7+-0.2 vs 44.0+-0.5. Paper now reports both averages (Table 17) and the
+    category explanation; the "rank 80 ahead on HELMET" wording and the Limitations sentence were removed.
+  * Ouro-1.4B batched serving (batch*-14-*, kept in the repo, NOT in the paper): Ours 4/1 +2.5 [-2.2, 7.5] over
+    Distilled 1/1 at 1.43x its time. Cause: on MMLU-Pro 53/100 of Ours' 4/1 answers run to the length limit (1,168
+    tokens on average vs ~300 for the others), which alone doubles that task's time; without MMLU-Pro the time ratio
+    is ~1.08x. The 1.4B one-loop decoder solves only 19-27% of these CoT tasks. Not a claim of the paper, so left out.
 - Three seeds of each all-pairs adapter, 4/1: RULER-16K 63.9+-1.0 (LB) / 57.6+-1.6 (r80) / 44.7+-4.4 (r16); averages
   56.7 / 56.7 / 54.3.
 - T26-Df-math500_think_s3 had failed twice (cuDNN SDPA "mha_graph.execute" error at item 74/100); resumed from its
@@ -435,3 +444,17 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
 - v2 seed 2: the trained prefill never stops later in both seeds (0 of 15). Seed 3 training on both boxes.
 - build_arxiv.plain() now handles $n<m$.
 
+### 2026-11-15 zero-shot MATH-500 everywhere; MATH timing redone; Ouro-1.4B seeds
+- MATH-500 is now zero-shot in every table (Minerva prompt without exemplars, last \boxed{} scored with math-verify;
+  runs `<name>-math0shot`). Original 4/4 72.2 (4-shot: 53.6). 11-benchmark averages, Ouro-2.6B: Original 1/1 44.2,
+  2/2 63.7, 4/4 71.9; Distilled 1/1 49.5, 2/2 66.2 (rank 80: 49.3, 65.5); Ours fixed 4/1 58.6, 4/2 69.0; LoopBridge
+  58.2, 69.1. Both adapters now beat Original 1/1 on all 11 benchmarks (4-shot MATH was the one loss).
+- Seven zero-shot jobs hung from 00:16 to 09:24 (GPU at 100%, ~235 W, log not written; after the second batch of
+  generation). Killed by PID and re-run one per GPU: all finished in minutes from the request cache. Cause unknown;
+  all seven had started while three jobs shared a GPU (grid_worker MAX=3).
+- The timed requests (Figures 4/5, batch-1 and batched serving) replayed the 4-shot MATH prompt. `time_math0.sh`
+  re-times the same 100 MATH problems with the zero-shot prompt on idle a2: batch 1 (clean, clean3 reversed) for 20
+  conditions and batched serving (batch 8/32, passes batch/batchb/batchc) for 10. Files `*-math0shot.jsonl`.
+- Ouro-1.4B training seeds 2 and 3 (`seed14.sh`): LoopBridge O14-a-seed2 (a1 GPUs 0-3), Distilled 1/1
+  X14-E48f-p1d1-s2 (a1 5-7) and -s3 (a1 4); seed 3 of LoopBridge still to start. Each queues its 1.4B benchmarks.
+- Guards of results no longer in the paper (per-task depth selection, Ouro-1.4B batched) now print without `!!`.

@@ -1,6 +1,6 @@
 """Build the arXiv preprint from the single source latex/main.tex (the ACL-style source, compiled with tectonic).
 
-Changes: preprint option, author, figure paths, code URL at the end of the abstract, self-live footnote.
+Changes: preprint option, author, figure paths, code URL at the end of the abstract.
 Output: arxiv/main.tex, arxiv/main.pdf, arxiv/main.bbl, arxiv/arxiv.tar.gz (main.tex, main.bbl, acl.sty, acl_natbib.bst,
 figs/*.pdf) and arxiv/ARXIV_SUBMISSION.md (metadata with the abstract as plain text). Needs tectonic and pdfinfo.
 
@@ -21,9 +21,6 @@ SUBS = [
     (r"\author{Anonymous ACL submission}", r"\author{Yang Hu}"),
     ("{../figs/", "{figs/"),
     ("\\end{abstract}", f"Code, results and per-item outputs: \\url{{{URL}}}.\n\\end{{abstract}}"),
-    (r"(\emph{self-live},",
-     r"(\emph{self-live}\footnote{Self-live was developed by the author in separate work on shared KV caches for looped"
-     r" models; here it is applied to the loop adapter's answer tokens.},"),
 ]
 
 

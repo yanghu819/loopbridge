@@ -281,8 +281,8 @@ def tab_equal(model="1.4B-T"):
     """Appendix table: the headline comparison on another Thinking checkpoint (LaTeX rows from paper_numbers.json)."""
     pm = lambda v: (r"\up{%.1f}" if v[0] >= 0 else r"\dn{%.1f}") % abs(v[0]) + ci(v[1], v[2])
     rows = [e for e in PN["equal"] if e.get("model") == model]
-    lines = [rf"{e['bench']} & {e['n']:,} & {e['native2']:.1f} & {e.get('same22', float('nan')):.1f} & {e['ours']:.1f} & {e['native4']:.1f} & "
-             rf"{pm(e['vs2'])} & {pm(e['vs22']) if 'vs22' in e else '--'} & {pm(e['vs4'])} \\" for e in rows]
+    lines = [rf"{e['bench']} & {e['n']:,} & {e['native2']:.1f} & {e['ours']:.1f} & {e['native4']:.1f} & {pm(e['vs2'])} \\"
+             for e in rows]
     (OUT / f"tab_equal_{model.replace('.', '')}.tex").write_text("\n".join(lines) + "\n")
 
 
@@ -314,7 +314,7 @@ def fig_taskmap(only=None, name="fig_taskmap_full", ncols=4):
     T = {r["bench"]: r for r in PN["taskmap_cells"] if r["model"] == "Ouro-2.6B"}
     title = {"BBH 3-shot": "BBH"}
     panels = [b for b in ("MMLU", "MMLU-Pro", "ARC-C", "GPQA-Diamond", "HellaSwag", "Winogrande", "BBH 3-shot", "IFEval",
-                          "GSM8K", "MATH-500 4-shot", "HumanEval+", "MBPP+", "RULER-4K", "RULER-8K", "RULER-16K") if b in T]
+                          "GSM8K", "MATH-500", "HumanEval+", "MBPP+", "RULER-4K", "RULER-8K", "RULER-16K") if b in T]
     if only:
         panels = [b for t in only for b in panels if title.get(b, b) == t]
     nrows = -(-len(panels) // ncols)
@@ -338,7 +338,7 @@ def fig_aligned(panels, name="fig_taskmap", ncols=4):
     """Figure 1: Ouro-2.6B, native n/n (grey) against the aligned loop adapter at prefill 4 / decode n (red), n = 1..4,
     each panel on the items all configurations share (paper_numbers.json, aligned_cells)."""
     T = {r["bench"]: r for r in PN.get("aligned_cells", [])}
-    title = {"BBH 3-shot": "BBH", "MATH-500 4-shot": "MATH-500"}
+    title = {"BBH 3-shot": "BBH", "MATH-500": "MATH-500"}
     panels = [b for b in panels if b in T and all(T[b].get(f"a4{n}") is not None for n in range(1, 5))]
     if not panels:
         return
@@ -349,7 +349,8 @@ def fig_aligned(panels, name="fig_taskmap", ncols=4):
         ax.axis("off")
     for ax, b in zip(axes.flat, panels):
         r = T[b]
-        frontier(ax, [(n, r[f"native{n}"], "") for n in range(1, 5)], [(n, r[f"a4{n}"], "") for n in range(1, 5)],
+        # Ours only where the loops are untied (n < m = 4); at n = 4 the released model runs unchanged
+        frontier(ax, [(n, r[f"native{n}"], "") for n in range(1, 5)], [(n, r[f"a4{n}"], "") for n in range(1, 4)],
                  title.get(b, b))
         ax.set_xticks([1, 2, 3, 4]); ax.set_xlim(0.6, 4.4)
     fig.supxlabel("decode loops n", fontsize=8.5, y=0.005); fig.supylabel("score (%)", fontsize=8.5, x=0.005)
@@ -418,7 +419,7 @@ def tab_taskmap(model="Ouro-2.6B"):
     """Appendix table: the full task map, every prefill m / decode n cell and native n/n on every benchmark; the best m
     at each n in bold (LaTeX header and rows from paper_numbers.json, taskmap_cells)."""
     rows = [r for r in PN.get("taskmap_cells", []) if r["model"] == model]
-    short = {"MATH-500 4-shot": "MATH", "BBH 3-shot": "BBH", "MMLU-Pro": "MMLU-P", "HumanEval+": "HE+", "GPQA-Diamond": "GPQA",
+    short = {"MATH-500": "MATH", "BBH 3-shot": "BBH", "MMLU-Pro": "MMLU-P", "HumanEval+": "HE+", "GPQA-Diamond": "GPQA",
              "HellaSwag": "HSwag", "Winogrande": "Wino",
              "IFEval": "IFEv", "RULER-4K": "R-4K", "RULER-8K": "R-8K", "RULER-16K": "R-16K"}
     lines = [" & " + " & ".join(short.get(r["bench"], r["bench"]) for r in rows) + r" \\", r"\midrule"]
@@ -440,6 +441,8 @@ def tab_main(key="main_table", name="tab_main"):
     groups = [(1, ["native 1/1", "training-free 4/1", "LoRA-distilled 1/1", "distilled r80 1/1", "fixed-4 LoRA 4/1", "aligned adapter 4/1"]),
               (2, ["native 2/2", "training-free 4/2", "LoRA-distilled 2/2", "distilled r80 2/2", "fixed-4 LoRA 4/2", "aligned adapter 4/2"]),
               (4, ["native 4/4"])]   # maps-frozen and one-cache rows: ablation table (tab_build)
+    if name == "tab_main14":   # Ouro-1.4B: the one-decode-loop comparison of Section 5.7
+        groups = [g for g in groups if g[0] != 2]
     show = {"native 1/1": ("Original", "1/1"), "native 2/2": ("Original", "2/2"), "native 4/4": ("Original", "4/4"),
             "training-free 4/1": ("Training-free", "4/1"), "training-free 4/2": ("Training-free", "4/2"),
             "LoRA-distilled 1/1": ("Distilled", "1/1"), "LoRA-distilled 2/2": ("Distilled", "2/2"),
@@ -540,18 +543,18 @@ def tab_aligned():
     native n/n (each column on the items all available configurations share); bold: the best m at each n
     (paper_numbers.json, aligned_cells)."""
     rows = PN.get("aligned_cells", [])
-    short = {"MATH-500 4-shot": "MATH", "BBH 3-shot": "BBH", "MMLU-Pro": "MMLU-P", "HumanEval+": "HE+",
+    short = {"MATH-500": "MATH", "BBH 3-shot": "BBH", "MMLU-Pro": "MMLU-P", "HumanEval+": "HE+",
              "HellaSwag": "HSwag", "Winogrande": "Wino", "RULER-16K": "R-16K"}
     lines = [" & " + " & ".join(short.get(r["bench"], r["bench"]) for r in rows) + r" \\", r"\midrule"]
     f = lambda x, b: "--" if x is None else (rf"\textbf{{{x:.1f}}}" if b else f"{x:.1f}")
-    for n in range(1, 5):
+    for n in range(1, 4):   # n = 4 = m is the released model's own setting: nothing is untied there
         best = {r["bench"]: max((r[f"a{m}{n}"] for m in range(1, 5) if r[f"a{m}{n}"] is not None), default=None)
                 for r in rows}
         lines.append(rf"native {n}/{n} & " + " & ".join(f(r[f"native{n}"], False) for r in rows) + r" \\")
         for m in range(1, 5):
             cells = [f(r[f"a{m}{n}"], r[f"a{m}{n}"] is not None and r[f"a{m}{n}"] == best[r["bench"]]) for r in rows]
             lines.append(rf"{m}\,/\,{n} & " + " & ".join(cells) + r" \\")
-        if n < 4:
+        if n < 3:
             lines.append(r"\midrule")
     (OUT / "tab_aligned.tex").write_text("\n".join(lines) + "\n")
 
@@ -573,7 +576,7 @@ def tab_select_distilled():
 
 
 TIMED = ["GSM8K", "MATH-500", "BBH", "MMLU-Pro"]
-SWEEP_NAME = {"GSM8K": "GSM8K", "MATH-500": "MATH-500 4-shot", "BBH": "BBH 3-shot", "MMLU-Pro": "MMLU-Pro"}
+SWEEP_NAME = {"GSM8K": "GSM8K", "MATH-500": "MATH-500", "BBH": "BBH 3-shot", "MMLU-Pro": "MMLU-Pro"}
 
 
 def drop(name):
@@ -620,7 +623,7 @@ def fig_depth():
     tasks = [t for t in TIMED if any(r["bench"] == SWEEP_NAME[t] for r in rows)]
     if not tasks:
         return drop("fig_depth")
-    timed = any(_time(t, f"a{m}x{n}sb") for t in tasks for m in (1, 2, 3, 4, 6, 8, 12, 16) for n in (1, 2))
+    timed = False   # accuracy only (time against m: Table 4 and Section 5.5)
     nrow = 2 if timed else 1   # the time row only once per-request timings exist
     fig, axes = plt.subplots(nrow, len(tasks), figsize=(1.75 * len(tasks), 1.3 + 1.25 * nrow), squeeze=False)
     for j, t in enumerate(tasks):
@@ -628,7 +631,7 @@ def fig_depth():
             for wide, ls in ((False, "-"), (True, "--")):
                 r = next((r for r in rows if r["bench"] == SWEEP_NAME[t] and r["n"] == n and r["adapter"] == ("wide" if wide else "m<=4")), None)
                 if r:
-                    ms = sorted(int(m) for m in r["quality"])
+                    ms = sorted(int(m) for m in r["quality"] if int(m) <= 8)   # beyond 8: outside the main training range
                     axes[0, j].plot(ms, [r["quality"][str(m)] if str(m) in r["quality"] else r["quality"][m] for m in ms],
                                     ls, color=col, marker="s", ms=2.5, lw=1.2)
             pts = [(m, _time(t, f"a{m}x{n}sb")) for m in (1, 2, 3, 4, 6, 8, 12, 16)]
@@ -638,7 +641,7 @@ def fig_depth():
                 axes[1, j].plot([m for m, _ in pts], [r["prefill_s"] for _, r in pts], ":", color=col, lw=1)
         axes[0, j].set_title(t, fontsize=8.5, color=INK, pad=4)
         for i in range(nrow):
-            axes[i, j].set_xscale("log", base=2); axes[i, j].set_xticks([1, 2, 4, 8, 16]); axes[i, j].set_xticklabels(["1", "2", "4", "8", "16"])
+            axes[i, j].set_xscale("log", base=2); axes[i, j].set_xticks([1, 2, 4, 8]); axes[i, j].set_xticklabels(["1", "2", "4", "8"])
             axes[i, j].axvline(4, color="#BDBDBD", lw=0.8, zorder=0)
             axes[i, j].grid(color="#EDEDED", lw=0.5); axes[i, j].set_axisbelow(True)
         axes[nrow - 1, j].set_xlabel("prefill loops m", fontsize=7.5)
@@ -746,7 +749,7 @@ def fig_budget(batch=None, name="fig_budget"):
 
     def draw(ax, b, inset=False):
         lab = (lambda *a, **k: None) if inset and False else ax.annotate
-        for n, fill in ((1, OURS), (2, "white")):
+        for n, fill in ((1, OURS),):   # one decode loop: the regime of Section 5.5
             col = OURS
             # batch 1: maps folded into the prompt banks at prefill (the decode path of the original model), m = 1, 3, 4;
             # batch estimates exist only for the per-step implementation (sb), m = 1..16
@@ -771,7 +774,7 @@ def fig_budget(batch=None, name="fig_budget"):
                 if inset and lab_ != "2/2":
                     continue
                 ax.annotate(lab_, (x, y), xytext=(0, -9), textcoords="offset points", fontsize=6.5, color=NAT, ha="center")
-        for d in (1, 2):
+        for d in (1,):
             p = point(f"D{d}st", b)
             if p:
                 ax.scatter(*p, marker="^", s=20, zorder=3, facecolors=DIST if d == 1 else "white", edgecolors=DIST,
@@ -789,18 +792,6 @@ def fig_budget(batch=None, name="fig_budget"):
             ax.axvspan(9.2, 12.4, color="#F3F3F3", zorder=0, lw=0)
             ax.set_ylim(23.5, None)   # room for the 1/1 label under its point
             ax.text(10.8, 66.5, "one decode\nloop", ha="center", va="top", fontsize=6.5, color=NAT)
-            # two decode loops: the methods crowd at ~16 s, so they are enlarged in an inset (empty lower right)
-            pts = [point(c, None) for c in ("a1x2pm", "a3x2pm", "a4x2pm", "f4x2pm", "D2st", "D2r80st", "native2st")]
-            pts = [p for p in pts if p]
-            if pts:
-                axin = ax.inset_axes([0.5, 0.07, 0.47, 0.44])
-                draw(axin, None, inset=True)
-                xs, ys = [p[0] for p in pts], [p[1] for p in pts]
-                axin.set_xlim(min(xs) - 0.35, max(xs) + 0.35); axin.set_ylim(min(ys) - 2.5, max(ys) + 1.5)
-                axin.tick_params(labelsize=5.5, length=2, pad=1)
-                axin.set_title("two decode loops", fontsize=6.5, color=NAT, pad=2)
-                axin.grid(color="#EDEDED", lw=0.5); axin.set_axisbelow(True)
-                ax.indicate_inset_zoom(axin, edgecolor="#BBBBBB", lw=0.6, alpha=1)
         ax.set_xlabel("seconds per request"); ax.grid(color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
     for ax in axes[:, 0]:
         ax.set_ylabel("mean accuracy (%)")
@@ -808,7 +799,7 @@ def fig_budget(batch=None, name="fig_budget"):
     h = [L([], [], color=OURS, marker="s", ms=4, lw=1.3), L([], [], color=OURS, marker="D", ms=4, ls="none"),
          L([], [], color=DIST, marker="^", ms=4.5, ls="none"), L([], [], color=DIST, marker="v", ms=4.5, ls="none"),
          L([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.3)]
-    l = ["Ours, LoopBridge (m/n)", "Ours, fixed m=4", "Distilled n/n", "Distilled n/n, rank 80", "Original n/n"]
+    l = ["Ours, LoopBridge (m/1)", "Ours, fixed m=4, 4/1", "Distilled 1/1", "Distilled 1/1, rank 80", "Original n/n"]
     fig.legend(h, l, fontsize=6.5, loc="lower center", frameon=False, handlelength=1.6, ncol=2, columnspacing=1.0)
     fig.subplots_adjust(left=0.15, right=0.97, top=0.95, bottom=0.34)
     save(fig, name)
@@ -828,7 +819,7 @@ def fig_batched(name="fig_batched"):
         ax.plot([p[0][0] for p in nat], [p[0][1] for p in nat], "-", color=NAT_LIGHT, marker="o", ms=3, lw=1.3)
         for (x, y), lab in nat:
             ax.annotate(lab, (x, y), xytext=(0, -9), textcoords="offset points", fontsize=6.5, color=NAT, ha="center")
-        for n, fill in ((1, None), (2, "white")):
+        for n, fill in ((1, None),):   # one decode loop (the regime of Section 5.5)
             for c, m, col, sz in ((f"D{n}st", "^", DIST, 20), (f"D{n}r80st", "v", DIST, 20), (f"f4x{n}pm", "D", OURS, 18),
                                   (f"a4x{n}pm", "s", OURS, 20)):
                 p = pt(c, b)
@@ -843,7 +834,7 @@ def fig_batched(name="fig_batched"):
     h = [L([], [], color=OURS, marker="s", ms=4, ls="none"), L([], [], color=OURS, marker="D", ms=4, ls="none"),
          L([], [], color=DIST, marker="^", ms=4.5, ls="none"), L([], [], color=DIST, marker="v", ms=4.5, ls="none"),
          L([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.3)]
-    l = ["Ours, LoopBridge, 4/n", "Ours, fixed m=4, 4/n", "Distilled n/n", "Distilled n/n, rank 80", "Original n/n"]
+    l = ["Ours, LoopBridge, 4/1", "Ours, fixed m=4, 4/1", "Distilled 1/1", "Distilled 1/1, rank 80", "Original n/n"]
     fig.legend(h, l, fontsize=6.5, loc="lower center", frameon=False, handlelength=1.6, ncol=3, columnspacing=1.0)
     fig.subplots_adjust(left=0.11, right=0.98, top=0.9, bottom=0.36, wspace=0.28)
     save(fig, name)
@@ -854,9 +845,7 @@ def tab_batched():
     per request at batch 1, 8 and 32, and the prefill share of the wall time at batch 32."""
     B = PN.get("batched_serving", {})
     rows = [("Original 1/1", "native1st"), ("Distilled 1/1", "D1st"), ("Distilled 1/1, rank 80", "D1r80st"),
-            ("Ours, fixed $m{=}4$, 4/1", "f4x1pm"), ("Ours, LoopBridge, 4/1", "a4x1pm"), None,
-            ("Original 2/2", "native2st"), ("Distilled 2/2", "D2st"), ("Distilled 2/2, rank 80", "D2r80st"),
-            ("Ours, fixed $m{=}4$, 4/2", "f4x2pm"), ("Ours, LoopBridge, 4/2", "a4x2pm")]
+            ("Ours, fixed $m{=}4$, 4/1", "f4x1pm"), ("Ours, LoopBridge, 4/1", "a4x1pm")]
     lines = []
     for r in rows:
         if r is None:
@@ -875,13 +864,13 @@ def fig_tbatched(name="fig_tbatched"):
     answers against wall seconds per request on GSM8K and MATH-500 for Original 2/2 and 4/4, Distilled 2/2 and Ours
     (LoopBridge 4/2); the panel text gives Ours' time relative to Original 4/4."""
     T = PN.get("thinking_batched", {})
-    tasks = [(t, lab) for t, lab in (("gsmthink", "GSM8K"), ("maththink", "MATH-500"))
-             if all(f"{t} {c}@16" in T for c in ("native2st", "native4st", "D2st", "a4x2pm"))]
+    tasks = [("gsmthink", b, f"GSM8K, batch {b}") for b in (16, 32)
+             if all(f"gsmthink {c}@{b}" in T for c in ("native2st", "native4st", "D2st", "a4x2pm"))]
     if not tasks:
         return drop(name)
     fig, axes = plt.subplots(1, len(tasks), figsize=(3.3, 2.25), squeeze=False)
-    for ax, (t, lab) in zip(axes[0], tasks):
-        pt = lambda c: (T[f"{t} {c}@16"]["s_per_request"], T[f"{t} {c}@16"]["acc"])
+    for ax, (t, bs, lab) in zip(axes[0], tasks):
+        pt = lambda c: (T[f"{t} {c}@{bs}"]["s_per_request"], T[f"{t} {c}@{bs}"]["acc"])
         (x2, y2), (x4, y4), (xd, yd), (xo, yo) = pt("native2st"), pt("native4st"), pt("D2st"), pt("a4x2pm")
         ax.plot([x2, x4], [y2, y4], "-", color=NAT_LIGHT, marker="o", ms=3, lw=1.3, zorder=2)
         ax.annotate("2/2", (x2, y2), xytext=(5, -2), textcoords="offset points", fontsize=6.5, color=NAT, ha="left", va="top")
@@ -890,7 +879,7 @@ def fig_tbatched(name="fig_tbatched"):
         ax.scatter(xo, yo, marker="s", s=24, zorder=4, color=OURS)
         ax.annotate("4/2", (xo, yo), xytext=(-5, 2), textcoords="offset points", fontsize=6.5, color=INK, ha="right")
         ax.axhline(y4, color=NAT_LIGHT, lw=0.7, ls=":", zorder=1)
-        r = T.get(f"{t} a4x2pm vs native4st@16")
+        r = T.get(f"{t} a4x2pm vs native4st@{bs}")
         if r:
             ax.text(0.03, 0.04, f"4/2: {r['ratio']:.2f}x the\ntime of 4/4", transform=ax.transAxes, fontsize=6,
                     color=OURS, ha="left", va="bottom")
@@ -917,13 +906,13 @@ def tab_tbatched():
             ("Ours, LoopBridge, 4/2", "a4x2pm")]
     lines = []
     for lab, c in rows:
-        g16, g32, m16 = T.get(f"gsmthink {c}@16"), T.get(f"gsmthink {c}@32"), T.get(f"maththink {c}@16")
+        g16, g32 = T.get(f"gsmthink {c}@16"), T.get(f"gsmthink {c}@32")
         if not g16:
             continue
         cell = lambda r, k, fmt: fmt % r[k] if r else "--"
         sh = r"\rowcolor{oursbg} " if c == "a4x2pm" else ""
-        lines.append(rf"{sh}{lab} & {cell(g16, 'acc', '%.1f')} & {cell(g16, 's_per_request', '%.2f')} & "
-                     rf"{cell(g32, 's_per_request', '%.2f')} & {cell(m16, 'acc', '%.1f')} & {cell(m16, 's_per_request', '%.2f')} \\")
+        lines.append(rf"{sh}{lab} & {cell(g16, 'acc', '%.1f')} & {cell(g32, 'acc', '%.1f')} & {cell(g16, 's_per_request', '%.2f')} & "
+                     rf"{cell(g32, 's_per_request', '%.2f')} \\")
     (OUT / "tab_tbatched.tex").write_text("\n".join(lines) + "\n")
 
 
@@ -940,8 +929,8 @@ def tab_longctx():
             lines.append(r"\midrule")
         for lab, arm in arms:
             sh = r"\rowcolor{oursbg} " if arm == "LoopBridge" else ""
-            lines.append(rf"{sh}{mn} & {lab} & {R[c]['ruler'][arm]:.1f} & {L['helmet' + suf][arm]:.1f} & "
-                         rf"{L['longbench' + suf][arm]:.1f} \\")
+            lines.append(rf"{sh}{mn} & {lab} & {R[c]['ruler'][arm]:.1f} & {L['helmet' + suf][arm + ' items']:.1f} & "
+                         rf"{L['helmet' + suf][arm]:.1f} & {L['longbench' + suf][arm]:.1f} \\")
     (OUT / "tab_longctx.tex").write_text("\n".join(lines) + "\n")
 
 
@@ -965,8 +954,7 @@ def tab_plateau():
     lines = []
     for key, name in (("plateau_extrapolated", r"trained $\le4$"), ("plateau", r"trained $\le16$")):
         for r in PN.get(key, []):
-            lines.append(f"{name} & {r['bench']} & {r['n']} & {r['m_star']} & {r['test_m1']:.1f} & {r['test_at_star']:.1f} & "
-                         f"{r['test_deepest']:.1f} ({r['deepest']}) \\\\")
+            lines.append(f"{name} & {r['bench']} & {r['n']} & {r['m_star']} & {r['test_m1']:.1f} & {r['test_at_star']:.1f} \\\\")
     (OUT / "tab_plateau.tex").write_text("\n".join(lines) + "\n")
 
 
@@ -976,10 +964,10 @@ def tab_depth14():
     rows = PN.get("depth_sweep_14", [])
     if not rows:
         return (OUT / "tab_depth14.tex").unlink(missing_ok=True)
-    ms = [1, 2, 3, 4, 5, 6, 8, 12, 16]
+    ms = [1, 2, 3, 4]   # the adapter's training range (m, n <= 4)
     lines = []
     for r in rows:
-        q = {int(k): v for k, v in r["quality"].items()}
+        q = {int(k): v for k, v in r["quality"].items() if int(k) in ms}
         best = max(q.values())
         cell = lambda m: "--" if m not in q else (f"\\textbf{{{q[m]:.1f}}}" if q[m] == best else f"{q[m]:.1f}")
         lines.append(f"{r['bench']} & {r['n']} & " + " & ".join(cell(m) for m in ms) + " \\\\")
@@ -1030,5 +1018,5 @@ def tab_build():
     (OUT / "tab_build.tex").write_text("\n".join(lines) + "\n")
 
 if __name__ == "__main__":
-    fig_concept(); fig_time(); tab_time(); tab_plateau(); tab_depth14(); tab_prefilltrn(); tab_build(); tab_lr(); fig_depth_main(); fig_depth(); fig_sametime(); fig_budget(); fig_batched(); tab_batched(); fig_tbatched(); tab_tbatched(); tab_longctx(); fig0(); fig2(); fig_equal(); fig_pareto(); fig_lev(); fig_aligned(["MMLU", "BBH 3-shot", "ARC-C", "Winogrande", "GSM8K", "HumanEval+", "MBPP+", "RULER-16K"]); tab_equal("2.6B-T"); tab_distill(); tab_lev(); tab_main(); tab_main("main_table_14", "tab_main14"); tab_ablation(); tab_tokens(); tab_e2e(); tab_repro(); tab_aligned()
+    fig_concept(); fig_time(); tab_time(); tab_plateau(); tab_depth14(); tab_prefilltrn(); tab_build(); tab_lr(); fig_depth_main(); fig_depth(); fig_sametime(); fig_budget(); fig_batched(); tab_batched(); fig_tbatched(); tab_tbatched(); fig0(); fig2(); fig_equal(); fig_lev(); fig_aligned(["MMLU", "BBH 3-shot", "ARC-C", "Winogrande", "GSM8K", "HumanEval+", "MBPP+", "RULER-16K"]); tab_equal("2.6B-T"); tab_lev(); tab_main(); tab_main("main_table_14", "tab_main14"); tab_ablation(); tab_tokens(); tab_e2e(); tab_repro(); tab_aligned()
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

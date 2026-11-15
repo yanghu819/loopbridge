@@ -18,8 +18,9 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
 
 1. **Generation is almost all decoding.** Prefill is 0.4-2.8% of the time of a chain-of-thought answer.
 2. **Same decode loops, more accuracy.** With one decode loop, four prefill loops raise the 11-benchmark average from
-   44.2 (original model) to 57.1 (fixed-depth adapter) and 56.8 (LoopBridge), above the original model distilled to
-   one loop on the same data (49.8; 50.2 at rank 80); with two decode loops, 63.0 -> 67.3 / 67.2.
+   44.2 (original model) to 58.6 (fixed-depth adapter) and 58.2 (LoopBridge), above the original model distilled to
+   one loop on the same data (49.5; 49.3 at rank 80); with two decode loops, 63.7 -> 69.0 / 69.1. Both adapters beat
+   the original 1/1 on all 11 benchmarks. MATH-500 is scored zero-shot (Minerva prompt without exemplars).
 3. **Same measured time, more accuracy.** At one decode loop and about 11 s per request, +15.0 and +14.2 points over
    the original model and +7.8 and +7.0 over the distilled one (paired over 400 requests). Served with continuous
    batching at batch 32, LoopBridge 4/1 keeps +14.5 / +8.0 points for 1.15x / 1.16x their time per request.
@@ -29,9 +30,9 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
    served in batches of 16-32, as accurate as 4/4 on GSM8K, 96.5 vs 95.5, in 0.46-0.56x its time; on MATH-500 between 2/2 and 4/4 in 0.58x the time of 4/4) and looped decision
    models (Lev, +4.4 to +7.5 at one decision loop).
 6. **LoopBridge's key/value maps keep retrieval over 16K-token prompts** when one adapter serves every depth
-   (RULER-16K at 4/1 over three seeds: 63.9 vs 57.6 for a parameter-matched rank-80 LoRA and 44.7 at rank 16); they
-   do not help HELMET or LongBench.
-7. **The baselines are not under-tuned:** the distilled controls move by at most 0.6 points over a 0.3x-3x
+   (RULER-16K at 4/1 over three seeds: 63.9 vs 57.6 for a parameter-matched rank-80 LoRA and 44.7 at rank 16); on
+   HELMET (item average) LoopBridge is 2.0 points above the rank-16 LoRA and level with the rank-80 one.
+7. **The baselines are not under-tuned:** the distilled controls move by at most 0.9 points over a 0.3x-3x
    learning-rate range and at rank 80; LoopBridge's weakest learning rate still beats the best distilled control.
 
 ![Untying prefill and decode loops](paper/figs/fig_concept.png)
@@ -46,8 +47,8 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
 
 - Use more prefill loops when decoding must stay at one loop; with more time, a second decode loop buys more
   on long chain-of-thought answers.
-- Two to four prefill loops are enough on most tasks; more can hurt. The best count depends on the prompt format (on
-  few-shot MATH-500 one prefill loop is best). It is not a per-prompt router.
+- Two to five prefill loops are enough on most tasks; more can hurt. The best count depends on the prompt format (with
+  the 4-shot Minerva MATH-500 prompt one prefill loop is best; zero-shot, four). It is not a per-prompt router.
 
 ## Repository map
 
