@@ -16,4 +16,5 @@ MA="path=$MP,condition=$c,checkpoint=$CK,max_length=16384"
   echo "./lm1.sh \$GPU ${P}x-$c-evalplus - \"$MA\" \"--tasks humanevalplus_chat_local,mbppplus_chat_local\""
   echo "cd /root/big-small && NO_EMPTY=1 MODEL=$MP DATA=$M/bench-mini BENCHES=helmet BATCH=65536 ./ouro/runs_scripts/bench3.sh ${P}ne-$c-helmet $c $CK \$GPU 1"
 } | flock $Q.lock sh -c "cat >> $Q"
-for g in ${GPUS//,/ }; do env -u OURO_LORA_RANK setsid nohup ./grid_worker.sh $g $Q 2 > /dev/null 2>&1 < /dev/null & done
+for g in ${GPUS//,/ }; do for w in 1 2; do   # grid_worker runs one job at a time: two workers give two jobs per GPU
+  env -u OURO_LORA_RANK setsid nohup ./grid_worker.sh $g $Q 2 > /dev/null 2>&1 < /dev/null & done; done

@@ -23,4 +23,5 @@ lm() { ls lmeval/out/$L-$1/*/results_* > /dev/null 2>&1 || echo "./lm1.sh \$GPU 
   lm evalplus "--tasks humanevalplus_chat_local,mbppplus_chat_local"
   ls bench/$B/s*/ruler16k.jsonl > /dev/null 2>&1 || echo "cd /root/big-small && MODEL=$M/model-1.4b DATA=$M/bench BENCHES='ruler4k ruler8k ruler16k' ./ouro/runs_scripts/bench3.sh $B $C $CK \$GPU 1"
 } | flock $Q.lock sh -c "cat >> $Q"
-for g in ${GPUS//,/ }; do env -u OURO_LORA_RANK setsid nohup ./grid_worker.sh $g $Q 2 > /dev/null 2>&1 < /dev/null & done
+for g in ${GPUS//,/ }; do for w in 1 2; do   # grid_worker runs one job at a time: two workers give two jobs per GPU
+  env -u OURO_LORA_RANK setsid nohup ./grid_worker.sh $g $Q 2 > /dev/null 2>&1 < /dev/null & done; done
