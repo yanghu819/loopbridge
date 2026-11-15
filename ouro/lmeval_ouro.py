@@ -15,6 +15,7 @@ Run through ouro/run_lmeval.py (which imports this module) with --model ouro.
 """
 
 import json
+import os
 from pathlib import Path
 import sys
 import time
@@ -82,6 +83,8 @@ class OuroLM(LM):
             context, kw = req.args
             until = kw.get("until", [])
             until = [until] if isinstance(until, str) else list(until)
+            if os.environ.get("OURO_UNTIL"):   # analysis only: replace the task's stop strings (JSON list), e.g. BBH
+                until = json.loads(os.environ["OURO_UNTIL"])   # stopped at the next question instead of a blank line
             max_new = int(kw.get("max_gen_toks", 256))
             if kw.get("do_sample") and kw.get("temperature", 0) > 0:
                 raise ValueError("only greedy decoding is supported")

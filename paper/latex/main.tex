@@ -54,11 +54,10 @@ fewer. The released model cannot use a prompt read with more loops, so we distil
 parameters). For a fixed prefill depth, LoRA on the decoder is enough. LoopBridge adds small key and value maps, so
 that one adapter serves every pair of loop counts and still retrieves facts from 16K-token prompts. On Ouro-2.6B with
 one decode loop, four prefill loops lift the average over 11 benchmarks from 44.2 to 58.6 with the fixed-depth LoRA
-(58.2 with LoopBridge). This
-is well above the original model distilled to one loop on the same data (49.5). For 12--19\% more time per request,
-our models are 19--20 points more accurate than the original model. Two to five prefill loops give most of the gain.
-The gain
-holds on Ouro-1.4B, on the Thinking models and on looped decision models.
+(58.2 with LoopBridge). This is well above the original model distilled to one loop on the same data (49.5). On four
+chain-of-thought tasks, our models take 12--19\% more time per request than the original model and are 19--20 points
+more accurate. Two to five prefill loops give most of the gain. The gain holds on Ouro-1.4B, on the Thinking models
+and on looped decision models.
 \end{abstract}
 
 \section{Introduction}
@@ -135,9 +134,9 @@ prompt KV of one loop to what another loop expects. LoopDuet~\citep[concurrent;]
 of Huginn without training. Huginn was trained with random loop counts, but Ouro, trained with a fixed loop count,
 fails without an adapter (Table~\ref{tab:main}). Deep encoders with
 shallow decoders~\citep{deepshallow,llm2slm,tandem} and BridgeKV~\citep[concurrent;][]{bridgekv} put more depth on the
-prompt across separate networks. SwiftKV~\citep{swiftkv} puts less depth on the prompt. Serving systems already run
-prefill and decode on
-separate hardware~\citep{distserve,splitwise}. Untying the loops lets each phase also use its own depth.
+prompt across separate networks. SwiftKV~\citep{swiftkv} puts less depth on the prompt. Speculative decoding~\citep{specdecoding,specsampling} keeps the full model's output but still runs the full model to
+check each block of drafted tokens; untying lowers the depth of every decoded token instead. Serving systems already run
+prefill and decode on separate hardware~\citep{distserve,splitwise}. Untying the loops lets each phase also use its own depth.
 
 \paragraph{Asymmetric KV producers and consumers.} YOCO~\citep{yoco} uses a self-decoder to produce one global KV cache
 that a cross-decoder reads. KITE~\citep{kite} expands a checkpoint into two towers so that bulk prefill runs only
@@ -253,7 +252,8 @@ method & $m/n$ & MMLU & MMLU-Pro & BBH & ARC-C & HellaSw. & Winogr. & GSM8K & MA
 grouped by decode loops $n$; ours shaded, bold: best in each group. Original: the released model. Training-free: four
 prefill loops without an adapter. Distilled: LoRA on the $n$-loop model distilled from Original 4/4 with the adapters'
 data, teacher and tokens. MATH: MATH-500 (zero-shot); HE+: HumanEval+; RULER: RULER at 16K tokens. Each column uses
-the items all rows share. Over three training seeds (mean $\pm$ s.d.), the
+the items all rows share. Rows show the first training seed, fixed in advance. Over three training seeds
+(mean $\pm$ s.d.), the
 fixed-depth adapter averages $58.3\pm0.2$ at 4/1 and $69.0\pm0.3$ at 4/2, LoopBridge $58.3\pm0.1$ and $68.6\pm0.4$,
 Distilled $49.6\pm0.3$ at 1/1 and $66.1\pm0.1$ at 2/2 (rank 80: 49.2 over two seeds and $65.6\pm0.2$).}
 \label{tab:main}
@@ -407,9 +407,10 @@ Lev-3B: $m=2$), decided with $n<m$ loops; one fixed $m$, no selection. All pairs
 
 Models with the same number of decode loops do not always take the same time, so we time the same 400 requests
 (Figure~\ref{fig:budget}; per task in Appendix~\ref{app:time}). With the maps folded into the prompt cache, LoopBridge
-decodes each token no slower than the original model. Our answers are longer on MMLU-Pro, so at one decode loop the
-fixed-depth adapter and LoopBridge take 12.2 and 13.0 seconds per request, against 10.9 for Original 1/1 and 11.7 for
-Distilled 1/1. On the four
+decodes each token no slower than the original model. But on MMLU-Pro more of our answers run on to the 2,048-token
+limit without giving an answer (14 of 100 for LoopBridge 4/1, against 8 for Distilled 1/1 and 2 for Original 1/1;
+Appendix~\ref{app:time}). So at one decode loop the fixed-depth adapter and LoopBridge take 12.2 and 13.0 seconds per
+request, against 10.9 for Original 1/1 and 11.7 for Distilled 1/1. On the four
 chain-of-thought tasks, the fixed-depth adapter scores 46.5 and LoopBridge 47.2, against 27.2 for Original 1/1 and 35.2
 for Distilled 1/1. Paired over the 400 requests, LoopBridge is $+20.0$\ci{15.0}{25.2} points above Original 1/1 and
 $+12.0$\ci{6.5}{17.5} above Distilled 1/1. For the fixed-depth adapter, these gains are $+19.2$\ci{14.0}{24.5} and
@@ -462,7 +463,7 @@ most 1.4. The worst LoopBridge setting (56.8) is still above the best distilled 
 
 
 \paragraph{Ouro-1.4B.} With its own LoopBridge, four prefill loops and one decode loop, Ouro-1.4B averages 44.5 over
-the 11 benchmarks. Original 1/1 scores 34.7, and Distilled 1/1 scores 40.5
+the 11 benchmarks (with smaller MMLU and GSM8K subsets). Original 1/1 scores 34.7, and Distilled 1/1 scores 40.5
 (Table~\ref{tab:main14}).
 
 \paragraph{Thinking models.} On Ouro-2.6B-Thinking, prefill 4 / decode 2 (with the one-cache LoopBridge) scores

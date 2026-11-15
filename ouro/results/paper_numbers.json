@@ -18898,561 +18898,561 @@
   {
    "bench": "MMLU",
    "items": 14042,
-   "native 1/1": 51.5,
-   "native 2/2": 67.67,
-   "native 4/4": 74.55,
-   "training-free 4/1": 61.86,
-   "training-free 4/2": 71.26,
+   "native 1/1": 51.496,
+   "native 2/2": 67.668,
+   "native 4/4": 74.555,
+   "training-free 4/1": 61.864,
+   "training-free 4/2": 71.258,
    "LoRA-distilled 1/1": 52.72,
    "LoRA-distilled 2/2": 67.17,
-   "distilled r80 1/1": 53.43,
-   "distilled r80 2/2": 66.89,
+   "distilled r80 1/1": 53.425,
+   "distilled r80 2/2": 66.892,
    "fixed-4 LoRA 4/1": 68.06,
-   "fixed-4 LoRA 4/2": 73.22,
-   "aligned LoRA-only 4/1": 66.81,
-   "aligned LoRA-only 4/2": 73.21,
-   "loop adapter 4/1": 66.59,
+   "fixed-4 LoRA 4/2": 73.216,
+   "aligned LoRA-only 4/1": 66.814,
+   "aligned LoRA-only 4/2": 73.209,
+   "loop adapter 4/1": 66.593,
    "loop adapter 4/2": 73.28,
-   "aligned adapter 4/1": 67.06,
-   "aligned adapter 4/2": 73.47,
+   "aligned adapter 4/1": 67.056,
+   "aligned adapter 4/2": 73.465,
    "loop adapter 4/1 seeds": [
-    66.59,
-    66.36,
-    66.56
+    66.593,
+    66.358,
+    66.565
    ],
    "loop adapter 4/2 seeds": [
     73.28,
-    73.14,
-    73.0
+    73.138,
+    72.995
    ],
    "aligned adapter 4/1 seeds": [
-    67.06,
-    67.16,
-    67.15
+    67.056,
+    67.163,
+    67.149
    ],
    "aligned adapter 4/2 seeds": [
-    73.47,
-    73.5,
-    73.39
+    73.465,
+    73.501,
+    73.387
    ],
    "LoRA-distilled 1/1 seeds": [
     52.72,
-    52.62,
-    52.47
+    52.621,
+    52.471
    ],
    "LoRA-distilled 2/2 seeds": [
     67.17,
-    67.29,
-    67.15
+    67.291,
+    67.149
    ],
    "aligned LoRA-only 4/1 seeds": [
-    66.81,
-    66.78,
-    67.05
+    66.814,
+    66.778,
+    67.049
    ],
    "aligned LoRA-only 4/2 seeds": [
-    73.21,
-    73.35,
-    73.31
+    73.209,
+    73.351,
+    73.309
    ],
    "fixed-4 LoRA 4/1 seeds": [
     68.06,
-    68.15,
-    67.97
+    68.146,
+    67.975
    ],
    "fixed-4 LoRA 4/2 seeds": [
-    73.22,
-    73.37,
-    73.29
+    73.216,
+    73.366,
+    73.287
    ],
    "distilled r80 1/1 seeds": [
-    53.43,
-    53.4
+    53.425,
+    53.404
    ],
    "distilled r80 2/2 seeds": [
-    66.89,
-    66.84,
-    66.83
+    66.892,
+    66.842,
+    66.828
    ]
   },
   {
    "bench": "MMLU-Pro",
    "items": 420,
-   "native 1/1": 26.9,
+   "native 1/1": 26.905,
    "native 2/2": 45.0,
-   "native 4/4": 55.24,
+   "native 4/4": 55.238,
    "training-free 4/1": 0.0,
-   "training-free 4/2": 4.05,
-   "LoRA-distilled 1/1": 26.67,
+   "training-free 4/2": 4.048,
+   "LoRA-distilled 1/1": 26.667,
    "LoRA-distilled 2/2": 46.19,
-   "distilled r80 1/1": 27.86,
-   "distilled r80 2/2": 44.76,
-   "fixed-4 LoRA 4/1": 47.38,
-   "fixed-4 LoRA 4/2": 54.05,
-   "aligned LoRA-only 4/1": 46.9,
-   "aligned LoRA-only 4/2": 52.62,
-   "loop adapter 4/1": 47.38,
+   "distilled r80 1/1": 27.857,
+   "distilled r80 2/2": 44.762,
+   "fixed-4 LoRA 4/1": 47.381,
+   "fixed-4 LoRA 4/2": 54.048,
+   "aligned LoRA-only 4/1": 46.905,
+   "aligned LoRA-only 4/2": 52.619,
+   "loop adapter 4/1": 47.381,
    "loop adapter 4/2": 51.19,
    "aligned adapter 4/1": 45.0,
-   "aligned adapter 4/2": 54.05,
+   "aligned adapter 4/2": 54.048,
    "loop adapter 4/1 seeds": [
-    47.38,
-    47.62,
-    45.95
+    47.381,
+    47.619,
+    45.952
    ],
    "loop adapter 4/2 seeds": [
     51.19,
-    52.62,
-    52.14
+    52.619,
+    52.143
    ],
    "aligned adapter 4/1 seeds": [
     45.0,
-    45.95,
-    44.29
+    45.952,
+    44.286
    ],
    "aligned adapter 4/2 seeds": [
-    54.05,
-    53.57,
-    54.29
+    54.048,
+    53.571,
+    54.286
    ],
    "LoRA-distilled 1/1 seeds": [
-    26.67,
-    25.24,
-    25.95
+    26.667,
+    25.238,
+    25.952
    ],
    "LoRA-distilled 2/2 seeds": [
     46.19,
-    44.29,
-    44.76
+    44.286,
+    44.762
    ],
    "aligned LoRA-only 4/1 seeds": [
-    46.9,
+    46.905,
     43.81,
-    42.38
+    42.381
    ],
    "aligned LoRA-only 4/2 seeds": [
-    52.62,
-    54.52,
-    53.57
+    52.619,
+    54.524,
+    53.571
    ],
    "fixed-4 LoRA 4/1 seeds": [
-    47.38,
-    48.33,
-    47.62
+    47.381,
+    48.333,
+    47.619
    ],
    "fixed-4 LoRA 4/2 seeds": [
-    54.05,
-    53.1,
-    54.76
+    54.048,
+    53.095,
+    54.762
    ],
    "distilled r80 1/1 seeds": [
-    27.86,
-    26.67
+    27.857,
+    26.667
    ],
    "distilled r80 2/2 seeds": [
-    44.76,
-    43.33,
+    44.762,
+    43.333,
     43.81
    ]
   },
   {
    "bench": "BBH 3-shot",
    "items": 1620,
-   "native 1/1": 30.86,
-   "native 2/2": 66.6,
+   "native 1/1": 30.864,
+   "native 2/2": 66.605,
    "native 4/4": 80.37,
-   "training-free 4/1": 0.8,
-   "training-free 4/2": 4.01,
-   "LoRA-distilled 1/1": 40.43,
-   "LoRA-distilled 2/2": 70.49,
-   "distilled r80 1/1": 40.49,
-   "distilled r80 2/2": 70.49,
-   "fixed-4 LoRA 4/1": 54.44,
+   "training-free 4/1": 0.802,
+   "training-free 4/2": 4.012,
+   "LoRA-distilled 1/1": 40.432,
+   "LoRA-distilled 2/2": 70.494,
+   "distilled r80 1/1": 40.494,
+   "distilled r80 2/2": 70.494,
+   "fixed-4 LoRA 4/1": 54.444,
    "fixed-4 LoRA 4/2": 72.84,
-   "aligned LoRA-only 4/1": 49.94,
-   "aligned LoRA-only 4/2": 73.02,
-   "loop adapter 4/1": 51.73,
-   "loop adapter 4/2": 71.17,
-   "aligned adapter 4/1": 52.72,
-   "aligned adapter 4/2": 73.46,
+   "aligned LoRA-only 4/1": 49.938,
+   "aligned LoRA-only 4/2": 73.025,
+   "loop adapter 4/1": 51.728,
+   "loop adapter 4/2": 71.173,
+   "aligned adapter 4/1": 52.716,
+   "aligned adapter 4/2": 73.457,
    "loop adapter 4/1 seeds": [
-    51.73,
-    51.85,
-    51.48
+    51.728,
+    51.852,
+    51.481
    ],
    "loop adapter 4/2 seeds": [
-    71.17,
-    71.73,
-    71.36
+    71.173,
+    71.728,
+    71.358
    ],
    "aligned adapter 4/1 seeds": [
-    52.72,
-    52.9,
-    52.78
+    52.716,
+    52.901,
+    52.778
    ],
    "aligned adapter 4/2 seeds": [
-    73.46,
-    72.35,
-    72.78
+    73.457,
+    72.346,
+    72.778
    ],
    "LoRA-distilled 1/1 seeds": [
-    40.43,
+    40.432,
     40.0,
-    40.62
+    40.617
    ],
    "LoRA-distilled 2/2 seeds": [
-    70.49,
+    70.494,
     69.63,
-    69.32
+    69.321
    ],
    "aligned LoRA-only 4/1 seeds": [
-    49.94,
-    50.31,
-    50.62
+    49.938,
+    50.309,
+    50.617
    ],
    "aligned LoRA-only 4/2 seeds": [
-    73.02,
-    72.72,
-    72.41
+    73.025,
+    72.716,
+    72.407
    ],
    "fixed-4 LoRA 4/1 seeds": [
-    54.44,
-    55.56,
-    53.77
+    54.444,
+    55.556,
+    53.765
    ],
    "fixed-4 LoRA 4/2 seeds": [
     72.84,
-    72.96,
-    73.4
+    72.963,
+    73.395
    ],
    "distilled r80 1/1 seeds": [
-    40.49,
-    40.43
+    40.494,
+    40.432
    ],
    "distilled r80 2/2 seeds": [
-    70.49,
-    70.25,
-    70.25
+    70.494,
+    70.247,
+    70.247
    ]
   },
   {
    "bench": "ARC-C",
    "items": 1172,
-   "native 1/1": 47.7,
-   "native 2/2": 62.2,
-   "native 4/4": 66.47,
-   "training-free 4/1": 37.46,
-   "training-free 4/2": 40.96,
-   "LoRA-distilled 1/1": 54.95,
-   "LoRA-distilled 2/2": 62.88,
+   "native 1/1": 47.696,
+   "native 2/2": 62.201,
+   "native 4/4": 66.468,
+   "training-free 4/1": 37.457,
+   "training-free 4/2": 40.956,
+   "LoRA-distilled 1/1": 54.949,
+   "LoRA-distilled 2/2": 62.884,
    "distilled r80 1/1": 55.29,
-   "distilled r80 2/2": 62.63,
-   "fixed-4 LoRA 4/1": 62.88,
-   "fixed-4 LoRA 4/2": 65.36,
-   "aligned LoRA-only 4/1": 62.97,
-   "aligned LoRA-only 4/2": 64.85,
-   "loop adapter 4/1": 62.46,
-   "loop adapter 4/2": 65.1,
-   "aligned adapter 4/1": 62.8,
-   "aligned adapter 4/2": 65.02,
+   "distilled r80 2/2": 62.628,
+   "fixed-4 LoRA 4/1": 62.884,
+   "fixed-4 LoRA 4/2": 65.358,
+   "aligned LoRA-only 4/1": 62.969,
+   "aligned LoRA-only 4/2": 64.846,
+   "loop adapter 4/1": 62.457,
+   "loop adapter 4/2": 65.102,
+   "aligned adapter 4/1": 62.799,
+   "aligned adapter 4/2": 65.017,
    "loop adapter 4/1 seeds": [
-    62.46,
-    62.97,
-    62.63
+    62.457,
+    62.969,
+    62.628
    ],
    "loop adapter 4/2 seeds": [
-    65.1,
-    65.27,
-    65.27
+    65.102,
+    65.273,
+    65.273
    ],
    "aligned adapter 4/1 seeds": [
-    62.8,
-    63.4,
-    63.23
+    62.799,
+    63.396,
+    63.225
    ],
    "aligned adapter 4/2 seeds": [
-    65.02,
-    64.85,
-    65.1
+    65.017,
+    64.846,
+    65.102
    ],
    "LoRA-distilled 1/1 seeds": [
-    54.95,
-    54.69,
-    54.86
+    54.949,
+    54.693,
+    54.863
    ],
    "LoRA-distilled 2/2 seeds": [
-    62.88,
-    62.54,
+    62.884,
+    62.543,
     63.14
    ],
    "aligned LoRA-only 4/1 seeds": [
-    62.97,
-    62.54,
-    63.05
+    62.969,
+    62.543,
+    63.055
    ],
    "aligned LoRA-only 4/2 seeds": [
-    64.85,
-    64.85,
-    64.68
+    64.846,
+    64.846,
+    64.676
    ],
    "fixed-4 LoRA 4/1 seeds": [
-    62.88,
-    62.29,
-    62.12
+    62.884,
+    62.287,
+    62.116
    ],
    "fixed-4 LoRA 4/2 seeds": [
-    65.36,
-    65.27,
-    65.19
+    65.358,
+    65.273,
+    65.188
    ],
    "distilled r80 1/1 seeds": [
     55.29,
-    54.86
+    54.863
    ],
    "distilled r80 2/2 seeds": [
-    62.63,
+    62.628,
     63.14,
-    62.63
+    62.628
    ]
   },
   {
    "bench": "HellaSwag",
    "items": 10042,
    "native 1/1": 68.95,
-   "native 2/2": 77.81,
-   "native 4/4": 79.45,
+   "native 2/2": 77.813,
+   "native 4/4": 79.446,
    "training-free 4/1": 40.44,
-   "training-free 4/2": 50.63,
-   "LoRA-distilled 1/1": 70.14,
-   "LoRA-distilled 2/2": 77.58,
-   "distilled r80 1/1": 70.22,
-   "distilled r80 2/2": 77.38,
-   "fixed-4 LoRA 4/1": 72.71,
-   "fixed-4 LoRA 4/2": 78.25,
-   "aligned LoRA-only 4/1": 72.45,
-   "aligned LoRA-only 4/2": 78.27,
-   "loop adapter 4/1": 72.43,
-   "loop adapter 4/2": 77.98,
-   "aligned adapter 4/1": 72.7,
-   "aligned adapter 4/2": 78.25,
+   "training-free 4/2": 50.627,
+   "LoRA-distilled 1/1": 70.135,
+   "LoRA-distilled 2/2": 77.584,
+   "distilled r80 1/1": 70.215,
+   "distilled r80 2/2": 77.385,
+   "fixed-4 LoRA 4/1": 72.715,
+   "fixed-4 LoRA 4/2": 78.251,
+   "aligned LoRA-only 4/1": 72.446,
+   "aligned LoRA-only 4/2": 78.271,
+   "loop adapter 4/1": 72.426,
+   "loop adapter 4/2": 77.982,
+   "aligned adapter 4/1": 72.705,
+   "aligned adapter 4/2": 78.251,
    "loop adapter 4/1 seeds": [
-    72.43,
-    72.62,
-    72.6
+    72.426,
+    72.625,
+    72.595
    ],
    "loop adapter 4/2 seeds": [
-    77.98,
-    78.15,
-    78.04
+    77.982,
+    78.152,
+    78.042
    ],
    "aligned adapter 4/1 seeds": [
-    72.7,
-    72.81,
-    72.71
+    72.705,
+    72.814,
+    72.715
    ],
    "aligned adapter 4/2 seeds": [
-    78.25,
-    78.27,
-    78.22
+    78.251,
+    78.271,
+    78.221
    ],
    "LoRA-distilled 1/1 seeds": [
-    70.14,
-    70.13,
-    70.06
+    70.135,
+    70.125,
+    70.056
    ],
    "LoRA-distilled 2/2 seeds": [
-    77.58,
-    77.55,
-    77.47
+    77.584,
+    77.554,
+    77.475
    ],
    "aligned LoRA-only 4/1 seeds": [
-    72.45,
-    72.36,
-    72.24
+    72.446,
+    72.356,
+    72.237
    ],
    "aligned LoRA-only 4/2 seeds": [
-    78.27,
-    78.36,
-    78.29
+    78.271,
+    78.361,
+    78.291
    ],
    "fixed-4 LoRA 4/1 seeds": [
-    72.71,
-    72.79,
-    72.72
+    72.715,
+    72.794,
+    72.725
    ],
    "fixed-4 LoRA 4/2 seeds": [
-    78.25,
-    78.35,
-    78.24
+    78.251,
+    78.351,
+    78.241
    ],
    "distilled r80 1/1 seeds": [
-    70.22,
-    70.13
+    70.215,
+    70.125
    ],
    "distilled r80 2/2 seeds": [
-    77.38,
-    77.38,
-    77.48
+    77.385,
+    77.385,
+    77.485
    ]
   },
   {
    "bench": "Winogrande",
    "items": 1267,
-   "native 1/1": 61.09,
-   "native 2/2": 71.9,
-   "native 4/4": 77.66,
-   "training-free 4/1": 51.93,
-   "training-free 4/2": 65.51,
-   "LoRA-distilled 1/1": 66.46,
-   "LoRA-distilled 2/2": 74.59,
-   "distilled r80 1/1": 66.61,
-   "distilled r80 2/2": 75.22,
-   "fixed-4 LoRA 4/1": 67.48,
-   "fixed-4 LoRA 4/2": 75.3,
-   "aligned LoRA-only 4/1": 65.9,
-   "aligned LoRA-only 4/2": 74.19,
-   "loop adapter 4/1": 67.09,
-   "loop adapter 4/2": 75.14,
-   "aligned adapter 4/1": 68.03,
-   "aligned adapter 4/2": 75.14,
+   "native 1/1": 61.089,
+   "native 2/2": 71.902,
+   "native 4/4": 77.664,
+   "training-free 4/1": 51.934,
+   "training-free 4/2": 65.509,
+   "LoRA-distilled 1/1": 66.456,
+   "LoRA-distilled 2/2": 74.586,
+   "distilled r80 1/1": 66.614,
+   "distilled r80 2/2": 75.217,
+   "fixed-4 LoRA 4/1": 67.482,
+   "fixed-4 LoRA 4/2": 75.296,
+   "aligned LoRA-only 4/1": 65.904,
+   "aligned LoRA-only 4/2": 74.191,
+   "loop adapter 4/1": 67.088,
+   "loop adapter 4/2": 75.138,
+   "aligned adapter 4/1": 68.035,
+   "aligned adapter 4/2": 75.138,
    "loop adapter 4/1 seeds": [
-    67.09,
-    68.67,
-    68.51
+    67.088,
+    68.666,
+    68.508
    ],
    "loop adapter 4/2 seeds": [
-    75.14,
+    75.138,
     74.98,
-    75.14
+    75.138
    ],
    "aligned adapter 4/1 seeds": [
-    68.03,
-    67.72,
-    68.19
+    68.035,
+    67.719,
+    68.193
    ],
    "aligned adapter 4/2 seeds": [
-    75.14,
-    75.14,
-    75.61
+    75.138,
+    75.138,
+    75.612
    ],
    "LoRA-distilled 1/1 seeds": [
-    66.46,
-    66.22,
-    65.9
+    66.456,
+    66.219,
+    65.904
    ],
    "LoRA-distilled 2/2 seeds": [
-    74.59,
-    73.95,
-    74.19
+    74.586,
+    73.954,
+    74.191
    ],
    "aligned LoRA-only 4/1 seeds": [
-    65.9,
-    66.54,
-    66.77
+    65.904,
+    66.535,
+    66.772
    ],
    "aligned LoRA-only 4/2 seeds": [
-    74.19,
-    74.19,
-    74.11
+    74.191,
+    74.191,
+    74.112
    ],
    "fixed-4 LoRA 4/1 seeds": [
-    67.48,
-    67.88,
-    68.43
+    67.482,
+    67.877,
+    68.429
    ],
    "fixed-4 LoRA 4/2 seeds": [
-    75.3,
-    74.82,
-    75.06
+    75.296,
+    74.822,
+    75.059
    ],
    "distilled r80 1/1 seeds": [
-    66.61,
+    66.614,
     66.14
    ],
    "distilled r80 2/2 seeds": [
-    75.22,
-    74.51,
-    74.43
+    75.217,
+    74.507,
+    74.428
    ]
   },
   {
    "bench": "GSM8K",
    "items": 1319,
-   "native 1/1": 32.37,
-   "native 2/2": 62.85,
-   "native 4/4": 69.37,
-   "training-free 4/1": 8.95,
-   "training-free 4/2": 11.68,
-   "LoRA-distilled 1/1": 40.41,
-   "LoRA-distilled 2/2": 69.6,
-   "distilled r80 1/1": 40.33,
-   "distilled r80 2/2": 70.13,
-   "fixed-4 LoRA 4/1": 47.16,
-   "fixed-4 LoRA 4/2": 67.7,
-   "aligned LoRA-only 4/1": 47.54,
-   "aligned LoRA-only 4/2": 67.25,
-   "loop adapter 4/1": 44.66,
-   "loop adapter 4/2": 66.72,
-   "aligned adapter 4/1": 44.96,
-   "aligned adapter 4/2": 66.26,
+   "native 1/1": 32.373,
+   "native 2/2": 62.851,
+   "native 4/4": 69.371,
+   "training-free 4/1": 8.946,
+   "training-free 4/2": 11.676,
+   "LoRA-distilled 1/1": 40.409,
+   "LoRA-distilled 2/2": 69.598,
+   "distilled r80 1/1": 40.334,
+   "distilled r80 2/2": 70.129,
+   "fixed-4 LoRA 4/1": 47.157,
+   "fixed-4 LoRA 4/2": 67.703,
+   "aligned LoRA-only 4/1": 47.536,
+   "aligned LoRA-only 4/2": 67.248,
+   "loop adapter 4/1": 44.655,
+   "loop adapter 4/2": 66.717,
+   "aligned adapter 4/1": 44.958,
+   "aligned adapter 4/2": 66.262,
    "loop adapter 4/1 seeds": [
-    44.66,
-    45.03,
+    44.655,
+    45.034,
     45.11
    ],
    "loop adapter 4/2 seeds": [
-    66.72,
-    65.43,
-    66.26
+    66.717,
+    65.428,
+    66.262
    ],
    "aligned adapter 4/1 seeds": [
-    44.96,
-    46.1,
-    46.1
+    44.958,
+    46.096,
+    46.096
    ],
    "aligned adapter 4/2 seeds": [
-    66.26,
-    65.96,
-    66.41
+    66.262,
+    65.959,
+    66.414
    ],
    "LoRA-distilled 1/1 seeds": [
-    40.41,
+    40.409,
     39.5,
-    40.71
+    40.713
    ],
    "LoRA-distilled 2/2 seeds": [
-    69.6,
+    69.598,
     69.75,
-    69.83
+    69.826
    ],
    "aligned LoRA-only 4/1 seeds": [
-    47.54,
-    48.14,
-    47.38
+    47.536,
+    48.143,
+    47.384
    ],
    "aligned LoRA-only 4/2 seeds": [
-    67.25,
-    66.87,
-    66.87
+    67.248,
+    66.869,
+    66.869
    ],
    "fixed-4 LoRA 4/1 seeds": [
-    47.16,
-    46.78,
-    47.31
+    47.157,
+    46.778,
+    47.309
    ],
    "fixed-4 LoRA 4/2 seeds": [
-    67.7,
-    66.57,
-    66.94
+    67.703,
+    66.566,
+    66.945
    ],
    "distilled r80 1/1 seeds": [
-    40.33,
-    40.33
+    40.334,
+    40.334
    ],
    "distilled r80 2/2 seeds": [
-    70.13,
-    70.51,
-    70.13
+    70.129,
+    70.508,
+    70.129
    ]
   },
   {
@@ -19538,241 +19538,241 @@
   {
    "bench": "HumanEval+",
    "items": 164,
-   "native 1/1": 44.51,
-   "native 2/2": 66.46,
-   "native 4/4": 69.51,
-   "training-free 4/1": 29.27,
-   "training-free 4/2": 7.32,
-   "LoRA-distilled 1/1": 54.27,
-   "LoRA-distilled 2/2": 69.51,
-   "distilled r80 1/1": 55.49,
-   "distilled r80 2/2": 69.51,
-   "fixed-4 LoRA 4/1": 67.68,
-   "fixed-4 LoRA 4/2": 68.9,
-   "aligned LoRA-only 4/1": 64.02,
-   "aligned LoRA-only 4/2": 69.51,
-   "loop adapter 4/1": 64.63,
-   "loop adapter 4/2": 68.29,
-   "aligned adapter 4/1": 65.24,
-   "aligned adapter 4/2": 70.12,
+   "native 1/1": 44.512,
+   "native 2/2": 66.463,
+   "native 4/4": 69.512,
+   "training-free 4/1": 29.268,
+   "training-free 4/2": 7.317,
+   "LoRA-distilled 1/1": 54.268,
+   "LoRA-distilled 2/2": 69.512,
+   "distilled r80 1/1": 55.488,
+   "distilled r80 2/2": 69.512,
+   "fixed-4 LoRA 4/1": 67.683,
+   "fixed-4 LoRA 4/2": 68.902,
+   "aligned LoRA-only 4/1": 64.024,
+   "aligned LoRA-only 4/2": 69.512,
+   "loop adapter 4/1": 64.634,
+   "loop adapter 4/2": 68.293,
+   "aligned adapter 4/1": 65.244,
+   "aligned adapter 4/2": 70.122,
    "loop adapter 4/1 seeds": [
-    64.63,
-    63.41,
-    64.63
+    64.634,
+    63.415,
+    64.634
    ],
    "loop adapter 4/2 seeds": [
-    68.29,
-    68.9,
-    70.12
+    68.293,
+    68.902,
+    70.122
    ],
    "aligned adapter 4/1 seeds": [
-    65.24,
-    63.41,
-    63.41
+    65.244,
+    63.415,
+    63.415
    ],
    "aligned adapter 4/2 seeds": [
-    70.12,
-    68.29,
-    68.9
+    70.122,
+    68.293,
+    68.902
    ],
    "LoRA-distilled 1/1 seeds": [
-    54.27,
-    54.27,
-    54.88
+    54.268,
+    54.268,
+    54.878
    ],
    "LoRA-distilled 2/2 seeds": [
-    69.51,
-    67.68,
-    68.29
+    69.512,
+    67.683,
+    68.293
    ],
    "aligned LoRA-only 4/1 seeds": [
-    64.02,
-    62.2,
-    62.8
+    64.024,
+    62.195,
+    62.805
    ],
    "aligned LoRA-only 4/2 seeds": [
-    69.51,
-    68.9,
-    70.12
+    69.512,
+    68.902,
+    70.122
    ],
    "fixed-4 LoRA 4/1 seeds": [
-    67.68,
-    62.8,
-    64.63
+    67.683,
+    62.805,
+    64.634
    ],
    "fixed-4 LoRA 4/2 seeds": [
-    68.9,
-    69.51,
-    70.12
+    68.902,
+    69.512,
+    70.122
    ],
    "distilled r80 1/1 seeds": [
-    55.49,
-    56.71
+    55.488,
+    56.707
    ],
    "distilled r80 2/2 seeds": [
-    69.51,
-    69.51,
-    68.9
+    69.512,
+    69.512,
+    68.902
    ]
   },
   {
    "bench": "MBPP+",
    "items": 378,
-   "native 1/1": 49.21,
-   "native 2/2": 61.11,
+   "native 1/1": 49.206,
+   "native 2/2": 61.111,
    "native 4/4": 64.55,
-   "training-free 4/1": 48.94,
-   "training-free 4/2": 33.07,
-   "LoRA-distilled 1/1": 50.26,
-   "LoRA-distilled 2/2": 62.96,
+   "training-free 4/1": 48.942,
+   "training-free 4/2": 33.069,
+   "LoRA-distilled 1/1": 50.265,
+   "LoRA-distilled 2/2": 62.963,
    "distilled r80 1/1": 50.0,
-   "distilled r80 2/2": 62.7,
-   "fixed-4 LoRA 4/1": 57.41,
-   "fixed-4 LoRA 4/2": 62.96,
-   "aligned LoRA-only 4/1": 55.29,
-   "aligned LoRA-only 4/2": 62.43,
-   "loop adapter 4/1": 55.29,
-   "loop adapter 4/2": 62.7,
-   "aligned adapter 4/1": 56.35,
-   "aligned adapter 4/2": 64.29,
+   "distilled r80 2/2": 62.698,
+   "fixed-4 LoRA 4/1": 57.407,
+   "fixed-4 LoRA 4/2": 62.963,
+   "aligned LoRA-only 4/1": 55.291,
+   "aligned LoRA-only 4/2": 62.434,
+   "loop adapter 4/1": 55.291,
+   "loop adapter 4/2": 62.698,
+   "aligned adapter 4/1": 56.349,
+   "aligned adapter 4/2": 64.286,
    "loop adapter 4/1 seeds": [
-    55.29,
-    56.08,
-    55.56
+    55.291,
+    56.085,
+    55.556
    ],
    "loop adapter 4/2 seeds": [
-    62.7,
-    61.9,
-    62.17
+    62.698,
+    61.905,
+    62.169
    ],
    "aligned adapter 4/1 seeds": [
-    56.35,
-    56.35,
-    57.14
+    56.349,
+    56.349,
+    57.143
    ],
    "aligned adapter 4/2 seeds": [
-    64.29,
-    64.29,
-    63.49
+    64.286,
+    64.286,
+    63.492
    ],
    "LoRA-distilled 1/1 seeds": [
-    50.26,
-    50.26,
-    50.26
+    50.265,
+    50.265,
+    50.265
    ],
    "LoRA-distilled 2/2 seeds": [
-    62.96,
-    63.49,
-    63.23
+    62.963,
+    63.492,
+    63.228
    ],
    "aligned LoRA-only 4/1 seeds": [
-    55.29,
-    53.97,
-    55.03
+    55.291,
+    53.968,
+    55.026
    ],
    "aligned LoRA-only 4/2 seeds": [
-    62.43,
-    62.17,
-    63.76
+    62.434,
+    62.169,
+    63.757
    ],
    "fixed-4 LoRA 4/1 seeds": [
-    57.41,
-    56.61,
-    56.61
+    57.407,
+    56.614,
+    56.614
    ],
    "fixed-4 LoRA 4/2 seeds": [
-    62.96,
-    62.7,
-    64.02
+    62.963,
+    62.698,
+    64.021
    ],
    "distilled r80 1/1 seeds": [
     50.0,
-    50.26
+    50.265
    ],
    "distilled r80 2/2 seeds": [
-    62.7,
-    62.96,
-    63.49
+    62.698,
+    62.963,
+    63.492
    ]
   },
   {
    "bench": "RULER-16K",
    "items": 520,
-   "native 1/1": 41.43,
-   "native 2/2": 60.83,
-   "native 4/4": 81.27,
-   "training-free 4/1": 8.03,
-   "training-free 4/2": 51.96,
-   "LoRA-distilled 1/1": 54.73,
-   "LoRA-distilled 2/2": 70.33,
-   "distilled r80 1/1": 56.25,
-   "distilled r80 2/2": 71.84,
-   "fixed-4 LoRA 4/1": 58.29,
-   "fixed-4 LoRA 4/2": 74.51,
-   "aligned LoRA-only 4/1": 49.77,
-   "aligned LoRA-only 4/2": 71.57,
-   "loop adapter 4/1": 62.82,
-   "loop adapter 4/2": 72.25,
-   "aligned adapter 4/1": 64.66,
-   "aligned adapter 4/2": 73.53,
+   "native 1/1": 41.433,
+   "native 2/2": 60.833,
+   "native 4/4": 81.266,
+   "training-free 4/1": 8.026,
+   "training-free 4/2": 51.965,
+   "LoRA-distilled 1/1": 54.728,
+   "LoRA-distilled 2/2": 70.327,
+   "distilled r80 1/1": 56.247,
+   "distilled r80 2/2": 71.843,
+   "fixed-4 LoRA 4/1": 58.292,
+   "fixed-4 LoRA 4/2": 74.513,
+   "aligned LoRA-only 4/1": 49.772,
+   "aligned LoRA-only 4/2": 71.571,
+   "loop adapter 4/1": 62.821,
+   "loop adapter 4/2": 72.247,
+   "aligned adapter 4/1": 64.663,
+   "aligned adapter 4/2": 73.532,
    "loop adapter 4/1 seeds": [
-    62.82,
-    62.94,
-    63.08
+    62.821,
+    62.936,
+    63.077
    ],
    "loop adapter 4/2 seeds": [
-    72.25,
-    71.12,
-    71.71
+    72.247,
+    71.125,
+    71.715
    ],
    "aligned adapter 4/1 seeds": [
-    64.66,
-    62.8,
-    64.2
+    64.663,
+    62.801,
+    64.202
    ],
    "aligned adapter 4/2 seeds": [
-    73.53,
-    72.25,
-    72.63
+    73.532,
+    72.247,
+    72.628
    ],
    "LoRA-distilled 1/1 seeds": [
-    54.73,
-    56.46,
-    56.86
+    54.728,
+    56.455,
+    56.856
    ],
    "LoRA-distilled 2/2 seeds": [
-    70.33,
-    70.36,
-    70.17
+    70.327,
+    70.356,
+    70.173
    ],
    "aligned LoRA-only 4/1 seeds": [
-    49.77,
-    42.37,
-    41.85
+    49.772,
+    42.365,
+    41.846
    ],
    "aligned LoRA-only 4/2 seeds": [
-    71.57,
-    66.59,
-    70.78
+    71.571,
+    66.587,
+    70.779
    ],
    "fixed-4 LoRA 4/1 seeds": [
-    58.29,
-    57.56,
-    58.46
+    58.292,
+    57.561,
+    58.458
    ],
    "fixed-4 LoRA 4/2 seeds": [
-    74.51,
-    73.49,
-    74.78
+    74.513,
+    73.487,
+    74.782
    ],
    "distilled r80 1/1 seeds": [
-    56.25,
-    54.99
+    56.247,
+    54.987
    ],
    "distilled r80 2/2 seeds": [
-    71.84,
-    71.4,
-    70.07
+    71.843,
+    71.401,
+    70.074
    ]
   }
  ],
@@ -29726,55 +29726,55 @@
   {
    "bench": "MMLU",
    "items": 1140,
-   "native 1/1": 42.02,
-   "native 2/2": 62.19,
-   "native 4/4": 67.63,
-   "training-free 4/1": 32.81,
-   "training-free 4/2": 37.46,
+   "native 1/1": 42.018,
+   "native 2/2": 62.193,
+   "native 4/4": 67.632,
+   "training-free 4/1": 32.807,
+   "training-free 4/2": 37.456,
    "LoRA-distilled 1/1": 45.0,
-   "LoRA-distilled 2/2": 62.54,
+   "LoRA-distilled 2/2": 62.544,
    "distilled r80 1/1": null,
    "distilled r80 2/2": null,
    "fixed-4 LoRA 4/1": null,
    "fixed-4 LoRA 4/2": null,
    "aligned LoRA-only 4/1": null,
    "aligned LoRA-only 4/2": null,
-   "loop adapter 4/1": 63.95,
-   "loop adapter 4/2": 67.72,
-   "aligned adapter 4/1": 64.04,
-   "aligned adapter 4/2": 67.89
+   "loop adapter 4/1": 63.947,
+   "loop adapter 4/2": 67.719,
+   "aligned adapter 4/1": 64.035,
+   "aligned adapter 4/2": 67.895
   },
   {
    "bench": "MMLU-Pro",
    "items": 420,
-   "native 1/1": 19.05,
-   "native 2/2": 39.52,
-   "native 4/4": 45.71,
+   "native 1/1": 19.048,
+   "native 2/2": 39.524,
+   "native 4/4": 45.714,
    "training-free 4/1": 0.0,
    "training-free 4/2": 1.19,
    "LoRA-distilled 1/1": 21.19,
-   "LoRA-distilled 2/2": 35.95,
+   "LoRA-distilled 2/2": 35.952,
    "distilled r80 1/1": null,
    "distilled r80 2/2": null,
    "fixed-4 LoRA 4/1": null,
    "fixed-4 LoRA 4/2": null,
    "aligned LoRA-only 4/1": null,
    "aligned LoRA-only 4/2": null,
-   "loop adapter 4/1": 33.33,
-   "loop adapter 4/2": 42.86,
-   "aligned adapter 4/1": 36.67,
+   "loop adapter 4/1": 33.333,
+   "loop adapter 4/2": 42.857,
+   "aligned adapter 4/1": 36.667,
    "aligned adapter 4/2": 43.81
   },
   {
    "bench": "BBH 3-shot",
    "items": 1620,
-   "native 1/1": 19.88,
-   "native 2/2": 50.8,
-   "native 4/4": 69.51,
+   "native 1/1": 19.877,
+   "native 2/2": 50.802,
+   "native 4/4": 69.506,
    "training-free 4/1": 0.0,
    "training-free 4/2": 0.0,
    "LoRA-distilled 1/1": 32.84,
-   "LoRA-distilled 2/2": 55.68,
+   "LoRA-distilled 2/2": 55.679,
    "distilled r80 1/1": null,
    "distilled r80 2/2": null,
    "fixed-4 LoRA 4/1": null,
@@ -29783,71 +29783,71 @@
    "aligned LoRA-only 4/2": null,
    "loop adapter 4/1": 8.21,
    "loop adapter 4/2": 42.84,
-   "aligned adapter 4/1": 13.4,
-   "aligned adapter 4/2": 49.38
+   "aligned adapter 4/1": 13.395,
+   "aligned adapter 4/2": 49.383
   },
   {
    "bench": "ARC-C",
    "items": 1172,
-   "native 1/1": 38.65,
-   "native 2/2": 54.61,
-   "native 4/4": 60.15,
-   "training-free 4/1": 31.74,
-   "training-free 4/2": 35.07,
-   "LoRA-distilled 1/1": 46.42,
-   "LoRA-distilled 2/2": 55.03,
+   "native 1/1": 38.652,
+   "native 2/2": 54.608,
+   "native 4/4": 60.154,
+   "training-free 4/1": 31.741,
+   "training-free 4/2": 35.068,
+   "LoRA-distilled 1/1": 46.416,
+   "LoRA-distilled 2/2": 55.034,
    "distilled r80 1/1": null,
    "distilled r80 2/2": null,
    "fixed-4 LoRA 4/1": null,
    "fixed-4 LoRA 4/2": null,
    "aligned LoRA-only 4/1": null,
    "aligned LoRA-only 4/2": null,
-   "loop adapter 4/1": 55.8,
-   "loop adapter 4/2": 58.87,
-   "aligned adapter 4/1": 56.31,
-   "aligned adapter 4/2": 58.7
+   "loop adapter 4/1": 55.802,
+   "loop adapter 4/2": 58.874,
+   "aligned adapter 4/1": 56.314,
+   "aligned adapter 4/2": 58.703
   },
   {
    "bench": "HellaSwag",
    "items": 10042,
-   "native 1/1": 55.27,
+   "native 1/1": 55.268,
    "native 2/2": 71.52,
-   "native 4/4": 74.43,
-   "training-free 4/1": 27.83,
+   "native 4/4": 74.427,
+   "training-free 4/1": 27.833,
    "training-free 4/2": 30.94,
-   "LoRA-distilled 1/1": 58.77,
-   "LoRA-distilled 2/2": 70.55,
+   "LoRA-distilled 1/1": 58.773,
+   "LoRA-distilled 2/2": 70.554,
    "distilled r80 1/1": null,
    "distilled r80 2/2": null,
    "fixed-4 LoRA 4/1": null,
    "fixed-4 LoRA 4/2": null,
    "aligned LoRA-only 4/1": null,
    "aligned LoRA-only 4/2": null,
-   "loop adapter 4/1": 62.91,
-   "loop adapter 4/2": 71.29,
-   "aligned adapter 4/1": 63.3,
+   "loop adapter 4/1": 62.906,
+   "loop adapter 4/2": 71.291,
+   "aligned adapter 4/1": 63.304,
    "aligned adapter 4/2": 71.44
   },
   {
    "bench": "Winogrande",
    "items": 1267,
-   "native 1/1": 56.04,
-   "native 2/2": 66.46,
-   "native 4/4": 70.64,
-   "training-free 4/1": 51.07,
-   "training-free 4/2": 57.3,
-   "LoRA-distilled 1/1": 61.17,
-   "LoRA-distilled 2/2": 67.88,
+   "native 1/1": 56.038,
+   "native 2/2": 66.456,
+   "native 4/4": 70.639,
+   "training-free 4/1": 51.066,
+   "training-free 4/2": 57.301,
+   "LoRA-distilled 1/1": 61.168,
+   "LoRA-distilled 2/2": 67.877,
    "distilled r80 1/1": null,
    "distilled r80 2/2": null,
    "fixed-4 LoRA 4/1": null,
    "fixed-4 LoRA 4/2": null,
    "aligned LoRA-only 4/1": null,
    "aligned LoRA-only 4/2": null,
-   "loop adapter 4/1": 62.59,
-   "loop adapter 4/2": 68.27,
-   "aligned adapter 4/1": 63.14,
-   "aligned adapter 4/2": 67.56
+   "loop adapter 4/1": 62.589,
+   "loop adapter 4/2": 68.272,
+   "aligned adapter 4/1": 63.141,
+   "aligned adapter 4/2": 67.561
   },
   {
    "bench": "GSM8K",
@@ -29894,33 +29894,33 @@
   {
    "bench": "HumanEval+",
    "items": 164,
-   "native 1/1": 34.15,
-   "native 2/2": 54.88,
-   "native 4/4": 65.85,
+   "native 1/1": 34.146,
+   "native 2/2": 54.878,
+   "native 4/4": 65.854,
    "training-free 4/1": 0.0,
    "training-free 4/2": 0.0,
-   "LoRA-distilled 1/1": 37.8,
-   "LoRA-distilled 2/2": 56.71,
+   "LoRA-distilled 1/1": 37.805,
+   "LoRA-distilled 2/2": 56.707,
    "distilled r80 1/1": null,
    "distilled r80 2/2": null,
    "fixed-4 LoRA 4/1": null,
    "fixed-4 LoRA 4/2": null,
    "aligned LoRA-only 4/1": null,
    "aligned LoRA-only 4/2": null,
-   "loop adapter 4/1": 43.29,
-   "loop adapter 4/2": 62.8,
-   "aligned adapter 4/1": 39.63,
-   "aligned adapter 4/2": 62.8
+   "loop adapter 4/1": 43.293,
+   "loop adapter 4/2": 62.805,
+   "aligned adapter 4/1": 39.634,
+   "aligned adapter 4/2": 62.805
   },
   {
    "bench": "MBPP+",
    "items": 378,
    "native 1/1": 41.27,
-   "native 2/2": 57.67,
-   "native 4/4": 60.85,
+   "native 2/2": 57.672,
+   "native 4/4": 60.847,
    "training-free 4/1": 0.0,
    "training-free 4/2": 0.0,
-   "LoRA-distilled 1/1": 42.86,
+   "LoRA-distilled 1/1": 42.857,
    "LoRA-distilled 2/2": 55.82,
    "distilled r80 1/1": null,
    "distilled r80 2/2": null,
@@ -29928,31 +29928,31 @@
    "fixed-4 LoRA 4/2": null,
    "aligned LoRA-only 4/1": null,
    "aligned LoRA-only 4/2": null,
-   "loop adapter 4/1": 48.41,
-   "loop adapter 4/2": 54.76,
-   "aligned adapter 4/1": 47.62,
-   "aligned adapter 4/2": 57.14
+   "loop adapter 4/1": 48.413,
+   "loop adapter 4/2": 54.762,
+   "aligned adapter 4/1": 47.619,
+   "aligned adapter 4/2": 57.143
   },
   {
    "bench": "RULER-16K",
    "items": 520,
-   "native 1/1": 31.59,
-   "native 2/2": 50.57,
-   "native 4/4": 73.86,
-   "training-free 4/1": 0.04,
-   "training-free 4/2": 8.54,
-   "LoRA-distilled 1/1": 49.77,
-   "LoRA-distilled 2/2": 63.11,
+   "native 1/1": 31.587,
+   "native 2/2": 50.567,
+   "native 4/4": 73.859,
+   "training-free 4/1": 0.038,
+   "training-free 4/2": 8.538,
+   "LoRA-distilled 1/1": 49.769,
+   "LoRA-distilled 2/2": 63.106,
    "distilled r80 1/1": null,
    "distilled r80 2/2": null,
    "fixed-4 LoRA 4/1": null,
    "fixed-4 LoRA 4/2": null,
    "aligned LoRA-only 4/1": null,
    "aligned LoRA-only 4/2": null,
-   "loop adapter 4/1": 45.89,
-   "loop adapter 4/2": 52.03,
-   "aligned adapter 4/1": 47.21,
-   "aligned adapter 4/2": 53.53
+   "loop adapter 4/1": 45.888,
+   "loop adapter 4/2": 52.029,
+   "aligned adapter 4/1": 47.212,
+   "aligned adapter 4/2": 53.532
   }
  ],
  "main_table_14_seeds": {},

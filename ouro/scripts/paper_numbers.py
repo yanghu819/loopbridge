@@ -2089,7 +2089,7 @@ def main_table_14():
         have = [v for v in sets.values() if v]
         ids = set.intersection(*(set(v) for v in have)) if have else set()
         out.append(dict(bench=bench, items=len(ids),
-                        **{label: (round(100 * float(np.mean([v[i] for i in ids])), 2) if v else None)
+                        **{label: (round(100 * float(np.mean([v[i] for i in ids])), 3) if v else None)
                            for label, v in sets.items()}))
         for label, (kind, c) in seed_rows.items():
             k = main_key(bench, kind, c, "Ouro-1.4B")
@@ -2118,6 +2118,9 @@ def main_table_14():
 MAIN_SEEDS = ("X26s2", "X26s3")   # further training seeds of the loop adapter (seed 0: X26-S-universal)
 
 
+MAIN_IDS = {}   # benchmark -> the items all Table 1 rows (and their seeds) share; filled by main_table()
+
+
 def main_table():
     """Accuracy of each main-table configuration, each benchmark on the items all rows share; None if a run is missing.
     The loop-adapter rows also give each training seed (key '<label> seeds': seed 0, then MAIN_SEEDS), on the same
@@ -2140,7 +2143,8 @@ def main_table():
         seeds = {label: [v if v and len(v) >= 0.95 * full else None for v in vs] for label, vs in seeds.items()}
         have = [v for v in sets.values() if v] + [v for vs in seeds.values() for v in vs if v]
         ids = set.intersection(*(set(v) for v in have)) if have else set()
-        mean = lambda v: round(100 * float(np.mean([v[i] for i in ids])), 2) if v else None
+        MAIN_IDS[bench] = ids   # Table 8 (aligned_cells) reuses these items, so shared cells print the same value
+        mean = lambda v: round(100 * float(np.mean([v[i] for i in ids])), 3) if v else None   # rounded once, when printed
         row = dict(bench=bench, items=len(ids), **{label: mean(v) for label, v in sets.items()})
         row.update({f"{label} seeds": [row[label]] + [mean(v) for v in vs] for label, vs in seeds.items()})
         out.append(row)
@@ -2306,6 +2310,8 @@ def aligned_cells():
         sets = {c: (v if v and ref <= set(v) else None) for c, v in sets.items()}
         have = [v for v in sets.values() if v]
         ids = set.intersection(*(set(v) for v in have))
+        if MAIN_IDS.get(bench) and all(MAIN_IDS[bench] <= set(v) for v in have):
+            ids = MAIN_IDS[bench]   # the items of Table 1, so a configuration shown in both tables has one value
         row = dict(bench=bench, items=len(ids))
         row.update({c: (round(100 * float(np.mean([v[i] for i in ids])), 3) if v else None) for c, v in sets.items()})
         out.append(row)
