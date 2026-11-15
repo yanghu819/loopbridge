@@ -430,6 +430,8 @@ def keys():
     ks |= {main_key(b, "aligned", c).replace("X26-", f"X26a{v}-", 1) for b in MAIN_BENCH for c in ("a41", "a42") for v in ("lr0.3", "lr3")}
     ks |= {k for _, k, _ in REPRO}
     ks |= {k.replace("S42", c) for _, _, ka, _ in equal_specs() for k in (ka,) for c in ("a42", "a22")}
+    ks |= {think_seed_key(ka.replace("S42", "a42"), sd) for model, _, ka, _ in equal_specs() if model == "2.6B-T"
+           for sd in THINK_SEEDS}   # LoopBridge 4/2 on Ouro-2.6B-Thinking, training seeds 2 and 3
     ks |= {main_key(b, kind, c, "Ouro-1.4B") for b in MAIN_BENCH for _, kind, c in MAIN_ROWS}
     ks |= {f"L:{r}-bbhq:exact_match" for r in BBHQ_RUNS}   # Ouro-1.4B BBH with the stop at the next question
     ks |= {seed14_key(main_key(b, kind, c, "Ouro-1.4B"), sd) for b in MAIN_BENCH
@@ -886,6 +888,54 @@ def equal(arm="S"):
         want = (0.8, 6, 0.5, {"MMLU-Pro": 8, "BBH": 8, "HELMET": 15}, 6, (8, 9.5))
         print(f"Equal a      2.6B-T LoopBridge 4/2: gap to 4/4, above 2/2, worst below, gains, within 2 of 4/4, same 2/2 lower {got}"
               + ("" if got == want else f"  !! paper: {want}"))
+    return out
+
+
+THINK_SEEDS = (2, 3)   # Ouro-2.6B-Thinking LoopBridge training seeds 2 and 3 (runs_scripts/think_seed.sh)
+THINK_SEED_PRINTED = None   # Section 5.7 / Figure 11: (gap to Original 4/4, its s.d.) over three seeds once in the paper
+
+
+def think_seed_key(key, sd):
+    """Item key of LoopBridge training seed sd on Ouro-2.6B-Thinking (think_seed.sh: runs T26s<sd>-a42-*, T26s<sd>x-a42-*,
+    T26s<sd>ne-a42-*)."""
+    for a, b in (("T26-a42", f"T26s{sd}-a42"), ("T26x-a42", f"T26s{sd}x-a42"), ("T26ne-a42", f"T26s{sd}ne-a42")):
+        key = key.replace(a, b)
+    return key
+
+
+def think_seeds():
+    """LoopBridge 4/2 on Ouro-2.6B-Thinking over training seeds 1-3 (as equal("a"), each benchmark on the items the three
+    seeds and Original 2/2 and 4/4 share): per seed the 8-benchmark average, its gap to Original 4/4 and the number of
+    benchmarks above Original 2/2; mean and s.d. over seeds."""
+    specs = [(bench, ka.replace("S42", "a42"), kb) for model, bench, ka, kb in equal_specs() if model == "2.6B-T"]
+    rows = {}
+    for bench, ka, kb in specs:
+        runs = [load(ka)] + [load(think_seed_key(ka, sd)) for sd in THINK_SEEDS]
+        n2, n4 = load(kb.format(n=2)), load(kb.format(n=4))
+        if any(x is None or not x for x in runs + [n2, n4]):
+            print(f"Think seeds  {bench:12s} MISSING seeds {[sd for sd, x in zip((1,) + THINK_SEEDS, runs) if not x]}")
+            return {}
+        ids = set(n2) & set(n4)
+        for x in runs:
+            ids &= set(x)
+        sub = lambda d: {i: d[i] for i in ids}
+        rows[bench] = [(boot(sub(x), sub(n4), reps=10), boot(sub(x), sub(n2), reps=10)) for x in runs]
+    out = {}
+    per = []
+    for j, sd in enumerate((1,) + THINK_SEEDS):
+        ours = float(np.mean([rows[b][j][0]["a"] for b in rows]))
+        n4 = float(np.mean([rows[b][j][0]["b"] for b in rows]))
+        above = sum(rows[b][j][1]["diff"] > 0 for b in rows)
+        per.append(dict(seed=sd, avg=round(ours, 2), gap4=round(n4 - ours, 2), above2=above,
+                        by_bench={b: round(rows[b][j][0]["a"], 1) for b in rows}))
+        print(f"Think seeds  seed {sd}: LoopBridge 4/2 average {ours:5.2f}, gap to 4/4 {n4 - ours:+5.2f}, above 2/2 on {above} of 8  "
+              + " ".join(f"{b} {rows[b][j][0]['a']:.1f}" for b in rows))
+    gaps = [r["gap4"] for r in per]
+    out = dict(per_seed=per, gap4=(round(float(np.mean(gaps)), 1), round(float(np.std(gaps, ddof=1)), 1)),
+               avg=(round(float(np.mean([r["avg"] for r in per])), 1), round(float(np.std([r["avg"] for r in per], ddof=1)), 1)),
+               above2=[r["above2"] for r in per])
+    print(f"Think seeds  over seeds 1-3: average {out['avg']}, gap to 4/4 {out['gap4']}, above 2/2 {out['above2']}"
+          + ("" if THINK_SEED_PRINTED in (None, out["gap4"]) else f"  !! paper: {THINK_SEED_PRINTED}"))
     return out
 
 
@@ -2689,7 +2739,7 @@ def _compute(counter):
         print(f"{sec:12s} {label:52s} {means[-1]['mean']:6.1f}  n={len(s)}")
     e2e_rows, ratios = e2e_table()
     _TB = time_breakdown()   # printed once (its checks count); later callers reuse it through time_breakdown_rows
-    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), sn_equal=sn_equal(), taskmap_select=taskmap_select(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), time_matched=time_matched(), spec_decoding=spec_decoding(), batched_serving=batched_serving(), thinking_batched=thinking_batched(), batched_serving_14=batched_serving_14(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), main_table_14_seeds=SEEDS14_OUT, bbh_stop=bbh_stop_check(), aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
+    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), think_seeds=think_seeds(), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), sn_equal=sn_equal(), taskmap_select=taskmap_select(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), time_matched=time_matched(), spec_decoding=spec_decoding(), batched_serving=batched_serving(), thinking_batched=thinking_batched(), batched_serving_14=batched_serving_14(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), main_table_14_seeds=SEEDS14_OUT, bbh_stop=bbh_stop_check(), aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
     print(f"wrote {OUT}; {counter.flags} printed values differ ({bad} in the paired comparisons)")
 
 
