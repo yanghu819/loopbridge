@@ -1,4 +1,4 @@
-# Handoff (2026-11-15)
+# Handoff (2026-11-16)
 
 For the next agent taking over *Untying Prefill and Decode Loops in Looped Language Models*.
 Read this file, then `NOTES.md` (lab log), `REPRODUCE.md` (result -> script map) and `DEPRECATED.md`. Cluster addresses
@@ -20,35 +20,33 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
   depth selection (cross-fitted), Nanbeige, the Ouro-1.4B-Thinking comparisons against Original. Kept: Ouro-2.6B core,
   Ouro-1.4B, the Thinking models, Lev decision models.
 - **Story**: (1) prefill is 0.4-2.6% of a chain-of-thought request (Figure 2); (2) same decode loops: 44.2 -> 58.6 /
-  58.2 at n=1 vs Distilled 49.5 (Table 1, MATH-500 zero-shot since 11-15); (3) the gain levels off at 2-4 prefill loops (Figure 6); (4) measured time
+  58.2 at n=1 vs Distilled 49.5 (Table 1, MATH-500 zero-shot since 11-15); (3) the gain levels off after two to five prefill loops (Figure 5); (4) measured time
   (800 requests): +18.6 / +17.2 over Original 1/1 for 1.14x / 1.21x the time, +10-14 at the same mean time (Figure 6);
   (5) transfers to Ouro-1.4B, Thinking (4/2 within 0.8 of 4/4; batched GSM8K in about half its time) and Lev. Caveats live in Limitations and the appendix.
 - **Seeds in Table 1 caption** (zero-shot MATH): fixed 58.3+-0.2 / 69.0+-0.3, LoopBridge 58.3+-0.1 / 68.6+-0.4,
   Distilled 49.6+-0.3 / 66.1+-0.1, rank 80 49.2 (2 seeds) / 65.6+-0.2.
-- **2026-11-15: MATH-500 zero-shot everywhere** (runs `<name>-math0shot`, `TASK_MAP`, `MATH0_ROWS`). The timed requests
-  were re-timed with the zero-shot prompt (`runs_scripts/time_math0.sh`, files `*-math0shot.jsonl`, `TIME_TASKS`
-  switched 11-15); Section 5.5 now reports +17-19 points for 14-21% more time and +10-14 at the same mean time (800 requests since 11-16)
-  (`time_matched()`), Figure 6 is the accuracy-time frontier.
-  11-15 late: agy (Antigravity, pro) co-edits and reviews (helpers in ~/.b300-handoff/agy; Codex out of quota to 11-17);
-  Ouro-1.4B seeds (44.2+-0.2 vs 40.5+-0.0) and BBH stop-rule check (*-bbhq) in Table 9; Thinking results switched to
-  the main LoopBridge (equal_aligned); speculative-decoding drafter check (spec_agree.sh) kept out of the paper (NOTES);
-  second timed block (time_set2.sh, USE_SET2) and Ouro-1.4B fixed m=4 / rank-80 Distilled rows (fixed14.sh,
-  dist14r80.sh) in flight. 42
-  depth-sweep cells missing a zero-shot run are being filled on a1 (`m0fill_q.txt`). Ouro-1.4B seeds 2/3
-  (`runs_scripts/seed14.sh`) training on a1. LoopBridge at m = n = 4 is not ours (nothing untied): Figure 4 and
-  Table 8 show n <= 3 (4/4 MATH-500 is 65.6 vs 72.2 for the original).
+- **2026-11-15/16**: MATH-500 zero-shot everywhere (runs `<name>-math0shot`, `TASK_MAP`, `MATH0_ROWS`); the timed
+  requests re-timed with the zero-shot prompt (`time_math0.sh`), then a second block of 100 requests per task timed at
+  batch 1 (`time_set2.sh`, files `clnB*`) and in batches (`batch_set2.sh`, files `btB*`): every timing result is on the
+  same 800 requests (`USE_SET2`, `USE_SET2_BATCH`). Batch 32: LoopBridge 4/1 +18.5 over Original 1/1 at 1.18x the time.
+  Ouro-1.4B: three seeds of LoopBridge, the fixed-depth adapter and Distilled 1/1, rank-80 Distilled, BBH stop-rule
+  check (`*-bbhq`) in the Table 11 caption. Thinking results use the main LoopBridge (`equal("a")`). The speculative-
+  decoding drafter check (`spec_agree.sh`) stays out of the paper (NOTES). agy (Antigravity, pro) co-edits the prose
+  (helpers in `~/.b300-handoff/agy`; Codex is out of quota until 11-17). LoopBridge at m = n = 4 is not ours (nothing
+  untied): Figure 4 and Table 8 show n <= 3.
+- **Running on 11-16 (finish these, then update the paper)**:
+  - a1: LoopBridge seeds 2 and 3 on Ouro-2.6B-Thinking (`think_seed.sh`; trained; evaluations in `thinkseed{2,3}_q.txt`,
+    two workers per GPU). Then `runs/score_evalplus_all.sh` on a1, `pn_sync.sh all`; `think_seeds()` prints the 8-benchmark
+    average and the gap to Original 4/4 per seed: put mean +- s.d. into Section 5.7 and the Figure 11 caption and set
+    `THINK_SEED_PRINTED`.
+  - a2: rank-80 Distilled 1/1, seed 3 (`dist26r80s3.sh`, run X26-E48fr80-p1d1-s3, 8 GPUs, then its 11 benchmarks). Then
+    `R80_SEEDS[1] = ("s2", "s3")` and the Table 1 caption ("rank 80: 49.2 over two seeds") becomes a three-seed mean.
 - **Guards**: every number quoted in the text is checked in `ouro/scripts/paper_numbers.py` (`!!` lines); the pipeline
   must print "0 printed values differ" and no `!!`.
 - **Done since 11-09**: baseline LR check (Distilled at x0.3 / x3 and rank 80 x3: averages move <= 0.6, never reach
   Ours; Setup sentence + Appendix "Baseline learning rate"); Distilled 1/1 and 2/2 three seeds; depth gain over three
   seeds (9.0 +- 0.6, 9.1 +- 0.2, Section 4); maps frozen in the aligned layout (RULER-16K -14.9, seed 2 -22.3; 4K/8K
   within 1.4); Ouro-1.4B depth sweep (Appendix D).
-- **Status 2026-11-11: ready for arXiv.** Data frozen; red team round 5 (3/5, no number mismatch) addressed; body 4
-  pages; every quoted number guarded; provenance regenerated and scanned; arXiv bundle `paper/arxiv/arxiv.tar.gz`
-  checked (all files present, main.bbl 93 entries). The user submits it personally.
-- **Still running, not in the paper** (add to the appendix later if wanted, the paper does not depend on them):
-  rank-80 Distilled seeds (1/1 s2, 2/2 s2 and s3; `R80_SEEDS`), wide adapter seeds 2/3 and their depth sweeps
-  (X26-a-wide-s{2,3}, X26ws{2,3}-*; `plateau()` needs a seed prefix to use them).
 - Code benchmarks need `runs/score_evalplus_all.sh` on each box after their lm-eval runs.
 - Backups: `ouro/scripts/backup_ms.py BOX [--data]` (every 2 h, log /root/pn/backup-BOX.log) to the private
   ModelScope repo torushy/untying-prefill-decode-backup; /dev/shm is a tmpfs and is lost on a restart.
