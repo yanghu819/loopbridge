@@ -688,7 +688,8 @@ def fig_depth_main(mmax=8, n=1):
         ax.annotate("", (best, q[best]), xytext=(best, q[1]), arrowprops=dict(arrowstyle="->", color=INK, lw=0.9,
                     shrinkA=0, shrinkB=4), zorder=4)
         ax.set_title(b, fontsize=8.5, color=INK, pad=3, loc="left")
-        ax.set_title(f"+{q[best] - q[1]:.1f}", fontsize=9, color=OURS, fontweight="bold", pad=3, loc="right")
+        gain = round(round(q[best], 1) - round(q[1], 1), 1)   # from the values Table 7 shows (paper_numbers depth_gains)
+        ax.set_title(f"+{gain:.1f}", fontsize=9, color=OURS, fontweight="bold", pad=3, loc="right")
         ax.set_xscale("log", base=2); ticks = [m for m in (1, 2, 3, 4, 6, 8, 12, 16) if m <= mmax]
         ax.set_xticks(ticks); ax.set_xticklabels([str(m) for m in ticks]); ax.minorticks_off()
         ax.set_xlabel("prefill loops m", fontsize=7.5)

@@ -1641,7 +1641,7 @@ def depth_sweep():
                     continue
                 ids = set.intersection(*(set(v) for v in sets.values()))
                 row = dict(adapter="wide" if wide else "m<=4", n=n, bench=b, items=len(ids),
-                           quality={m: round(agg(v, ids), 2) for m, v in sets.items()})
+                           quality={m: round(agg(v, ids), 3) for m, v in sets.items()})   # 3 decimals: no double rounding in the tables
                 out.append(row)
                 for (a, nn, bb, m), want in DEPTH_PRINTED.items():
                     if (a, nn, bb) == (row["adapter"], n, b) and m in row["quality"] and abs(row["quality"][m] - want) > 0.051:
@@ -1668,7 +1668,7 @@ def depth_sweep_14():
             if len(sets) < 2:
                 continue
             ids = set.intersection(*(set(v) for v in sets.values()))
-            row = dict(n=n, bench=b, items=len(ids), quality={m: round(agg(v, ids), 2) for m, v in sets.items()})
+            row = dict(n=n, bench=b, items=len(ids), quality={m: round(agg(v, ids), 3) for m, v in sets.items()})
             out.append(row)
             print(f"Depth 1.4B   n={n} {b:16s} items={len(ids):5d} " + " ".join(f"m{m}={q:5.1f}" for m, q in row["quality"].items()))
     # within the adapter's training range m <= 4 (Appendix C shows m <= 4); a tie goes to the smaller m
@@ -2035,10 +2035,10 @@ def depth_gains_main():
     for b in ("GSM8K", "MMLU-Pro", "HumanEval+", "RULER-16K"):
         r = next((r for r in rows if r["bench"] == b), None)
         if r:
-            q = {int(m): v for m, v in r["quality"].items() if int(m) <= 8}
+            q = {int(m): round(v, 1) for m, v in r["quality"].items() if int(m) <= 8}   # the values Table 7 shows
             out[b] = round(max(q.values()) - q[1], 1)
     print("Depth gains (Figure 2) " + "  ".join(f"{b} +{g}" for b, g in out.items()))
-    want = {"GSM8K": 10.2, "MMLU-Pro": 24.1, "HumanEval+": 17.7, "RULER-16K": 10.1}
+    want = {"GSM8K": 10.3, "MMLU-Pro": 24.0, "HumanEval+": 17.7, "RULER-16K": 10.1}
     if out and out != want:
         print(f"Depth gains {out}  !! paper: {want}")
     return out
@@ -2059,7 +2059,7 @@ def prefill_trainable():
             if len(ms) < 2:
                 continue
             ids = set.intersection(*(set(sets[(arm, m)]) for arm, _ in PREFILL_ARMS for m in ms))
-            q = {arm: {m: round(agg(sets[(arm, m)], ids), 2) for m in ms} for arm, _ in PREFILL_ARMS}
+            q = {arm: {m: round(agg(sets[(arm, m)], ids), 3) for m in ms} for arm, _ in PREFILL_ARMS}
             out.append(dict(n=n, bench=b, items=len(ids), quality=q))
             print(f"Prefill trn  n={n} {b:16s} " + "  ".join(f"{arm[:7]}: " + " ".join(f"m{m}={v:5.1f}" for m, v in q[arm].items())
                                                       for arm, _ in PREFILL_ARMS))

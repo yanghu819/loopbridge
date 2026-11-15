@@ -310,7 +310,7 @@ Figure~\ref{fig:depthfull}; where the gain stops on every benchmark: Table~\ref{
 \end{figure*}
 
 Next, we fix the decode loops and change only the prefill loops, using one set of weights. At one decode loop, a few more
-prefill loops raise GSM8K by 10.2 points and MMLU-Pro by 24.1. HumanEval+ rises by 17.7 and RULER-16K by 10.1
+prefill loops raise GSM8K by 10.3 points and MMLU-Pro by 24.0. HumanEval+ rises by 17.7 and RULER-16K by 10.1
 (Figure~\ref{fig:depth}). For the main LoopBridge, four prefill loops instead of one raise the 11-benchmark average
 from 47.0 to 58.2 with the same weights. This gain averages $+10.7\pm0.5$ over three training seeds. The gain
 therefore comes from the prefill loops, not just from training.
@@ -455,9 +455,10 @@ and $40.5\pm0.0$. Our adapters score low on BBH because many of their answers en
 treats as the end of the answer (Table~\ref{tab:main14}).
 
 \paragraph{Thinking models.} On Ouro-2.6B-Thinking, LoopBridge at prefill 4 / decode 2 scores higher than Original
-2/2 on six of the eight benchmarks of Figure~\ref{fig:equal} and is within 0.5 points on the other two. It leads by up
+2/2 on six of the eight benchmarks in Figure~\ref{fig:equal} (Appendix~\ref{app:extended}) and is within 0.5 points
+on the other two. It leads by up
 to 15 points on HELMET and 8 on MMLU-Pro and BBH, and it comes within 0.8 points of Original 4/4 on average
-(Figure~\ref{fig:equal}, Table~\ref{tab:t14}). With the one-cache variant, four prefill loops instead of one raise
+(Table~\ref{tab:t14} in Appendix~\ref{app:t14}). With the one-cache variant, four prefill loops instead of one raise
 MMLU-Pro by 18.6 points on Ouro-2.6B-Thinking and by 17.1 on Ouro-1.4B-Thinking (Table~\ref{tab:models}).
 
 \paragraph{Looped decision models.} Lev~\citep{lev} turns looped language models into decision models that read a
