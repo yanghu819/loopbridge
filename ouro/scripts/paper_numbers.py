@@ -1920,7 +1920,7 @@ def prefill_trainable():
 
 
 # Appendix C: settings without a stopping depth (accuracy still rising or too few deeper depths), (n, benchmark)
-PLATEAU_OMITTED = {"m<=4": {(1, "MMLU"), (1, "MMLU-Pro"), (1, "BBH 3-shot"), (1, "ARC-C"), (1, "MATH-500"), (2, "MMLU-Pro"), (2, "ARC-C"),
+PLATEAU_OMITTED = {"m<=4": {(1, "MMLU"), (1, "MMLU-Pro"), (1, "BBH 3-shot"), (1, "ARC-C"), (2, "MMLU-Pro"), (2, "ARC-C"),
                             (1, "HellaSwag"), (2, "HellaSwag"), (1, "Winogrande"), (2, "Winogrande")},
                    "wide": {(2, "MMLU-Pro"), (2, "ARC-C")}}
 
