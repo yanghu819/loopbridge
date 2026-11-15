@@ -48,8 +48,7 @@
 \begin{abstract}
 Looped language models run the same block of layers several times for every token. They use the same number of loops
 to read the prompt (prefill) and to write each new token (decode). But when a model writes a chain of thought, almost
-all of the time goes into decoding. On Ouro-2.6B at batch 1, prefill takes only 0.4--2.8\% of the time. Extra prefill
-loops are therefore almost free. We untie the two loop counts. We read the prompt with more loops and decode with
+all of the time goes into decoding. On Ouro-2.6B at batch 1, prefill takes only 0.4--2.8\% of the time. So at small batch sizes, extra prefill loops cost little time. We untie the two loop counts. We read the prompt with more loops and decode with
 fewer. The released model cannot use a prompt read with more loops, so we distill a small adapter (2.4\% of the
 parameters). For a fixed prefill depth, LoRA on the decoder is enough. LoopBridge adds small key and value maps, so
 that one adapter serves every pair of loop counts and still retrieves facts from 16K-token prompts. On Ouro-2.6B with
@@ -88,8 +87,7 @@ prompt (prefill, black) and writing the answer (decode, grey). We test the relea
 \label{fig:time}
 \end{figure}
 
-We untie the two loop counts (Figure~\ref{fig:concept}b). We read the prompt with $m$ loops, which costs almost
-nothing. We then decode each answer token with fewer loops, $n<m$, which saves time on every token. Translation models
+We untie the two loop counts (Figure~\ref{fig:concept}b). We read the prompt with $m$ loops, which costs little time at small batch sizes. We then decode each answer token with fewer loops, $n<m$, which saves time on every token. Translation models
 with a deep encoder and a shallow decoder make a similar trade with two separate networks~\citep{deepshallow}. Here,
 one looped model does both. The released model cannot do this without training. With four prefill loops and one decode
 loop, Ouro-2.6B averages 28.7 points over 11 benchmarks. That is far below the 44.2 it gets with one loop for both
@@ -112,8 +110,8 @@ LoopBridge 4/1 keeps a 20.5-point lead over Original 1/1 for 21\% more time.
 \item \textbf{A few prefill loops are enough.} Two to five prefill loops give most of the gain (Figure~\ref{fig:depth}).
 \item \textbf{The gain carries over.} The gain holds on Ouro-1.4B, on looped decision models and on Ouro-2.6B-Thinking.
 On Ouro-2.6B-Thinking, four prefill loops and two decode loops come within 1.3 points of the original four-loop model
-on average. This setting matches Original 4/4 on GSM8K in about half the time (Sections~\ref{sec:budget}
-and~\ref{sec:others}).
+on average (Section~\ref{sec:others}). Served in batches, they match Original 4/4 on 400 GSM8K problems in about half
+its time (Section~\ref{sec:budget}).
 \end{itemize}
 
 \section{Related Work}
@@ -255,7 +253,8 @@ data, teacher and tokens. MATH: MATH-500 (zero-shot); HE+: HumanEval+; RULER: RU
 the items all rows share. Rows show the first training seed, fixed in advance. Over three training seeds
 (mean $\pm$ s.d.), the
 fixed-depth adapter averages $58.3\pm0.2$ at 4/1 and $69.0\pm0.3$ at 4/2, LoopBridge $58.3\pm0.1$ and $68.6\pm0.4$,
-Distilled $49.6\pm0.3$ at 1/1 and $66.1\pm0.1$ at 2/2 (rank 80: 49.2 over two seeds and $65.6\pm0.2$).}
+Distilled $49.6\pm0.3$ at 1/1 and $66.1\pm0.1$ at 2/2 (rank 80: 49.2 over two seeds and $65.6\pm0.2$). With seed means, the
+gaps between our adapters and the distilled models change by at most 0.4 points.}
 \label{tab:main}
 \end{table*}
 
@@ -313,10 +312,7 @@ Next, we fix the decode loops and change only the prefill loops, using one set o
 prefill loops raise GSM8K by 10.2 points and MMLU-Pro by 24.1. HumanEval+ rises by 17.7 and RULER-16K by 10.1
 (Figure~\ref{fig:depth}). For the main LoopBridge, four prefill loops instead of one raise the 11-benchmark average
 from 47.0 to 58.2 with the same weights. This gain averages $+10.7\pm0.5$ over three training seeds. The gain
-therefore comes from the
-prefill loops, not just from training. Ouro-2.6B-Thinking behaves the same way. Going from $m=1$ to $m=4$ at two
-decode loops
-raises GSM8K from 90.7 to 94.1 and MMLU-Pro from 36.4 to 51.0.
+therefore comes from the prefill loops, not just from training.
 
 The gain levels off after a few loops. To find where, we use one half of each benchmark to select the depth. We pick
 the first depth that
@@ -464,7 +460,8 @@ most 1.4. The worst LoopBridge setting (56.8) is still above the best distilled 
 
 \paragraph{Ouro-1.4B.} With its own LoopBridge, four prefill loops and one decode loop, Ouro-1.4B averages 44.5 over
 the 11 benchmarks (with smaller MMLU and GSM8K subsets). Original 1/1 scores 34.7, and Distilled 1/1 scores 40.5
-(Table~\ref{tab:main14}). Over three training seeds, the two trained models average $44.2\pm0.2$ and $40.5\pm0.0$.
+(Table~\ref{tab:main14}). Over three training seeds, the two trained models average $44.2\pm0.2$ and $40.5\pm0.0$. Its BBH score is low because many of its
+answers end at a blank line, which the evaluation treats as the end of the answer (Table~\ref{tab:main14}).
 
 \paragraph{Thinking models.} On Ouro-2.6B-Thinking, prefill 4 / decode 2 (with the one-cache LoopBridge) scores
 higher than Original 2/2 on all eight benchmarks of Figure~\ref{fig:equal}. It leads by up to 13 points on HELMET and
@@ -1038,7 +1035,7 @@ Ouro-2.6B-Thinking, prefill 4 vs.\ 1 & MMLU-Pro \up{18.6}\ci{13.6}{23.8} & HELME
 Ouro-1.4B-Thinking, prefill 4 vs.\ 1 & MMLU-Pro \up{17.1}\ci{12.4}{22.4} & HELMET \up{4.6}\ci{0.1}{8.6} & GSM8K \up{13.6}\ci{10.5}{16.6} \\
 \bottomrule
 \end{tabular}
-\caption{\textbf{Prefill loops with the decoder held fixed} across three Ouro checkpoints (paired, within one
+\caption{\textbf{Prefill loops with the decoder held fixed} across three Ouro checkpoints, one-cache LoopBridge (paired, within one
 adapter). Set
 sizes: MMLU 14,042, MMLU-Pro 420, RULER 520, HELMET 1,108, GSM8K 1,319. HELMET is averaged as its authors do (mean per
 dataset, then per category, then
@@ -1093,7 +1090,7 @@ Batch 1 results are in Figure~\ref{fig:budget}.
 
 \begin{figure*}[t]
 \centering
-\IfFileExists{../figs/fig_batched.pdf}{\includegraphics[width=0.66\textwidth]{../figs/fig_batched.pdf}}{}
+\includegraphics[width=0.66\textwidth]{../figs/fig_batched.pdf}
 \caption{\textbf{Batched serving keeps the one-decode-loop advantage.} The 400 timed requests of
 Figure~\ref{fig:budget} served with continuous batching on one B300, each prompt prefilled alone: mean accuracy of
 the served answers against wall seconds per request (mean of three timing passes), one decode loop; grey: Original

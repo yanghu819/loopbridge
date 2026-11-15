@@ -1278,6 +1278,57 @@ BUDGET_PAIRS = [("a4x1pm", "native1st"), ("a4x1pm", "D1st"), ("a4x1pm", "D1r80st
                 ("f4x2pm", "native2st"), ("f4x2pm", "D2st"), ("f4x2pm", "D2r80st")]   # two decode loops
 
 
+SPEC_DRAFTERS = {"native1st": "Original 1/1", "D1st": "Distilled 1/1", "D1r80st": "Distilled 1/1, rank 80",
+                 "f4x1pm": "Ours, fixed m=4, 4/1", "a4x1pm": "Ours, LoopBridge 4/1"}
+
+
+def spec_blocks(agree, k):
+    """Greedy speculative decoding with k drafted tokens per step, simulated from the teacher-forced agreement string
+    (spec_agree.py): each step accepts the run of agreeing drafts (at most k) plus the target's own next token."""
+    p = steps = 0
+    while p < len(agree):
+        run = 0
+        while run < k and p + run < len(agree) and agree[p + run] == "1":
+            run += 1
+        p += run + 1
+        steps += 1
+    return steps
+
+
+def spec_decoding():
+    """Appendix: one-decode-loop drafters for speculative decoding of Original 4/4 on the 400 timed requests. Measured:
+    the share of answer tokens on which the drafter's greedy token equals the target's, and the tokens accepted per
+    verification step (tau) for k drafted tokens. Estimated: the speed-up over plain Original 4/4 decoding at batch 1,
+    with each draft costing the drafter's measured time per decoded token and each verification one decode step of
+    Original 4/4 (time_breakdown, batch 1); prefill is left out (the drafters reuse the target's prompt pass)."""
+    tok = lambda c: [r for r in time_breakdown_rows() if r.get("model", "Ouro-2.6B") == "Ouro-2.6B" and r["cond"] == c]
+    ms = lambda c: (1000 * sum(r["decode_s"] for r in tok(c)) / sum(r["out_tokens"] for r in tok(c))) if len(tok(c)) == 4 else None
+    c44 = ms("native4st")
+    out = {}
+    for c, name in SPEC_DRAFTERS.items():
+        rows = []
+        for task in TIME_TASKS:
+            f = E2E / f"spec-{c}-{task}.jsonl"
+            if f.exists():
+                rows += [json.loads(l) for l in open(f)]
+        if len(rows) < 400 or c44 is None or ms(c) is None:
+            print(f"Spec decode  {name}: MISSING ({len(rows)} rows)"); continue
+        L = sum(len(r["agree"]) for r in rows)
+        rate = 100 * sum(r["agree"].count("1") for r in rows) / L
+        res = {}
+        for k in range(1, 9):
+            steps = sum(spec_blocks(r["agree"], k) for r in rows)
+            tau = L / steps
+            speed = c44 * L / (steps * (k * ms(c) + c44))
+            res[k] = (round(tau, 2), round(speed, 2))
+        best = max(res, key=lambda k: res[k][1])
+        out[c] = dict(name=name, tokens=L, agree=round(rate, 1), draft_ms=round(ms(c), 1), target_ms=round(c44, 1),
+                      by_k={str(k): v for k, v in res.items()}, best_k=best)
+        print(f"Spec decode  {name:24s} agree {rate:5.1f}%  draft {ms(c):5.1f} ms/token  tau(k=4) {res[4][0]:.2f}  "
+              f"best k={best}: tau {res[best][0]:.2f}, est. speed-up {res[best][1]:.2f}x over Original 4/4")
+    return out
+
+
 def time_matched(reps=5000):
     """Section 5.5: accuracy at the same mean time per request. A baseline family (Original or Distilled) can reach any
     mean time between its one- and two-loop settings by serving a fraction p of the requests with two loops; its
@@ -2139,6 +2190,7 @@ MAIN_SEEDS = ("X26s2", "X26s3")   # further training seeds of the loop adapter (
 
 
 MAIN_IDS = {}   # benchmark -> the items all Table 1 rows (and their seeds) share; filled by main_table()
+SEED_MEANS = {}   # Table 1 row -> (first-seed average, mean over training seeds); filled by main_table()
 
 
 def main_table():
@@ -2187,6 +2239,14 @@ def main_table():
                     "distilled r80 2/2": (65.6, 0.2)}.get(label)   # Table 1 caption
             print(f"Main table   {label:20s} seeds: " + " ".join(f"{a:5.1f}" for a in avgs)
                   + f"  mean {got[0]:5.1f} sd {got[1]:.1f}" + (f"  !! paper: {want}" if want and got != want else ""))
+            SEED_MEANS[label] = (avgs[0], float(np.mean(avgs)))   # (first seed, mean over seeds)
+    pairs = [("aligned adapter 4/1", "LoRA-distilled 1/1"), ("fixed-4 LoRA 4/1", "LoRA-distilled 1/1"),
+             ("aligned adapter 4/2", "LoRA-distilled 2/2"), ("fixed-4 LoRA 4/2", "LoRA-distilled 2/2")]
+    if all(a in SEED_MEANS and b in SEED_MEANS for a, b in pairs):   # Table 1 caption: gaps with seed means
+        ch = [abs(round(SEED_MEANS[a][1] - SEED_MEANS[b][1], 1) - round(SEED_MEANS[a][0] - SEED_MEANS[b][0], 1)) for a, b in pairs]
+        got = round(max(ch), 1)
+        print(f"Main table   gap Ours - Distilled, first seed vs seed means: max change {got}"
+              + ("" if got == 0.4 else "  !! paper (Table 1 caption): 0.4"))
     T = {r["bench"]: r for r in out}
     short = [boot(load(ruler(f"X26-{c}", k)), load(ruler(f"X26lo-{c}", k)))["diff"] for c in ("a41", "a42") for k in (4, 8)
              if load(ruler(f"X26-{c}", k)) and load(ruler(f"X26lo-{c}", k))]
@@ -2583,7 +2643,7 @@ def _compute(counter):
         print(f"{sec:12s} {label:52s} {means[-1]['mean']:6.1f}  n={len(s)}")
     e2e_rows, ratios = e2e_table()
     _TB = time_breakdown()   # printed once (its checks count); later callers reuse it through time_breakdown_rows
-    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), sn_equal=sn_equal(), taskmap_select=taskmap_select(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), time_matched=time_matched(), batched_serving=batched_serving(), thinking_batched=thinking_batched(), batched_serving_14=batched_serving_14(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), main_table_14_seeds=SEEDS14_OUT, bbh_stop=bbh_stop_check(), aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
+    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), sn_equal=sn_equal(), taskmap_select=taskmap_select(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), time_matched=time_matched(), spec_decoding=spec_decoding(), batched_serving=batched_serving(), thinking_batched=thinking_batched(), batched_serving_14=batched_serving_14(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), main_table_14_seeds=SEEDS14_OUT, bbh_stop=bbh_stop_check(), aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
     print(f"wrote {OUT}; {counter.flags} printed values differ ({bad} in the paired comparisons)")
 
 
