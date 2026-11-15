@@ -51,9 +51,9 @@ to read the prompt (prefill) and to write each new token (decode). But when a mo
 all of the time goes into decoding. On Ouro-2.6B at batch 1, prefill takes only 0.4--2.6\% of the time. So at small
 batch sizes, extra prefill loops cost little time. We untie the two loop counts. We read the prompt with more loops
 and decode with
-fewer. The released model cannot use a prompt read with more loops, so we distill a small adapter (2.4\% of the
+fewer. The original model cannot use a prompt read with more loops, so we distill a small adapter (2.4\% of the
 parameters). For a fixed prefill depth, LoRA on the decoder is enough. LoopBridge adds small key and value maps, so
-that one adapter serves every pair of loop counts and still retrieves facts from 16K-token prompts. On Ouro-2.6B with
+that one adapter serves every trained pair of loop counts and still retrieves facts from 16K-token prompts. On Ouro-2.6B with
 one decode loop, four prefill loops lift the average over 11 benchmarks from 44.2 to 58.6 with the fixed-depth adapter
 (58.2 with LoopBridge). Both scores are well above the original model distilled to one loop on the same data (49.5). On four
 chain-of-thought tasks, our models take 14--21\% more time per request than the original model and are 17--19 points more accurate. Two to five prefill loops give most of the gain. The gain holds on Ouro-1.4B, on the Thinking models
@@ -111,8 +111,8 @@ LoopBridge 4/1 keeps a 20.5-point lead over Original 1/1 for 21\% more time.
 \item \textbf{A few prefill loops are enough.} Two to five prefill loops give most of the gain (Figure~\ref{fig:depth}).
 \item \textbf{The gain carries over.} The gain holds on Ouro-1.4B, on looped decision models and on Ouro-2.6B-Thinking.
 On Ouro-2.6B-Thinking, LoopBridge with four prefill loops and two decode loops comes within 0.8 points of Original 4/4
-on average (Section~\ref{sec:others}). Served in batches, it matches Original 4/4 on 400 GSM8K problems in about half
-its time (Section~\ref{sec:budget}).
+on average (Section~\ref{sec:others}). Served in batches, it matches the accuracy of Original 4/4 on 400 GSM8K problems in
+about half the time (Section~\ref{sec:budget}).
 \end{itemize}
 
 \section{Related Work}
@@ -230,7 +230,8 @@ idle machine (Appendix~\ref{app:time}). We pair all comparisons over items, with
 
 
 Figure~\ref{fig:time} splits each request into prefill and decode. In chain-of-thought tasks, the model reads a short
-prompt and writes a long answer. For the original model at one loop, prefill takes only 0.4\% (MATH-500) to 2.6\% (MMLU-Pro) of the time. It takes 0.3--2.6\% for Original 1/1, 2/2 and 4/4. With four prefill loops, our adapters spend at most 4.7\% of the time
+prompt and writes a long answer. For Original 1/1, prefill takes only 0.4\% (MATH-500) to 2.6\%
+(MMLU-Pro) of the time. Over Original 1/1, 2/2 and 4/4, it takes 0.3--2.6\%. With four prefill loops, our adapters spend at most 4.7\% of the time
 on prefill. Thinking models write even longer answers. On 192 GSM8K problems, Ouro-2.6B-Thinking reads about 100
 tokens and writes about 900. Prefill takes 0.2--0.3\% of the time (0.1\% on MATH-500).
 
@@ -333,8 +334,8 @@ Without held-out requests, $m=4$, the depth the original model was trained with,
 \centering
 \includegraphics[width=\columnwidth]{../figs/fig_budget.pdf}
 \caption{\textbf{More accuracy for the time.} Ouro-2.6B: mean accuracy and mean time per request over the same 200 requests of each of GSM8K, MATH-500, BBH and MMLU-Pro (batch 1, one B300, mean of two passes). Filled: one decode
-loop; hollow: two. Ours lies well above the original and distilled models, and with two decode loops it is also
-faster. Arrow: at the mean time of
+loop; hollow: two. Our adapters lie well above the original and distilled
+models. With two decode loops they also take a little less time. Arrow: at the mean time of
 LoopBridge 4/1, a mix of Original 1/1 and 2/2 requests (grey line) scores 10.5 points less. Paired gains:
 Figure~\ref{fig:budgetfull}.}
 \label{fig:budget}
@@ -529,7 +530,8 @@ Table~\ref{tab:time} gives the per-request distributions behind Figure~\ref{fig:
 output length, the time per request, and the prefill share. At the 90th percentile, the prefill share stays below 2\%
 on MATH-500 and at most 8\% on GSM8K and BBH. On MMLU-Pro, where many answers are short, it reaches 6--19\%. The time
 per request follows the output length. Some outputs run on to the length limit (2,048 tokens on MMLU-Pro) without
-giving an answer, most often at one decode loop. On MMLU-Pro this happens for 29 of the 200 answers of LoopBridge 4/1, 21 of the fixed-depth adapter and 15 of Distilled 1/1, against 4 of Original 1/1. These answers take most of the
+giving an answer, most often at one decode loop. On MMLU-Pro this happens for 29 of the 200 answers for LoopBridge 4/1, 21 for the fixed-depth adapter and
+15 for Distilled 1/1, against 4 for Original 1/1. These answers take most of the
 MMLU-Pro time, and they explain most of the extra time per request of our models at one decode loop
 (Section~\ref{sec:budget}).
 
