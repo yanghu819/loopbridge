@@ -491,3 +491,6 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   are lower on all 8 (up to 9.5 on MMLU-Pro). The one-cache variant stays in Table 11 and Figure 14 (labelled).
 - Second block of timed requests (time_set2.sh: OURO_TIME_START=100, files clnB/clnB3-*) starts on a2 once idle; the
   merge is in paper_numbers (TIME_BLOCKS, switch USE_SET2 when every condition is complete).
+- Ouro-1.4B Table 9 now also has Ours fixed m=4 (fixed14.sh; seed 1 average 44.3) and the rank-80 Distilled 1/1
+  (dist14r80.sh). BBH with the answer stopped at the next question: fixed m=4 33.8 / 33.4 (seeds 1-2; 14.0 under the
+  standard stop), rank-80 Distilled 32.7 (as rank 16).

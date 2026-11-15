@@ -955,6 +955,8 @@ def main_key(bench, kind, c, model="Ouro-2.6B"):
     if kind == "dist":
         return dkey.format(d=DISTILLED[c])
     if kind == "dist80":   # rank-80 LoRA (as many trainable parameters as the adapter), RANK=80 launch_x26_distill.sh
+        if model == "Ouro-1.4B" and c == 1:   # runs_scripts/dist14r80.sh: O14x-E48fr80-<task>, RULER O14-E48fr80f
+            return dkey.format(d=DISTILLED[c] + "r80")
         return dkey.format(d=DISTILLED[c] + "r80") if model == "Ouro-2.6B" else f"L:none-{kind}-{c}:none"
     if kind == "fixed4":   # trained only at prefill 4 with identity maps (launch_variant.sh fixed4, runs X26f4-a4<n>)
         if model == "Ouro-1.4B" and c == "a41":   # runs_scripts/fixed14.sh: O14xf4-a41-<task>, RULER O14f4-a41f
@@ -2141,7 +2143,11 @@ def gsm_protocol():
 
 
 SEEDS_14 = (2, 3)   # Ouro-1.4B training seeds 2 and 3 (runs_scripts/seed14.sh)
-BBHQ_RUNS = ("O14x-native1", "O14x-E48f", "O14x-a41", "O14xs2-a41", "O14xs3-a41")   # OURO_UNTIL='["</s>", "\\n\\nQ:"]'
+BBHQ_RUNS = ("O14x-native1", "O14x-E48f", "O14x-a41", "O14xs2-a41", "O14xs3-a41", "O14xf4-a41", "O14xf4s2-a41",
+             "O14xf4s3-a41", "O14x-E48fr80")   # OURO_UNTIL='["</s>", "\\n\\nQ:"]'
+
+
+BBHQ_PRINTED = (20.1, 32.7, 32.7, 34.6, (34.3, 35.2), 33.8, (33.4, 35.4))   # Table 9 caption
 
 
 def bbh_stop_check():
@@ -2154,9 +2160,12 @@ def bbh_stop_check():
             got[r] = round(100 * float(np.mean(list(v.values()))), 1)
     if len(got) == len(BBHQ_RUNS):
         seeds = sorted(got[r] for r in ("O14x-a41", "O14xs2-a41", "O14xs3-a41"))
-        out = (got["O14x-native1"], got["O14x-E48f"], got["O14x-a41"], (seeds[0], seeds[-1]))
-        print(f"BBH stop     Ouro-1.4B BBH, stop at the next question: Original 1/1, Distilled 1/1, LoopBridge 4/1, seed range {out}"
-              + ("" if out == (20.1, 32.7, 34.6, (34.3, 35.2)) else "  !! paper (Table 9 caption): (20.1, 32.7, 34.6, (34.3, 35.2))"))
+        fseeds = sorted(got[r] for r in ("O14xf4-a41", "O14xf4s2-a41", "O14xf4s3-a41"))
+        out = (got["O14x-native1"], got["O14x-E48f"], got["O14x-E48fr80"], got["O14x-a41"], (seeds[0], seeds[-1]),
+               got["O14xf4-a41"], (fseeds[0], fseeds[-1]))
+        want = BBHQ_PRINTED
+        print(f"BBH stop     Ouro-1.4B BBH, stop at the next question: Original 1/1, Distilled 1/1 (r16, r80), LoopBridge 4/1 "
+              f"(seed range), fixed m=4 4/1 (seed range) {out}" + ("" if out == want else f"  !! paper (Table 9 caption): {want}"))
     return got
 SEEDS14_OUT = {}
 
@@ -2195,11 +2204,13 @@ def main_table_14():
         if None not in rows:
             avgs = [float(np.mean(x)) for x in zip(*rows)]
             got = (round(float(np.mean(avgs)), 1), round(float(np.std(avgs, ddof=1)), 1))
-            want = {"aligned adapter 4/1": (44.2, 0.2), "LoRA-distilled 1/1": (40.5, 0.0)}.get(label)   # Section 5.7, Table 9
+            want = {"aligned adapter 4/1": (44.2, 0.2), "LoRA-distilled 1/1": (40.5, 0.0),
+                    "fixed-4 LoRA 4/1": (44.6, 0.3)}.get(label)   # Section 5.7, Table 9
             print(f"Main 1.4B    {label:20s} seeds: " + " ".join(f"{a:5.1f}" for a in avgs)
                   + f"  mean {got[0]:5.1f} sd {got[1]:.1f}" + ("" if want is None or got == want else f"  !! paper: {want}"))
             SEEDS14_OUT[label] = [round(a, 2) for a in avgs]   # exported as main_table_14_seeds
-    want = {"native 1/1": 34.7, "LoRA-distilled 1/1": 40.5, "aligned adapter 4/1": 44.5}   # Appendix (Ouro-1.4B)
+    want = {"native 1/1": 34.7, "LoRA-distilled 1/1": 40.5, "aligned adapter 4/1": 44.5, "fixed-4 LoRA 4/1": 44.3,
+            "distilled r80 1/1": 40.7}   # Appendix (Ouro-1.4B)
     for label, _, _ in MAIN_ROWS:
         vals = [r[label] for r in out]
         avg = None if None in vals else float(np.mean(vals))
