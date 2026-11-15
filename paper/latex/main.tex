@@ -416,14 +416,14 @@ request, against 10.9 for Original 1/1 and 11.7 for Distilled 1/1. On the four
 chain-of-thought tasks, the fixed-depth adapter scores 46.5 and LoopBridge 47.2, against 27.2 for Original 1/1 and 35.2
 for Distilled 1/1. Paired over the 400 requests, LoopBridge is $+20.0$\ci{15.0}{25.2} points above Original 1/1 and
 $+12.0$\ci{6.5}{17.5} above Distilled 1/1. For the fixed-depth adapter, these gains are $+19.2$\ci{14.0}{24.5} and
-$+11.2$\ci{6.0}{16.5}.
+$+11.2$\ci{6.0}{16.5}. One decode loop is the setting to use when each new token must come out fast, as in chat.
 
 The original model could spend the same extra time by serving some of its requests with two loops. At the mean time
 of LoopBridge 4/1, such a mix of Original 1/1 and 2/2 scores 33.9, and LoopBridge is $+13.3$\ci{5.8}{20.8} points
 above it (the arrow in Figure~\ref{fig:budget}). Against the same mix of Distilled 1/1 and 2/2, LoopBridge is
 $+8.7$\ci{1.5}{15.8} points above. For the fixed-depth adapter, the two gains are $+15.0$\ci{7.9}{21.9} and
 $+9.8$\ci{3.2}{15.7}. With two decode loops, both adapters take 0.87--0.96 of the time of Original 2/2 and Distilled 2/2
-and score 2 to 5 points higher. One decode loop is the setting to use when each new token must come out fast, as in chat.
+and score 2 to 5 points higher.
 
 The gain also holds when many requests are served together. In continuous batching, each prompt is prefilled alone
 while the batch waits (Figure~\ref{fig:batched} in Appendix~\ref{app:serve}). At batch 32, LoopBridge 4/1 stays

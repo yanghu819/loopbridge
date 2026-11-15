@@ -1037,8 +1037,10 @@ LM_RULES = {"gsm8k_cot": (r"The answer is (\-?[0-9\.\,]+).", dict(case=True, dro
             "bbh": (r"(?<=the answer is )(.*)(?=.)", {}),
             "mmlu_pro": (r"answer is \(?([ABCDEFGHIJ])\)?", dict(case=True, punct=True))}
 OVERHEAD_PRINTED = (19, 40)   # Limitations: adapter decode time per token vs Original at the same decode loops (%)
+MMLUPRO_LIMIT_PRINTED = {"a4x1pm": 14, "f4x1pm": 11, "D1st": 8, "native1st": 2}   # Section 5.5 and Appendix A (of 100)
 USE_SET2 = False   # the second block of timed requests (time_set2.sh, files clnB*-*) once every condition has it
 TIME_BLOCKS = (("clean", "clean3"),) + ((("clnB", "clnB3"),) if USE_SET2 else ())   # passes of each request block
+BATCH_BLOCKS = (("batch", "batchb", "batchc"),) + ((("btB", "btBb", "btBc"),) if USE_SET2 else ())   # batched serving
 TIME_TASKS = {"gsmfull": "GSM8K", "math0shot": "MATH-500", "bbh": "BBH", "mmlupro": "MMLU-Pro"}   # MATH-500 zero-shot as in Table 1 (time_math0.sh)
 
 
@@ -1148,15 +1150,18 @@ def batched_serving(reps=5000):
     requests and the wall-time ratio."""
     out = {}
     for b in (1, 8, 32):
-        got = {c: batched_requests(c, b) for c in BATCH_CONDS}
-        for c, g in list(got.items()):   # further timing passes (OUT=batchb, batchc): wall time = mean of the passes
-            walls = [g[1]] if g else []
-            for pre in ("batchb", "batchc"):
-                again = batched_requests(c, b, pre) if g else None
-                if again and again[2] == g[2]:
-                    walls.append(again[1])
-            if g:
-                got[c] = (g[0], float(np.mean(walls)), g[2])
+        got = {}
+        for c in BATCH_CONDS:   # request blocks (BATCH_BLOCKS), each with its timing passes: wall time = mean of the passes
+            rows, wall, n = {}, 0.0, 0
+            for i, block in enumerate(BATCH_BLOCKS):
+                g = batched_requests(c, b, block[0])
+                if not g:
+                    if i == 0:
+                        break
+                    continue
+                walls = [g[1]] + [again[1] for pre in block[1:] if (again := batched_requests(c, b, pre)) and again[2] == g[2]]
+                rows.update(g[0]); wall += float(np.mean(walls)); n += g[2]
+            got[c] = (rows, wall, n) if n else None
         for c, g in got.items():
             if not g:
                 continue
@@ -1519,14 +1524,17 @@ def time_breakdown():
         print(f"Time         folded maps decode per token vs Original: {[round(x) for x in folded]}"
               + ("" if max(folded) <= 0 else "  !! paper: no slower"))
     # Appendix A: answers that run to the length limit on MMLU-Pro (clean pass; the answers are the same in every pass)
-    cap = {}
+    cap, tot = {}, {}
     for c in ("a4x1pm", "f4x1pm", "D1st", "native1st"):
-        f = E2E / f"clean-{c}-mmlupro.jsonl"
-        if f.exists():
-            cap[c] = sum(json.loads(l)["stop"] == "length" for l in open(f))
+        for block in TIME_BLOCKS:   # the first pass of each request block (the answers are the same in every pass)
+            f = E2E / f"{block[0]}-{c}-mmlupro.jsonl"
+            if f.exists():
+                rows = [json.loads(l) for l in open(f)]
+                cap[c] = cap.get(c, 0) + sum(r["stop"] == "length" for r in rows)
+                tot[c] = tot.get(c, 0) + len(rows)
     if len(cap) == 4:
-        want = {"a4x1pm": 14, "f4x1pm": 11, "D1st": 8, "native1st": 2}
-        print(f"Time         MMLU-Pro answers at the length limit (of 100): {cap}" + ("" if cap == want else f"  !! paper: {want}"))
+        want = MMLUPRO_LIMIT_PRINTED
+        print(f"Time         MMLU-Pro answers at the length limit (of {tot}): {cap}" + ("" if cap == want else f"  !! paper: {want}"))
     # Appendix A: 90th-percentile prefill share over the rows of Table 4
     p90 = {t: [r["share_p90"] for r in out if r["model"] == "Ouro-2.6B" and r["task"] == t and "share_p90" in r
                and r["cond"] in ("a4x1pm", "a4x2pm", "native1st", "native2st", "native4st")] for t in TIME_TASKS.values()}
