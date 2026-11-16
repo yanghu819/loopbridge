@@ -527,3 +527,7 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   files were restored from git and the passes renamed on the boxes to tbatch2a / tbatch2b / tbatch2c. The paper numbers
   were not affected (block rows come from the first pass, walls from the summaries, which were not replaced).
   Rule: never let two run names differ only by case.
+- 2026-11-16 14:30: all runs finished; nothing is running on a1 or a2. Stopped a stale waiter on a1
+  (`after_x26_distill.sh H first`, 11 days old) that waited for a Distilled 3/3 control (X26-H48f-p3d3) never trained;
+  it would have queued evaluations on every GPU if such a run appeared. Cleaned /root/pn on both boxes (old chain
+  helpers and launcher logs); kept the pipeline logs, replay_cache.json, nocudnn, lora80.sh and hold_w8s3.txt.
