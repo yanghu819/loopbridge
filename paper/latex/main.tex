@@ -203,11 +203,9 @@ Figure~\ref{alg:adapter} in Appendix~\ref{app:method} provides pseudocode.}
 \label{sec:setup}
 
 \paragraph{Models and benchmarks.} We use Ouro-2.6B, Ouro-1.4B and their Thinking versions~\citep{ouro}, all with four
-loops. We also test the Lev decision models~\citep{lev} in Section~\ref{sec:others}. We test base models on 11
-benchmarks with
-the Ouro protocol: MMLU~\citep{mmlu}, MMLU-Pro~\citep{mmlupro}, BBH~\citep{bbh}, ARC-Challenge~\citep{arc},
+loops. We also test the Lev decision models~\citep{lev} in Section~\ref{sec:others}. We test base models on 11 benchmarks with the Ouro protocol (Appendix~\ref{app:eval}): MMLU~\citep{mmlu}, MMLU-Pro~\citep{mmlupro}, BBH~\citep{bbh}, ARC-Challenge~\citep{arc},
 HellaSwag~\citep{hellaswag}, Winogrande~\citep{winogrande}, GSM8K~\citep{gsm8k}, MATH-500~\citep{math,lightman2023lets},
-HumanEval+ and MBPP+~\citep{humaneval,mbpp,evalplus}, and RULER-16K~\citep{ruler} (Appendix~\ref{app:eval}). We test Thinking models on eight benchmarks, including HELMET~\citep{helmet}.
+HumanEval+ and MBPP+~\citep{humaneval,mbpp,evalplus}, and RULER-16K~\citep{ruler}. We test Thinking models on eight benchmarks, including HELMET~\citep{helmet}.
 
 \paragraph{Baselines.} \emph{Original $n/n$} is the released model with $n$ loops. \emph{Training-free $4/n$} unties
 the loops without an adapter. \emph{Distilled $n/n$} is the $n$-loop model with LoRA trained to match Original 4/4, with
@@ -963,7 +961,7 @@ last \verb|\boxed{}|) with math-verify. The Ouro models' own 5-shot prompt and s
 evalplus~\citep{evalplus} with its chat-template configuration. We put the problem in evalplus's chat prompt, decode
 greedily for up to 768 new tokens, and run the plus tests on the sanitized code. With this protocol, original
 Ouro-2.6B 4/4 scores within one point of the published numbers on MMLU, MMLU-Pro, BBH, ARC-Challenge, and HellaSwag.
-It scores 1.8 above on Winogrande, and within 1.2 to 3.1 points on HumanEval(+) and MBPP(+) (Table~\ref{tab:repro}).
+It scores 1.8 above on Winogrande, and within 1.2 to 3.1 points on HumanEval, HumanEval+, MBPP and MBPP+ (Table~\ref{tab:repro}).
 Two scores differ for a known reason. On GSM8K, strict matching requires the exemplars' ``The answer is'' sentence and gives 69.4, whereas flexible extraction of the last number gives 86.7 (around the published 81.6). MATH-500 needs Ouro's
 unreleased 5-shot prompt and scorer to reach the published 90.9. We score every configuration in this paper the same
 way. When we rescore the same GSM8K answers with flexible extraction, LoopBridge at prefill 4 / decode 1 gains $+6.7$\ci{4.0}{9.3} over Distilled 1/1 instead of
