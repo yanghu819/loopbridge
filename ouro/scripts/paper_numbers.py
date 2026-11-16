@@ -638,7 +638,7 @@ def think_frontier():
         ids = set.intersection(*(set(v) for v in sets.values()))
         for c, v in sets.items():
             per[c].append(agg(v, ids))
-    out = [dict(config=c, avg=round(float(np.mean(per[c])), 2), scores=[round(x, 2) for x in per[c]],
+    out = [dict(config=c, avg=round(float(np.mean(per[c])), 3), scores=[round(x, 3) for x in per[c]],
                 tokens_per_s=confs[c][2]) for c in confs]
     # 11-14: MATH-500 on all 500 items (the distilled model's missing shard completed); Section 5.5 / Figure 8: "within
     # 1.3 points of Original 4/4", "+3.1 over 2/2"
@@ -1738,8 +1738,8 @@ def plateau(adapter="wide", min_gain=0.5, window=3, prefix=None):
                 omitted.add((n, b))
                 print(f"Plateau      {adapter:5s} n={n} {b:16s} no stop within m <= {ms[-1]}"); continue
             qt = {m: agg(sets[m], test) for m in ms}
-            row = dict(n=n, bench=b, m_star=star, deepest=ms[-1], test_at_star=round(qt[star], 2),
-                       test_deepest=round(qt[ms[-1]], 2), test_m1=round(qt[ms[0]], 2))
+            row = dict(n=n, bench=b, m_star=star, deepest=ms[-1], test_at_star=round(qt[star], 3),
+                       test_deepest=round(qt[ms[-1]], 3), test_m1=round(qt[ms[0]], 3))
             out.append(row)
             if adapter == "m<=4" and (n, b) == (1, "GSM8K") and abs(row["test_deepest"] - 32.3) > 0.051:   # Section 4
                 print(f"Plateau      m<=4 n=1 GSM8K held-out m={ms[-1]}: {row['test_deepest']}  !! paper: 32.3")
@@ -2136,7 +2136,7 @@ def think_sweep():
         full = float(np.median([len(v) for v in sets.values()]))
         sets = {m: v for m, v in sets.items() if len(v) >= 0.95 * full}
         ids = set.intersection(*(set(v) for v in sets.values()))
-        row = dict(bench=bench, items=len(ids), quality={m: round(agg(v, ids), 2) for m, v in sets.items()})
+        row = dict(bench=bench, items=len(ids), quality={m: round(agg(v, ids), 3) for m, v in sets.items()})
         out.append(row)
         bad = {m: q for m, q in THINK_PRINTED.get(bench, {}).items() if abs(row["quality"].get(m, -99) - q) > 0.051}
         if bench in THINK_PRINTED and row["quality"].get(6, 0) > row["quality"].get(4, 0):
@@ -2457,8 +2457,8 @@ def ablations():
                 per[label].append(100 * float(np.mean([v[i] for i in ids])) if v else None)
         for label, _ in ABLATIONS:
             vals = per[label]
-            avg = None if None in vals else round(float(np.mean(vals)), 2)
-            out.append(dict(cell=c, label=label, avg=avg, scores=[None if v is None else round(v, 2) for v in vals]))
+            avg = None if None in vals else round(float(np.mean(vals)), 3)
+            out.append(dict(cell=c, label=label, avg=avg, scores=[None if v is None else round(v, 3) for v in vals]))
             want = ABL_PRINTED.get((label, c))
             if want is not None and (avg is None or abs(avg - want) > 0.051):
                 print(f"Ablation     {c} {label}: {avg}  !! paper: {want}")
@@ -2586,7 +2586,7 @@ def overlap_check():
                     continue
                 r = boot({i: a[i] for i in keep}, {i: b[i] for i in keep})
                 out["main_rows"].append(dict(bench=bench, row=row, ref=f"{kind}{n}", dropped=len(both) - len(keep),
-                                             **{k: round(float(r[k]), 2) for k in ("n", "a", "b", "diff", "lo", "hi")}))
+                                             **{k: round(float(r[k]), 3) for k in ("n", "a", "b", "diff", "lo", "hi")}))
                 want = OVERLAP_PRINTED.get((bench, row, f"{kind}{n}"))
                 if want is not None and abs(r["diff"] - want) > 0.051:
                     print(f"Overlap      {bench} {row} vs {kind}{n}: {r['diff']:+.2f}  !! paper: {want}")
