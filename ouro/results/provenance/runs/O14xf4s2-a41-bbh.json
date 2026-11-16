@@ -1,0 +1,497 @@
+{
+ "run": "O14xf4s2-a41-bbh",
+ "kind": "lm-evaluation-harness",
+ "model_args": "path=/dev/shm/big-small-ouro/model-1.4b,condition=a41,checkpoint=/dev/shm/big-small-ouro/runs/O14-a-fixed4-lora-s2/checkpoint-48m.pt,max_length=16384",
+ "limit": 60.0,
+ "n_shot": {
+  "bbh_cot_fewshot_boolean_expressions": 3,
+  "bbh_cot_fewshot_causal_judgement": 3,
+  "bbh_cot_fewshot_date_understanding": 3,
+  "bbh_cot_fewshot_disambiguation_qa": 3,
+  "bbh_cot_fewshot_dyck_languages": 3,
+  "bbh_cot_fewshot_formal_fallacies": 3,
+  "bbh_cot_fewshot_geometric_shapes": 3,
+  "bbh_cot_fewshot_hyperbaton": 3,
+  "bbh_cot_fewshot_logical_deduction_five_objects": 3,
+  "bbh_cot_fewshot_logical_deduction_seven_objects": 3,
+  "bbh_cot_fewshot_logical_deduction_three_objects": 3,
+  "bbh_cot_fewshot_movie_recommendation": 3,
+  "bbh_cot_fewshot_multistep_arithmetic_two": 3,
+  "bbh_cot_fewshot_navigate": 3,
+  "bbh_cot_fewshot_object_counting": 3,
+  "bbh_cot_fewshot_penguins_in_a_table": 3,
+  "bbh_cot_fewshot_reasoning_about_colored_objects": 3,
+  "bbh_cot_fewshot_ruin_names": 3,
+  "bbh_cot_fewshot_salient_translation_error_detection": 3,
+  "bbh_cot_fewshot_snarks": 3,
+  "bbh_cot_fewshot_sports_understanding": 3,
+  "bbh_cot_fewshot_temporal_sequences": 3,
+  "bbh_cot_fewshot_tracking_shuffled_objects_five_objects": 3,
+  "bbh_cot_fewshot_tracking_shuffled_objects_seven_objects": 3,
+  "bbh_cot_fewshot_tracking_shuffled_objects_three_objects": 3,
+  "bbh_cot_fewshot_web_of_lies": 3,
+  "bbh_cot_fewshot_word_sorting": 3
+ },
+ "n_samples": {
+  "bbh_cot_fewshot_boolean_expressions": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_causal_judgement": {
+   "original": 187,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_date_understanding": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_disambiguation_qa": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_dyck_languages": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_formal_fallacies": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_geometric_shapes": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_hyperbaton": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_logical_deduction_five_objects": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_logical_deduction_seven_objects": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_logical_deduction_three_objects": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_movie_recommendation": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_multistep_arithmetic_two": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_navigate": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_object_counting": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_penguins_in_a_table": {
+   "original": 146,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_reasoning_about_colored_objects": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_ruin_names": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_salient_translation_error_detection": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_snarks": {
+   "original": 178,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_sports_understanding": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_temporal_sequences": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_tracking_shuffled_objects_five_objects": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_tracking_shuffled_objects_seven_objects": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_tracking_shuffled_objects_three_objects": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_web_of_lies": {
+   "original": 250,
+   "effective": 60
+  },
+  "bbh_cot_fewshot_word_sorting": {
+   "original": 250,
+   "effective": 60
+  }
+ },
+ "task_versions": {
+  "bbh_cot_fewshot": 3.0,
+  "bbh_cot_fewshot_boolean_expressions": 3.0,
+  "bbh_cot_fewshot_causal_judgement": 3.0,
+  "bbh_cot_fewshot_date_understanding": 3.0,
+  "bbh_cot_fewshot_disambiguation_qa": 3.0,
+  "bbh_cot_fewshot_dyck_languages": 3.0,
+  "bbh_cot_fewshot_formal_fallacies": 3.0,
+  "bbh_cot_fewshot_geometric_shapes": 3.0,
+  "bbh_cot_fewshot_hyperbaton": 3.0,
+  "bbh_cot_fewshot_logical_deduction_five_objects": 3.0,
+  "bbh_cot_fewshot_logical_deduction_seven_objects": 3.0,
+  "bbh_cot_fewshot_logical_deduction_three_objects": 3.0,
+  "bbh_cot_fewshot_movie_recommendation": 3.0,
+  "bbh_cot_fewshot_multistep_arithmetic_two": 3.0,
+  "bbh_cot_fewshot_navigate": 3.0,
+  "bbh_cot_fewshot_object_counting": 3.0,
+  "bbh_cot_fewshot_penguins_in_a_table": 3.0,
+  "bbh_cot_fewshot_reasoning_about_colored_objects": 3.0,
+  "bbh_cot_fewshot_ruin_names": 3.0,
+  "bbh_cot_fewshot_salient_translation_error_detection": 3.0,
+  "bbh_cot_fewshot_snarks": 3.0,
+  "bbh_cot_fewshot_sports_understanding": 3.0,
+  "bbh_cot_fewshot_temporal_sequences": 3.0,
+  "bbh_cot_fewshot_tracking_shuffled_objects_five_objects": 3.0,
+  "bbh_cot_fewshot_tracking_shuffled_objects_seven_objects": 3.0,
+  "bbh_cot_fewshot_tracking_shuffled_objects_three_objects": 3.0,
+  "bbh_cot_fewshot_web_of_lies": 3.0,
+  "bbh_cot_fewshot_word_sorting": 3.0
+ },
+ "task_hashes": {
+  "bbh_cot_fewshot_boolean_expressions": "2880fa8813e9a138ca962899386ccc76d1066eacbf163e747f7ffefd38e02f28",
+  "bbh_cot_fewshot_causal_judgement": "6e89d71b7c6eaf992c900af9041b1ac29ad24020640ee9c27385dfa770ed12de",
+  "bbh_cot_fewshot_date_understanding": "3147ef9588bccae9a36da7469de312035d816a9e386963000077e1a76107c0ac",
+  "bbh_cot_fewshot_disambiguation_qa": "80e7fb72fa3cfbf90a81160206a93428735e7af47b537d52e2673db9794f2f4c",
+  "bbh_cot_fewshot_dyck_languages": "ff845cc2d816afe42b7b29a0f941b5fc36f3a8b4baf1ed1fec4bb1fa42367407",
+  "bbh_cot_fewshot_formal_fallacies": "3fda18fe73121e058a7a755005e53843bbd50d3420706f7f4090c9b9cb704e49",
+  "bbh_cot_fewshot_geometric_shapes": "464b4c356e58582e46a4253b09d1a858f012c0d6df39e54e8766e99d89f7d0f2",
+  "bbh_cot_fewshot_hyperbaton": "187ee33feb104cfa5551e0d71762d912be5cca1c4576d2903dbe2542823ac1d2",
+  "bbh_cot_fewshot_logical_deduction_five_objects": "5db16ad5a417b713ae4f4334a36ac661598a90f45c6da17b3fd3aeccb05e2a9a",
+  "bbh_cot_fewshot_logical_deduction_seven_objects": "ef78e92bd9c5fba3518b965892903509416d416bdcff87821f98d93aacfd6a37",
+  "bbh_cot_fewshot_logical_deduction_three_objects": "298125f8fccbc9957162bef8a68b07c4ab9b60d2eb7beafbdac78e96b14822f5",
+  "bbh_cot_fewshot_movie_recommendation": "8ae8662b8658e10def79a5aad921d31014cb5a445f95643b8263a919ed031f50",
+  "bbh_cot_fewshot_multistep_arithmetic_two": "9e9e6d9a27d86396647909bd4b46e738ebd851a7484e6015d715919ac2e8b485",
+  "bbh_cot_fewshot_navigate": "d8fbadab385ceef406be5b4e09183b01bfaecf480b1f53ed0075638cf4e3480f",
+  "bbh_cot_fewshot_object_counting": "30917cf529cea2393531b88fb537e853434a160a720fab6662a29cb7dc807435",
+  "bbh_cot_fewshot_penguins_in_a_table": "c284bfab73ef6b1997f0b8d744139bf97a76f20b98dd09a580b5d6a30f0f50c9",
+  "bbh_cot_fewshot_reasoning_about_colored_objects": "6185026867110bd58d62c3fbff893df8388440b5483ea0b1eece9e42c8726a3a",
+  "bbh_cot_fewshot_ruin_names": "51734facc3cab8a758e19f819f0467d4fd5fd653cddca878754d820412019ef8",
+  "bbh_cot_fewshot_salient_translation_error_detection": "0428507798abe970707b19196b57fa926c42f688ec54b369a2b1e27e2e066e4c",
+  "bbh_cot_fewshot_snarks": "06c4e9bf8d1ddd190380c75abd2e68fa540a99e8b1fbdde96156c99b563d850c",
+  "bbh_cot_fewshot_sports_understanding": "b916aea942c88ced96b42c6c630f16ce00ffa99d7137121b147150e6e49eef09",
+  "bbh_cot_fewshot_temporal_sequences": "6b9d73df09d5b97a0d8b197cf6a3134c1f1c320b2afb6d990d56fb650eaa11f5",
+  "bbh_cot_fewshot_tracking_shuffled_objects_five_objects": "04a455a2119ea8d6d53894af0d9e977d9e0984afe5ffbefa2d67a210bf91ccde",
+  "bbh_cot_fewshot_tracking_shuffled_objects_seven_objects": "5f2919b32a0efcd7d1486d6e95207365bad770866a0189325cab6a39cc8fbc08",
+  "bbh_cot_fewshot_tracking_shuffled_objects_three_objects": "de8d9811d0e2969970d535289bd05b79375ed63f9d7c51ae17577f321a840f77",
+  "bbh_cot_fewshot_web_of_lies": "d2e5dac52fa202d093dc92fb669555a8b694c0d729417a06b773deea8752e097",
+  "bbh_cot_fewshot_word_sorting": "9d63e936abd24476587375fb7d58092fb84f5e833c4c5ba3adb2ad5ad4643490"
+ },
+ "lm_eval_version": "0.4.9",
+ "transformers_version": "4.54.1",
+ "start": "2026-11-15T12:13:17.480271+00:00",
+ "seconds": "1754.6538489079103",
+ "results": {
+  "bbh_cot_fewshot": {
+   "exact_match,get-answer": 0.1345679012345679,
+   "exact_match_stderr,get-answer": 0.0072852095478602346,
+   "alias": "bbh_cot_fewshot"
+  },
+  "bbh_cot_fewshot_boolean_expressions": {
+   "alias": " - bbh_cot_fewshot_boolean_expressions",
+   "exact_match,get-answer": 0.5,
+   "exact_match_stderr,get-answer": 0.06509445549041193
+  },
+  "bbh_cot_fewshot_causal_judgement": {
+   "alias": " - bbh_cot_fewshot_causal_judgement",
+   "exact_match,get-answer": 0.0,
+   "exact_match_stderr,get-answer": 0.0
+  },
+  "bbh_cot_fewshot_date_understanding": {
+   "alias": " - bbh_cot_fewshot_date_understanding",
+   "exact_match,get-answer": 0.0,
+   "exact_match_stderr,get-answer": 0.0
+  },
+  "bbh_cot_fewshot_disambiguation_qa": {
+   "alias": " - bbh_cot_fewshot_disambiguation_qa",
+   "exact_match,get-answer": 0.0,
+   "exact_match_stderr,get-answer": 0.0
+  },
+  "bbh_cot_fewshot_dyck_languages": {
+   "alias": " - bbh_cot_fewshot_dyck_languages",
+   "exact_match,get-answer": 0.016666666666666666,
+   "exact_match_stderr,get-answer": 0.016666666666666673
+  },
+  "bbh_cot_fewshot_formal_fallacies": {
+   "alias": " - bbh_cot_fewshot_formal_fallacies",
+   "exact_match,get-answer": 0.05,
+   "exact_match_stderr,get-answer": 0.02837401532675118
+  },
+  "bbh_cot_fewshot_geometric_shapes": {
+   "alias": " - bbh_cot_fewshot_geometric_shapes",
+   "exact_match,get-answer": 0.26666666666666666,
+   "exact_match_stderr,get-answer": 0.05757170261178304
+  },
+  "bbh_cot_fewshot_hyperbaton": {
+   "alias": " - bbh_cot_fewshot_hyperbaton",
+   "exact_match,get-answer": 0.0,
+   "exact_match_stderr,get-answer": 0.0
+  },
+  "bbh_cot_fewshot_logical_deduction_five_objects": {
+   "alias": " - bbh_cot_fewshot_logical_deduction_five_objects",
+   "exact_match,get-answer": 0.3,
+   "exact_match_stderr,get-answer": 0.05966005392134928
+  },
+  "bbh_cot_fewshot_logical_deduction_seven_objects": {
+   "alias": " - bbh_cot_fewshot_logical_deduction_seven_objects",
+   "exact_match,get-answer": 0.06666666666666667,
+   "exact_match_stderr,get-answer": 0.032474820029830306
+  },
+  "bbh_cot_fewshot_logical_deduction_three_objects": {
+   "alias": " - bbh_cot_fewshot_logical_deduction_three_objects",
+   "exact_match,get-answer": 0.1,
+   "exact_match_stderr,get-answer": 0.039056673294247134
+  },
+  "bbh_cot_fewshot_movie_recommendation": {
+   "alias": " - bbh_cot_fewshot_movie_recommendation",
+   "exact_match,get-answer": 0.15,
+   "exact_match_stderr,get-answer": 0.046486739497974494
+  },
+  "bbh_cot_fewshot_multistep_arithmetic_two": {
+   "alias": " - bbh_cot_fewshot_multistep_arithmetic_two",
+   "exact_match,get-answer": 0.21666666666666667,
+   "exact_match_stderr,get-answer": 0.05363439040648222
+  },
+  "bbh_cot_fewshot_navigate": {
+   "alias": " - bbh_cot_fewshot_navigate",
+   "exact_match,get-answer": 0.5833333333333334,
+   "exact_match_stderr,get-answer": 0.06418399868645064
+  },
+  "bbh_cot_fewshot_object_counting": {
+   "alias": " - bbh_cot_fewshot_object_counting",
+   "exact_match,get-answer": 0.4666666666666667,
+   "exact_match_stderr,get-answer": 0.06494964005966064
+  },
+  "bbh_cot_fewshot_penguins_in_a_table": {
+   "alias": " - bbh_cot_fewshot_penguins_in_a_table",
+   "exact_match,get-answer": 0.0,
+   "exact_match_stderr,get-answer": 0.0
+  },
+  "bbh_cot_fewshot_reasoning_about_colored_objects": {
+   "alias": " - bbh_cot_fewshot_reasoning_about_colored_objects",
+   "exact_match,get-answer": 0.45,
+   "exact_match_stderr,get-answer": 0.06476816543825593
+  },
+  "bbh_cot_fewshot_ruin_names": {
+   "alias": " - bbh_cot_fewshot_ruin_names",
+   "exact_match,get-answer": 0.06666666666666667,
+   "exact_match_stderr,get-answer": 0.0324748200298303
+  },
+  "bbh_cot_fewshot_salient_translation_error_detection": {
+   "alias": " - bbh_cot_fewshot_salient_translation_error_detection",
+   "exact_match,get-answer": 0.0,
+   "exact_match_stderr,get-answer": 0.0
+  },
+  "bbh_cot_fewshot_snarks": {
+   "alias": " - bbh_cot_fewshot_snarks",
+   "exact_match,get-answer": 0.2833333333333333,
+   "exact_match_stderr,get-answer": 0.05866531842313122
+  },
+  "bbh_cot_fewshot_sports_understanding": {
+   "alias": " - bbh_cot_fewshot_sports_understanding",
+   "exact_match,get-answer": 0.0,
+   "exact_match_stderr,get-answer": 0.0
+  },
+  "bbh_cot_fewshot_temporal_sequences": {
+   "alias": " - bbh_cot_fewshot_temporal_sequences",
+   "exact_match,get-answer": 0.016666666666666666,
+   "exact_match_stderr,get-answer": 0.016666666666666687
+  },
+  "bbh_cot_fewshot_tracking_shuffled_objects_five_objects": {
+   "alias": " - bbh_cot_fewshot_tracking_shuffled_objects_five_objects",
+   "exact_match,get-answer": 0.0,
+   "exact_match_stderr,get-answer": 0.0
+  },
+  "bbh_cot_fewshot_tracking_shuffled_objects_seven_objects": {
+   "alias": " - bbh_cot_fewshot_tracking_shuffled_objects_seven_objects",
+   "exact_match,get-answer": 0.016666666666666666,
+   "exact_match_stderr,get-answer": 0.016666666666666666
+  },
+  "bbh_cot_fewshot_tracking_shuffled_objects_three_objects": {
+   "alias": " - bbh_cot_fewshot_tracking_shuffled_objects_three_objects",
+   "exact_match,get-answer": 0.0,
+   "exact_match_stderr,get-answer": 0.0
+  },
+  "bbh_cot_fewshot_web_of_lies": {
+   "alias": " - bbh_cot_fewshot_web_of_lies",
+   "exact_match,get-answer": 0.08333333333333333,
+   "exact_match_stderr,get-answer": 0.03598231413236442
+  },
+  "bbh_cot_fewshot_word_sorting": {
+   "alias": " - bbh_cot_fewshot_word_sorting",
+   "exact_match,get-answer": 0.0,
+   "exact_match_stderr,get-answer": 0.0
+  }
+ },
+ "samples": [
+  {
+   "file": "samples_bbh_cot_fewshot_boolean_expressions_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "73b33d5fcd00bc1950b11c6f83eec14f060fe74267fd696a0aee743c356c5c75",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_causal_judgement_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "d630a4d61f08d4a05fe693208e3784008040681202705b4b80939b37cf915469",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_date_understanding_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "9d2fc6e4e504743ac7351222bb6fba55d644bf812fbd7c48abc0c3b663624ce6",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_disambiguation_qa_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "e243c85bdf444bd317795cb1a8c76f33d5f2f0284b1414d84ca40d596e2ca49b",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_dyck_languages_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "27af20ef911502fc2d7700a5ebcadad1d7af765c3016a17a6072c47b3eba67dd",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_formal_fallacies_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "13483d7f05853409dc4226e89b04112e02ffb7ad3d943def151b935fa0189be9",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_geometric_shapes_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "be990cbabf2055a6611c47770faaca623882149ff2a319f8c25dd2a1639de849",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_hyperbaton_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "794b4e7bb99fd8c1bf562e60e6b2d6efa42c90d5d3382f15c9d4c4176288a4e8",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_logical_deduction_five_objects_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "09a4eb603d60c8591a0924b9d85c454e4732d68e77a671a4a462eafc3591bdcf",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_logical_deduction_seven_objects_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "7d95511cdf1289371e333f2ffb5574526f180c4b019555e8d545ae8d7972d0c7",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_logical_deduction_three_objects_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "278351f5bb751eb123b72b1320d3542e830dd6a5025023795338544885f69341",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_movie_recommendation_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "199c417aecea0c8f056a5533b73c0b4cef3c0207f8c1112ed4d5fd50de5bf884",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_multistep_arithmetic_two_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "7af0e6b2f68e47d9d8c2614668595cddb011f0873b21abab1654edc55e4f8755",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_navigate_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "e6bfde8396461a7bcf097e2ba4488a132f4f9f13a489695f6a925a91a25c89c5",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_object_counting_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "6ac8716cdc71885ee25910dc006528580cf357dfcd1f162037cc3c5aea4445b2",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_penguins_in_a_table_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "b521e109fe2673ae09202ff9d29ace0eb10ffe7c2a9a8da3175e09718bb43d83",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_reasoning_about_colored_objects_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "d938c4f33ac91e3ec0aa0a4181f3e55182cf6c4efa8ccf75c25e7faa64c585c0",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_ruin_names_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "5c2e2a7360531eb69ba4ed51cf9c4c56c7e484cad3c4af155dfe543641b4441d",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_salient_translation_error_detection_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "cf8e6cc29e4e14dafc94926d8a4a89a3fd0af669784cd066d96b04f129842988",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_snarks_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "2d67a3889c6130a1ab1141f7177d788688b7da185d552c50dcd651c11c163122",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_sports_understanding_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "a6a3a3178e4ce9a6ed20a41b969a75e5bff79e282e16407983fe413d66e2aaf6",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_temporal_sequences_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "a3d4998bf92d1432b74aea32c16e0384d841607fe79f9e787c6a9906efb28a63",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_tracking_shuffled_objects_five_objects_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "1fffd675a88630cf12e9d57981287d728e237a9848fa4dc3e78b1c2977fdbf8c",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_tracking_shuffled_objects_seven_objects_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "3df784ad793ba7b1fd7795dd4a5e5eb58470a54f8b8feae7a839b1c8377d9066",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_tracking_shuffled_objects_three_objects_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "17ff34309197762af4b6e327110c67fe1346e6cd8577f5752a7ed54a2efa6860",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_web_of_lies_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "68f2048be95aa0a9c1b696540b9ffc3cfa99ae66c1bb731517b12d4431930c34",
+   "items": 60
+  },
+  {
+   "file": "samples_bbh_cot_fewshot_word_sorting_2026-11-15T20-42-30.203485.jsonl",
+   "sha256": "435decbb9eadc33d9ae8189662b12c29956639e4553ca7752d6582d351afc232",
+   "items": 60
+  }
+ ],
+ "log": true,
+ "commands": [
+  "fixed14s2_q.txt.log: 20:13:10 gpu6: ./lm1.sh $GPU O14xf4s2-a41-bbh - \"path=/dev/shm/big-small-ouro/model-1.4b,condition=a41,checkpoint=/dev/shm/big-small-ouro/runs/O14-a-fixed4-lora-s2/checkpoint-48m.pt,max_length=16384\" \"--tasks bbh_cot_fewshot --limit 60\""
+ ],
+ "checkpoint": {
+  "run": "O14-a-fixed4-lora-s2",
+  "checkpoint": "checkpoint-48m.pt",
+  "sha256": "a85bdefc6736814c941f2e725b43f1b07a1c0a430adc10a5855c9c8a0a731a55",
+  "bytes": 177191997
+ }
+}

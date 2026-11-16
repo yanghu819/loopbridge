@@ -1,0 +1,21 @@
+{
+ "run": "X26los2r80-a41-longbench",
+ "kind": "evaluate_bench (RULER / HELMET / BBH / MMLU-Pro scripts)",
+ "outputs": [
+  {
+   "file": "X26los2r80-a41-longbench/s0/longbench.jsonl",
+   "sha256": "bc381a181041ff25360df4d69db14cc51b0556141a0de144ca86b03207343f65",
+   "items": 400
+  }
+ ],
+ "log": true,
+ "commands": [
+  "btime_q.txt.log: 17:05:46 gpu5: cd /root/big-small && MODEL=/dev/shm/big-small-ouro/model-2.6b DATA=/dev/shm/big-small-ouro/bench BENCHES='longbench' OURO_LORA_RANK=80 ./ouro/runs_scripts/bench3.sh X26los2r80-a41-longbench a41 /dev/shm/big-small-ouro/runs/X26-a-lora-s2-r80/checkpoint-48m.pt $GPU 1"
+ ],
+ "checkpoint": {
+  "run": "X26-a-lora-s2-r80",
+  "checkpoint": "checkpoint-48m.pt",
+  "sha256": "88c805728d156640a44bd507b27be7bd54fe7fe86b6b5044eb97968146a4ebc5",
+  "bytes": 958351577
+ }
+}

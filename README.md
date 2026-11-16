@@ -31,7 +31,8 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
    16 loops, over seeds, and when the prefill loops are trained too).
 5. **It transfers** to Ouro-1.4B (both adapters 44.2-44.6 on average over three seeds, against 40.5 for the distilled
    model and 34.7 for the original), Ouro-2.6B-Thinking (LoopBridge 4/2 within 0.8 points of the original 4/4 on
-   average; served in batches, as accurate as 4/4 on 400 GSM8K problems, 96.5 vs 95.5, in 0.46-0.56x its time) and
+   average, 1.1 +- 0.3 over three seeds; served in batches, as accurate as 4/4 on all 1,319 GSM8K problems, 94.6 vs
+   94.2-94.3, in 0.47-0.57x its time) and
    looped decision models (Lev, +4.4 to +7.5 at one decision loop).
 6. **LoopBridge's key/value maps keep retrieval over 16K-token prompts** when one adapter serves every depth
    (RULER-16K at 4/1 over three seeds: 63.9 vs 57.6 for a parameter-matched rank-80 LoRA and 44.7 at rank 16); on

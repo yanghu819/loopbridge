@@ -1,0 +1,42 @@
+2026-11-15:17:53:23 INFO     [__main__:347] Including path: ouro/lmeval_tasks
+2026-11-15:17:53:25 WARNING  [__main__:368]  --limit SHOULD ONLY BE USED FOR TESTING.REAL METRICS SHOULD NOT BE COMPUTED USING LIMIT.
+2026-11-15:17:53:25 INFO     [__main__:440] Selected Tasks: ['gsm8k_cot']
+2026-11-15:17:53:25 INFO     [evaluator:189] Setting random seed to 0 | Setting numpy seed to 1234 | Setting torch manual seed to 1234 | Setting fewshot manual seed to 1234
+2026-11-15:17:53:25 INFO     [evaluator:227] Initializing ouro model, with arguments: {'path': '/dev/shm/big-small-ouro/model-1.4b', 'condition': 'E', 'checkpoint': '/dev/shm/big-small-ouro/runs/X14-E48f-p1d1-s3/checkpoint-48m.pt', 'max_length': 16384}
+2026-11-15:17:53:34 INFO     [evaluator:247] Using cache at /dev/shm/big-small-ouro/runs/lmeval/cache/O14x-E48fs3-gsm_rank0.db
+Using the latest cached version of the dataset since gsm8k couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:53:34 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since gsm8k couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'main' at /dev/shm/big-small-ouro/hf-lmeval/datasets/gsm8k/main/0.0.0/740312add88f781978c0658806c59bc2815b9866 (last modified on Sun Oct 25 19:52:48 2026).
+2026-11-15:17:53:34 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'main' at /dev/shm/big-small-ouro/hf-lmeval/datasets/gsm8k/main/0.0.0/740312add88f781978c0658806c59bc2815b9866 (last modified on Sun Oct 25 19:52:48 2026).
+2026-11-15:17:53:34 INFO     [evaluator:290] gsm8k_cot: Using gen_kwargs: {'do_sample': False, 'until': ['Q:', '</s>', '<|im_end|>']}
+2026-11-15:17:53:34 WARNING  [evaluator:309] Overwriting default num_fewshot of gsm8k_cot from 8 to 3
+2026-11-15:17:53:34 INFO     [api.task:434] Building contexts for gsm8k_cot on rank 0...
+
+2026-11-15:17:53:35 INFO     [evaluator:559] Running generate_until requests
+2026-11-15:17:53:35 INFO     [api.model:261] Loading 'generate_until' responses from cache '/dev/shm/big-small-ouro/runs/lmeval/cache/O14x-E48fs3-gsm_rank0.db' where possible...
+
+2026-11-15:17:53:35 INFO     [api.model:285] Cached requests: 0, Requests remaining: 400
+
+[ouro] batch done 19.8s generated=[14, 105, 256, 256, 127, 256, 132, 171, 103, 204, 99, 156, 37, 256, 87, 37, 113, 165, 106, 256, 80, 167, 55, 193, 95, 58, 38, 256, 81, 256, 135, 176, 239, 111, 77, 72, 256, 256, 79, 106, 22, 103, 113, 101, 68, 130, 175, 130, 104, 113, 111, 170, 122, 178, 83, 127, 122, 102, 256, 76, 160, 83, 256, 66]
+
+[ouro] batch done 17.9s generated=[64, 156, 61, 188, 129, 76, 139, 256, 104, 181, 99, 243, 114, 49, 77, 57, 97, 119, 49, 68, 92, 114, 84, 58, 256, 169, 112, 113, 72, 137, 256, 64, 95, 76, 147, 82, 99, 99, 65, 103, 64, 59, 113, 115, 136, 99, 115, 96, 45, 122, 53, 80, 113, 79, 71, 157, 60, 75, 160, 177, 96, 256, 80, 121]
+
+[ouro] batch done 17.8s generated=[96, 87, 57, 27, 53, 77, 125, 70, 110, 68, 17, 96, 68, 88, 59, 46, 103, 103, 51, 256, 58, 256, 144, 90, 91, 179, 96, 79, 147, 94, 107, 73, 115, 124, 32, 68, 87, 97, 104, 68, 93, 68, 132, 102, 179, 64, 105, 84, 56, 256, 66, 83, 65, 112, 105, 54, 88, 60, 46, 64, 80, 72, 106, 54]
+
+[ouro] batch done 16.1s generated=[70, 78, 115, 140, 97, 49, 50, 87, 71, 99, 69, 60, 66, 90, 140, 150, 83, 81, 71, 99, 96, 50, 72, 89, 47, 93, 179, 80, 63, 34, 33, 71, 130, 60, 53, 106, 75, 124, 81, 77, 67, 90, 115, 51, 104, 66, 79, 67, 71, 256, 93, 61, 46, 109, 63, 72, 256, 76, 81, 70, 85, 48, 60, 77]
+
+[ouro] batch done 12.0s generated=[105, 64, 92, 102, 66, 58, 256, 84, 114, 68, 98, 80, 73, 144, 48, 59, 86, 66, 65, 96, 84, 63, 72, 91, 70, 58, 49, 92, 67, 101, 44, 47, 100, 90, 79, 45, 256, 60, 256, 50, 92, 83, 65, 65, 61, 103, 61, 75, 73, 138, 90, 82, 129, 78, 71, 113, 60, 88, 68, 82, 62, 60, 162, 89]
+
+[ouro] batch done 17.0s generated=[81, 60, 65, 74, 84, 70, 99, 90, 96, 88, 43, 33, 98, 87, 149, 84, 84, 63, 142, 82, 63, 71, 106, 78, 28, 72, 102, 74, 84, 56, 62, 104, 74, 85, 57, 67, 99, 50, 256, 75, 78, 38, 134, 36, 60, 59, 66, 71, 57, 67, 38, 43, 81, 62, 54, 63, 123, 51, 52, 89, 37, 77, 111, 89]
+
+[ouro] batch done 10.7s generated=[65, 60, 65, 172, 42, 64, 58, 54, 32, 53, 35, 44, 63, 61, 57, 41]
+
+fatal: not a git repository (or any of the parent directories): .git
+2026-11-15:17:55:29 INFO     [loggers.evaluation_tracker:209] Saving results aggregated
+2026-11-15:17:55:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: gsm8k_cot
+ouro (path=/dev/shm/big-small-ouro/model-1.4b,condition=E,checkpoint=/dev/shm/big-small-ouro/runs/X14-E48f-p1d1-s3/checkpoint-48m.pt,max_length=16384), gen_kwargs: (None), limit: 400.0, num_fewshot: 3, batch_size: 1
+|  Tasks  |Version|     Filter     |n-shot|  Metric   |   |Value |   |Stderr|
+|---------|------:|----------------|-----:|-----------|---|-----:|---|-----:|
+|gsm8k_cot|      3|flexible-extract|     3|exact_match|↑  |0.2850|±  |0.0226|
+|         |       |strict-match    |     3|exact_match|↑  |0.2125|±  |0.0205|
+

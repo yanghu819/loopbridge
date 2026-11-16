@@ -1,0 +1,21 @@
+{
+ "run": "X26lo-a41-helmet",
+ "kind": "evaluate_bench (RULER / HELMET / BBH / MMLU-Pro scripts)",
+ "outputs": [
+  {
+   "file": "X26lo-a41-helmet/s0/helmet.jsonl",
+   "sha256": "9e4889d7df26729b68cc1dbb14f81ae18261d3e774efc40a047a4003bd4f933d",
+   "items": 1108
+  }
+ ],
+ "log": true,
+ "commands": [
+  "sweep_q.txt.log: 20:43:31 gpu7: cd /root/big-small && MODEL=/dev/shm/big-small-ouro/model-2.6b DATA=/dev/shm/big-small-ouro/bench-mini BENCHES='helmet' ./ouro/runs_scripts/bench3.sh X26lo-a41-helmet a41 /dev/shm/big-small-ouro/runs/X26-a-lora/checkpoint-48m.pt $GPU 1"
+ ],
+ "checkpoint": {
+  "run": "X26-a-lora",
+  "checkpoint": "checkpoint-48m.pt",
+  "sha256": "f19261b44d4558607be70d4fac7885c542de223ebfcc6f34c8e797f4626af94a",
+  "bytes": 354369433
+ }
+}

@@ -1,0 +1,76 @@
+{
+ "run": "O14xf4s3-a41-evalplus",
+ "kind": "lm-evaluation-harness",
+ "model_args": "path=/dev/shm/big-small-ouro/model-1.4b,condition=a41,checkpoint=/dev/shm/big-small-ouro/runs/O14-a-fixed4-lora-s3/checkpoint-48m.pt,max_length=16384",
+ "limit": null,
+ "n_shot": {
+  "humanevalplus_chat_local": 0,
+  "mbppplus_chat_local": 0
+ },
+ "n_samples": {
+  "mbppplus_chat_local": {
+   "original": 378,
+   "effective": 378
+  },
+  "humanevalplus_chat_local": {
+   "original": 164,
+   "effective": 164
+  }
+ },
+ "task_versions": {
+  "humanevalplus_chat_local": 1.0,
+  "mbppplus_chat_local": 1.0
+ },
+ "task_hashes": {
+  "mbppplus_chat_local": "32e52bf90e65160ea074d1618a65c5a5153e7120fba2f372e62c650e1ce4d6ff",
+  "humanevalplus_chat_local": "3f1256b59216cc70fe40389fb884edb6366d3105052b7d9d3de1432794866136"
+ },
+ "lm_eval_version": "0.4.9",
+ "transformers_version": "4.54.1",
+ "start": "2026-11-15T15:00:00.930984+00:00",
+ "seconds": "408.26762343756855",
+ "results": {
+  "humanevalplus_chat_local": {
+   "alias": "humanevalplus_chat_local",
+   "bypass,none": 999,
+   "bypass_stderr,none": "N/A"
+  },
+  "mbppplus_chat_local": {
+   "alias": "mbppplus_chat_local",
+   "bypass,none": 999,
+   "bypass_stderr,none": "N/A"
+  }
+ },
+ "samples": [
+  {
+   "file": "samples_humanevalplus_chat_local_2026-11-15T23-06-47.173547.jsonl",
+   "sha256": "4774d2775f10ff1cb5a0d9802f3a3116bb0c07ce477be4c51b2d5ed84180820c",
+   "items": 164
+  },
+  {
+   "file": "samples_mbppplus_chat_local_2026-11-15T23-06-47.173547.jsonl",
+   "sha256": "0d69c1a3c4598aed08ac89e50e593d9143f4fb6ba8bd82d73a0876e59d73390e",
+   "items": 378
+  }
+ ],
+ "evalplus": [
+  {
+   "file": "evalplus_mbpp_chat.jsonl",
+   "sha256": "c0eba388845df1b9e1ade872693ebbdcfb0a5df4a56ab68ab5636712a249ec44"
+  },
+  {
+   "file": "evalplus_humaneval_chat.jsonl",
+   "sha256": "8a61e31e143ef458bb8229fafdd1985340483c9fd6c03d79fcbfbac4f4ce8b0e"
+  }
+ ],
+ "log": true,
+ "commands": [
+  "fixed14s3_q.txt.log: 22:59:54 gpu2: ./lm1.sh $GPU O14xf4s3-a41-evalplus - \"path=/dev/shm/big-small-ouro/model-1.4b,condition=a41,checkpoint=/dev/shm/big-small-ouro/runs/O14-a-fixed4-lora-s3/checkpoint-48m.pt,max_length=16384\" \"--tasks humanevalplus_chat_local,mbppplus_chat_local\""
+ ],
+ "checkpoint": {
+  "run": "O14-a-fixed4-lora-s3",
+  "checkpoint": "checkpoint-48m.pt",
+  "sha256": "3f4729e9fdd182db22cd51bd92be8cafaee23b389c057356c971aa6a78d19610",
+  "bytes": 177191997
+ }
+}

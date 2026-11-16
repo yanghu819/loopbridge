@@ -1,0 +1,49 @@
+{
+ "run": "O14xf4-a41-winogrande",
+ "kind": "lm-evaluation-harness",
+ "model_args": "path=/dev/shm/big-small-ouro/model-1.4b,condition=a41,checkpoint=/dev/shm/big-small-ouro/runs/O14-a-fixed4-lora/checkpoint-48m.pt,max_length=16384",
+ "limit": null,
+ "n_shot": {
+  "winogrande": 5
+ },
+ "n_samples": {
+  "winogrande": {
+   "original": 1267,
+   "effective": 1267
+  }
+ },
+ "task_versions": {
+  "winogrande": 1.0
+ },
+ "task_hashes": {
+  "winogrande": "cb7d189b18f880587e055d13153370ab6e05d9f9b3f25aa9888f4d50338d374d"
+ },
+ "lm_eval_version": "0.4.9",
+ "transformers_version": "4.54.1",
+ "start": "2026-11-15T11:57:18.521569+00:00",
+ "seconds": "37.01096849236637",
+ "results": {
+  "winogrande": {
+   "alias": "winogrande",
+   "acc,none": 0.6227308602999211,
+   "acc_stderr,none": 0.013622567928799479
+  }
+ },
+ "samples": [
+  {
+   "file": "samples_winogrande_2026-11-15T19-57-53.690321.jsonl",
+   "sha256": "6cc2ded7cb1bb48b7afacad1c109ba6751bd7165f6555b52085737ce3f7d0688",
+   "items": 1267
+  }
+ ],
+ "log": true,
+ "commands": [
+  "fixed14s1_q.txt.log: 19:57:12 gpu0: ./lm1.sh $GPU O14xf4-a41-winogrande - \"path=/dev/shm/big-small-ouro/model-1.4b,condition=a41,checkpoint=/dev/shm/big-small-ouro/runs/O14-a-fixed4-lora/checkpoint-48m.pt,max_length=16384\" \"--tasks winogrande --num_fewshot 5\""
+ ],
+ "checkpoint": {
+  "run": "O14-a-fixed4-lora",
+  "checkpoint": "checkpoint-48m.pt",
+  "sha256": "c009e80c1909682a132f9faa8501017471663ba1295b70afeeac80c6d1d4db59",
+  "bytes": 177191997
+ }
+}

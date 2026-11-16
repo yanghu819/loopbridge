@@ -1,0 +1,31 @@
+{
+ "run": "O14f4s3-a41f",
+ "kind": "evaluate_bench (RULER / HELMET / BBH / MMLU-Pro scripts)",
+ "outputs": [
+  {
+   "file": "O14f4s3-a41f/s0/ruler16k.jsonl",
+   "sha256": "f1ed2a3b166ec6fcb1e039331c5a4a0b3d0ebcf0c2233b742f4c2cfa210f9298",
+   "items": 520
+  },
+  {
+   "file": "O14f4s3-a41f/s0/ruler4k.jsonl",
+   "sha256": "e3aeefcce30a5f985b2ebb5762b321be8c68d8509dd3c165548277bb009f4ebb",
+   "items": 520
+  },
+  {
+   "file": "O14f4s3-a41f/s0/ruler8k.jsonl",
+   "sha256": "7d5f38c54fcb68ad11985c5ca6e8f6c680d5d4b2642d549a5fa5fa6af38c4212",
+   "items": 520
+  }
+ ],
+ "log": true,
+ "commands": [
+  "fixed14s3_q.txt.log: 23:06:49 gpu2: cd /root/big-small && MODEL=/dev/shm/big-small-ouro/model-1.4b DATA=/dev/shm/big-small-ouro/bench BENCHES='ruler4k ruler8k ruler16k' ./ouro/runs_scripts/bench3.sh O14f4s3-a41f a41 /dev/shm/big-small-ouro/runs/O14-a-fixed4-lora-s3/checkpoint-48m.pt $GPU 1"
+ ],
+ "checkpoint": {
+  "run": "O14-a-fixed4-lora-s3",
+  "checkpoint": "checkpoint-48m.pt",
+  "sha256": "3f4729e9fdd182db22cd51bd92be8cafaee23b389c057356c971aa6a78d19610",
+  "bytes": 177191997
+ }
+}

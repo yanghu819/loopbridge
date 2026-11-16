@@ -18,7 +18,7 @@ Main findings (Ouro-2.6B; 95% paired bootstrap intervals in the paper):
 - The gain peaks after two to five prefill loops (also for an adapter trained to 16 loops, over seeds, and with the
   prefill loops trained too).
 - Transfers to Ouro-1.4B (44.2-44.6 vs 40.5 distilled, three seeds), Ouro-2.6B-Thinking (4/2 within 0.8 points of 4/4 on
-  average; served in batches, as accurate as 4/4 on 400 GSM8K problems in about half its time) and Lev.
+  average; served in batches, as accurate as 4/4 on all 1,319 GSM8K problems in about half its time) and Lev.
 - Baselines: the distilled controls move by at most 0.8 points over 0.3x-3x learning rates and at rank 80.
 
 Limitations stated by the author: timing on one GPU type at batch 1 to 32; folded maps keep one prompt cache per decode

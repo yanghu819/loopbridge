@@ -1,0 +1,49 @@
+{
+ "run": "X26los3r80-a42-winogrande",
+ "kind": "lm-evaluation-harness",
+ "model_args": "path=/dev/shm/big-small-ouro/model-2.6b,condition=a42,checkpoint=/dev/shm/big-small-ouro/runs/X26-a-lora-s3-r80/checkpoint-48m.pt,max_length=16384",
+ "limit": null,
+ "n_shot": {
+  "winogrande": 5
+ },
+ "n_samples": {
+  "winogrande": {
+   "original": 1267,
+   "effective": 1267
+  }
+ },
+ "task_versions": {
+  "winogrande": 1.0
+ },
+ "task_hashes": {
+  "winogrande": "cb7d189b18f880587e055d13153370ab6e05d9f9b3f25aa9888f4d50338d374d"
+ },
+ "lm_eval_version": "0.4.9",
+ "transformers_version": "4.54.1",
+ "start": "2026-11-13T12:53:17.279635+00:00",
+ "seconds": "94.75099563598633",
+ "results": {
+  "winogrande": {
+   "alias": "winogrande",
+   "acc,none": 0.7466456195737964,
+   "acc_stderr,none": 0.012223754434233795
+  }
+ },
+ "samples": [
+  {
+   "file": "samples_winogrande_2026-11-13T20-54-49.833468.jsonl",
+   "sha256": "dbb3270d2231e866c882a6d47c80779b3e067ed85f3361bd7f56220ab18e778c",
+   "items": 1267
+  }
+ ],
+ "log": true,
+ "commands": [
+  "sweep_q.txt.log: 20:53:09 gpu3: OURO_LORA_RANK=80 ./lm1.sh $GPU X26los3r80-a42-winogrande - \"path=/dev/shm/big-small-ouro/model-2.6b,condition=a42,checkpoint=/dev/shm/big-small-ouro/runs/X26-a-lora-s3-r80/checkpoint-48m.pt,max_length=16384\" \"--tasks winogrande --num_fewshot 5\""
+ ],
+ "checkpoint": {
+  "run": "X26-a-lora-s3-r80",
+  "checkpoint": "checkpoint-48m.pt",
+  "sha256": "60501ce289d7ee9551a52a740f4115a1fa5873e25c5aaf5dbe2c05a1af47dd20",
+  "bytes": 958351577
+ }
+}

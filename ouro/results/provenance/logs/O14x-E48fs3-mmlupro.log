@@ -1,0 +1,196 @@
+2026-11-15:17:54:31 INFO     [__main__:347] Including path: ouro/lmeval_tasks
+2026-11-15:17:54:33 WARNING  [__main__:368]  --limit SHOULD ONLY BE USED FOR TESTING.REAL METRICS SHOULD NOT BE COMPUTED USING LIMIT.
+2026-11-15:17:54:33 INFO     [__main__:440] Selected Tasks: ['mmlu_pro']
+2026-11-15:17:54:33 INFO     [evaluator:189] Setting random seed to 0 | Setting numpy seed to 1234 | Setting torch manual seed to 1234 | Setting fewshot manual seed to 1234
+2026-11-15:17:54:33 INFO     [evaluator:227] Initializing ouro model, with arguments: {'path': '/dev/shm/big-small-ouro/model-1.4b', 'condition': 'E', 'checkpoint': '/dev/shm/big-small-ouro/runs/X14-E48f-p1d1-s3/checkpoint-48m.pt', 'max_length': 16384}
+2026-11-15:17:54:37 INFO     [evaluator:247] Using cache at /dev/shm/big-small-ouro/runs/lmeval/cache/O14x-E48fs3-mmlupro_rank0.db
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-15:17:54:37 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'default' at /dev/shm/big-small-ouro/hf-lmeval/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Oct 25 20:04:03 2026).
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_biology: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_business: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_chemistry: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_computer_science: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_economics: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_engineering: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_health: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_history: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_law: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_math: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_other: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_philosophy: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_physics: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [evaluator:290] mmlu_pro_psychology: Using gen_kwargs: {'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_biology on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_business on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_chemistry on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_computer_science on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_economics on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_engineering on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_health on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_history on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_law on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_math on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_other on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_philosophy on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_physics on rank 0...
+
+2026-11-15:17:54:37 INFO     [api.task:434] Building contexts for mmlu_pro_psychology on rank 0...
+
+2026-11-15:17:54:37 INFO     [evaluator:559] Running generate_until requests
+2026-11-15:17:54:37 INFO     [api.model:261] Loading 'generate_until' responses from cache '/dev/shm/big-small-ouro/runs/lmeval/cache/O14x-E48fs3-mmlupro_rank0.db' where possible...
+
+2026-11-15:17:54:37 INFO     [api.model:285] Cached requests: 0, Requests remaining: 420
+
+[ouro] batch done 140.0s generated=[41, 45, 134, 198, 53, 40, 58, 82, 2048, 42, 63, 69, 47, 2048]
+
+[ouro] batch done 144.4s generated=[53, 43, 42, 94, 46, 39, 39, 2048, 74, 73, 40, 59, 101, 70]
+
+[ouro] batch done 75.4s generated=[63, 84, 47, 40, 42, 50, 41, 51, 161, 305, 204, 456, 160, 211, 2048]
+
+[ouro] batch done 23.8s generated=[36, 315, 58, 63, 42, 87, 34, 110, 50, 120, 309, 87, 51, 60, 70, 82]
+
+[ouro] batch done 142.6s generated=[64, 67, 2048, 2048, 115, 288, 104, 46, 215, 58, 103, 427, 2048, 2048, 2048, 62]
+
+[ouro] batch done 141.7s generated=[2048, 2048, 72, 55, 144, 105, 336, 299, 176, 282, 2048, 46, 172, 2048, 175, 121, 30]
+
+[ouro] batch done 91.6s generated=[130, 325, 2048, 236, 10, 111, 112, 140, 2048, 50, 71, 64, 35, 93, 258, 53, 159]
+
+[ouro] batch done 95.9s generated=[50, 84, 25, 242, 187, 216, 88, 59, 122, 32, 2048, 47, 82, 55, 105, 55, 114]
+
+[ouro] batch done 70.2s generated=[421, 70, 23, 67, 92, 352, 58, 2048, 160, 104, 82, 29, 133, 111, 57, 34, 50, 181]
+
+[ouro] batch done 123.4s generated=[54, 32, 87, 79, 85, 58, 68, 39, 2048, 2048, 143, 52, 80, 95, 200, 47, 2048, 70]
+
+[ouro] batch done 72.9s generated=[2048, 49, 66, 61, 65, 139, 29, 2048, 2048, 2048, 55, 88, 61, 52, 77, 69, 75, 96]
+
+[ouro] batch done 62.9s generated=[2048, 82, 2048, 161, 395, 279, 34, 100, 50, 93, 266, 2048, 140, 119, 42, 137, 204, 91]
+
+[ouro] batch done 64.3s generated=[289, 65, 164, 45, 183, 2048, 38, 60, 2048, 289, 2048, 88, 161, 48, 55, 47, 80, 48, 46]
+
+[ouro] batch done 64.5s generated=[47, 56, 124, 68, 2048, 2048, 221, 79, 83, 410, 44, 42, 2048, 88, 35, 53, 17, 121, 40]
+
+[ouro] batch done 33.5s generated=[46, 54, 39, 45, 150, 50, 216, 157, 102, 46, 59, 111, 39, 82, 129, 73, 511, 100, 45]
+
+[ouro] batch done 75.0s generated=[35, 2048, 190, 42, 185, 42, 2048, 119, 35, 93, 74, 20, 22, 139, 48, 144, 37, 26, 90]
+
+[ouro] batch done 69.7s generated=[20, 27, 138, 27, 24, 159, 69, 21, 46, 20, 2048, 47, 2048, 2048, 20, 31, 24, 17, 20, 40]
+
+[ouro] batch done 67.1s generated=[20, 49, 56, 161, 94, 50, 51, 65, 21, 150, 20, 43, 42, 60, 33, 40, 44, 2048, 30, 145]
+
+[ouro] batch done 11.2s generated=[49, 10, 49, 45, 42, 40, 17, 27, 31, 17, 37, 64, 20, 20, 41, 40, 39, 169, 36, 96]
+
+[ouro] batch done 20.3s generated=[41, 73, 34, 21, 51, 22, 458, 191, 35, 46, 33, 41, 40, 76, 50, 21, 20, 65, 118, 42]
+
+[ouro] batch done 6.1s generated=[90, 17, 20, 44, 37, 62, 38, 21, 53, 33, 27, 72, 39, 48, 40, 43, 20, 31, 44, 37, 70]
+
+[ouro] batch done 6.7s generated=[35, 46, 37, 34, 42, 67, 97, 34, 75, 47, 36, 30, 17, 17, 45, 64, 41, 20, 39, 47, 37]
+
+[ouro] batch done 3.8s generated=[39, 44, 17, 46, 17, 31, 43, 32, 38, 42, 17, 17, 36, 45, 33, 48, 53, 17, 17, 35, 53]
+
+[ouro] batch done 2.5s generated=[33, 17, 37]
+
+fatal: not a git repository (or any of the parent directories): .git
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:209] Saving results aggregated
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_biology
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_business
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_chemistry
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_computer_science
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_economics
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_engineering
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_health
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_history
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_law
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_math
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_other
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_philosophy
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_physics
+2026-11-15:18:21:29 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: mmlu_pro_psychology
+ouro (path=/dev/shm/big-small-ouro/model-1.4b,condition=E,checkpoint=/dev/shm/big-small-ouro/runs/X14-E48f-p1d1-s3/checkpoint-48m.pt,max_length=16384), gen_kwargs: (None), limit: 30.0, num_fewshot: None, batch_size: 1
+|       Tasks       |Version|    Filter    |n-shot|  Metric   |   |Value |   |Stderr|
+|-------------------|------:|--------------|-----:|-----------|---|-----:|---|-----:|
+|mmlu_pro           |    2.0|custom-extract|      |exact_match|↑  |0.2048|±  |0.0196|
+| - biology         |    2.1|custom-extract|     5|exact_match|↑  |0.2333|±  |0.0785|
+| - business        |    2.1|custom-extract|     5|exact_match|↑  |0.1333|±  |0.0631|
+| - chemistry       |    2.1|custom-extract|     5|exact_match|↑  |0.1333|±  |0.0631|
+| - computer_science|    2.1|custom-extract|     5|exact_match|↑  |0.2667|±  |0.0821|
+| - economics       |    2.1|custom-extract|     5|exact_match|↑  |0.3333|±  |0.0875|
+| - engineering     |    2.1|custom-extract|     5|exact_match|↑  |0.0667|±  |0.0463|
+| - health          |    2.1|custom-extract|     5|exact_match|↑  |0.1333|±  |0.0631|
+| - history         |    2.1|custom-extract|     5|exact_match|↑  |0.2000|±  |0.0743|
+| - law             |    2.1|custom-extract|     5|exact_match|↑  |0.1333|±  |0.0631|
+| - math            |    2.1|custom-extract|     5|exact_match|↑  |0.3667|±  |0.0895|
+| - other           |    2.1|custom-extract|     5|exact_match|↑  |0.2667|±  |0.0821|
+| - philosophy      |    2.1|custom-extract|     5|exact_match|↑  |0.1667|±  |0.0692|
+| - physics         |    2.1|custom-extract|     5|exact_match|↑  |0.1667|±  |0.0692|
+| - psychology      |    2.1|custom-extract|     5|exact_match|↑  |0.2667|±  |0.0821|
+
+| Groups |Version|    Filter    |n-shot|  Metric   |   |Value |   |Stderr|
+|--------|------:|--------------|------|-----------|---|-----:|---|-----:|
+|mmlu_pro|      2|custom-extract|      |exact_match|↑  |0.2048|±  |0.0196|
+

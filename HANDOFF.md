@@ -22,9 +22,10 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 - **Story**: (1) prefill is 0.4-2.6% of a chain-of-thought request (Figure 2); (2) same decode loops: 44.2 -> 58.6 /
   58.2 at n=1 vs Distilled 49.5 (Table 1, MATH-500 zero-shot since 11-15); (3) the gain levels off after two to five prefill loops (Figure 5); (4) measured time
   (800 requests): +18.6 / +17.2 over Original 1/1 for 1.14x / 1.21x the time, +10-14 at the same mean time (Figure 6);
-  (5) transfers to Ouro-1.4B, Thinking (4/2 within 0.8 of 4/4; batched GSM8K in about half its time) and Lev. Caveats live in Limitations and the appendix.
+  (5) transfers to Ouro-1.4B, Thinking (4/2 within 0.8 of 4/4, 1.1+-0.3 over three seeds; served in batches, as
+  accurate as 4/4 on all 1,319 GSM8K problems in about half its time) and Lev. Caveats live in Limitations and the appendix.
 - **Seeds in Table 1 caption** (zero-shot MATH): fixed 58.3+-0.2 / 69.0+-0.3, LoopBridge 58.3+-0.1 / 68.6+-0.4,
-  Distilled 49.6+-0.3 / 66.1+-0.1, rank 80 49.2 (2 seeds) / 65.6+-0.2.
+  Distilled 49.6+-0.3 / 66.1+-0.1, rank 80 49.2+-0.1 / 65.6+-0.2.
 - **2026-11-15/16**: MATH-500 zero-shot everywhere (runs `<name>-math0shot`, `TASK_MAP`, `MATH0_ROWS`); the timed
   requests re-timed with the zero-shot prompt (`time_math0.sh`), then a second block of 100 requests per task timed at
   batch 1 (`time_set2.sh`, files `clnB*`) and in batches (`batch_set2.sh`, files `btB*`): every timing result is on the
@@ -34,13 +35,18 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
   decoding drafter check (`spec_agree.sh`) stays out of the paper (NOTES). agy (Antigravity, pro) co-edits the prose
   (helpers in `~/.b300-handoff/agy`; Codex is out of quota until 11-17). LoopBridge at m = n = 4 is not ours (nothing
   untied): Figure 4 and Table 8 show n <= 3.
-- **Running on 11-16 (finish these, then update the paper)**:
-  - a1: LoopBridge seeds 2 and 3 on Ouro-2.6B-Thinking (`think_seed.sh`; trained; evaluations in `thinkseed{2,3}_q.txt`,
-    two workers per GPU). Then `runs/score_evalplus_all.sh` on a1, `pn_sync.sh all`; `think_seeds()` prints the 8-benchmark
-    average and the gap to Original 4/4 per seed: put mean +- s.d. into Section 5.7 and the Figure 11 caption and set
-    `THINK_SEED_PRINTED`.
-  - a2: rank-80 Distilled 1/1, seed 3 (`dist26r80s3.sh`, run X26-E48fr80-p1d1-s3, 8 GPUs, then its 11 benchmarks). Then
-    `R80_SEEDS[1] = ("s2", "s3")` and the Table 1 caption ("rank 80: 49.2 over two seeds") becomes a three-seed mean.
+- **Done on 11-16 (all in the paper; nothing is running)**:
+  - LoopBridge seeds 2 and 3 on Ouro-2.6B-Thinking (`think_seed.sh`, runs T26s{2,3}*): gap to Original 4/4 1.1+-0.3
+    (seeds 0.8 / 1.1 / 1.4), above Original 2/2 on 6 / 7 / 7 of 8 benchmarks (`think_seeds()`, Section 5.7, Figure 11).
+    Seed 2's MATH-500 shard 2 hung for 3 h 48 min and was rerun with cuDNN SDPA off; seed 3's ARC-C hit a CUDA OOM next to
+    another job and was rerun on a2 (checkpoint copied there, md5 checked).
+  - Rank-80 Distilled 1/1 seed 3 (`dist26r80s3.sh`): 49.3 / 49.1 / 49.1 -> 49.2+-0.1 (Table 1 caption).
+  - Thinking batched serving on all 1,319 GSM8K problems (second block START=400 N=919, passes tbatch2a on a2, tbatch2b /
+    tbatch2c on a1, `USE_TBATCH2`): LoopBridge 4/2 94.6 vs Original 4/4 94.2-94.3 (+0.3/+0.4, intervals include 0) in
+    0.47-0.57x its time; +1.7 to +2.8 over Original 2/2 and Distilled 2/2 (all intervals > 0) in 0.79-0.97x their time.
+    On the first 400 alone the gaps were +2.3 to +4.3; the full set replaces them everywhere.
+  - agy review 5 (3.5/4.0/3.5, same weaknesses as review 4; spec decoding and layout changes declined) and line edits of
+    the main text (14 of 15 accepted) and the appendix (22 of 24).
 - **Guards**: every number quoted in the text is checked in `ouro/scripts/paper_numbers.py` (`!!` lines); the pipeline
   must print "0 printed values differ" and no `!!`.
 - **Done since 11-09**: baseline LR check (Distilled at x0.3 / x3 and rank 80 x3: averages move <= 0.6, never reach
@@ -65,9 +71,8 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
     both; claims narrowed to "retrieval over 16K-token prompts"; no Limitations sentence any more.
     Seeds (X26s2/s3, X26los2/3, X26los2r80/3r80) on HELMET/LongBench are exported but not yet quoted.
   - *Thinking batched serving* (`time_batch_think.sh`, TASK=gsm8k|math500, files `tbatch<B>-<cond>-{gsm,math}think`,
-    second pass `tbatchb`; `thinking_batched()`, Table `tab_tbatched`): GSM8K, 400 requests, batch 16/32: LoopBridge 4/2
-    96.5 vs Original 4/4 95.5 (+1.0 [-0.8, 2.8]) at 0.46-0.56x its time (3 passes); +2.2 over Original 2/2 and
-    +3.8-4.2 over Distilled 2/2 at 0.80-0.98x their time (served-answer accuracy; lm-eval on the same 400 items: 95.0 / 95.2).
+    second pass `tbatchb`; `thinking_batched()`, Table `tab_tbatched`): GSM8K, first 400 requests, batch 16/32 (on 11-16
+    extended to all 1,319, see above): LoopBridge 4/2 96.5 vs Original 4/4 95.5 at 0.46-0.56x its time (3 passes).
     MATH-500 (500, 8,192 tokens, batch 16): LoopBridge 86.2, Original 2/2 84.2, 4/4 89.8, Distilled 83.6; 0.58x the
     time of 4/4. Now Figure 8 (fig_tbatched); the old throughput frontier is in Appendix K. Third MATH pass (tbatchc) on a1.
   - *Ouro-1.4B batched* (`time_batch14.sh`, files `batch*-14-*`, `batched_serving_14()`, lower block of Table

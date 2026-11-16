@@ -1,0 +1,49 @@
+{
+ "run": "T26s2-a42-math500_think_s4",
+ "kind": "lm-evaluation-harness",
+ "model_args": "path=/dev/shm/big-small-ouro/model-2.6b-think,condition=a42,checkpoint=/dev/shm/big-small-ouro/runs/T26-a-seed2/checkpoint-48m.pt,max_length=16384,batch_tokens=160000,max_batch=64",
+ "limit": null,
+ "n_shot": {
+  "math500_think_s4": 0
+ },
+ "n_samples": {
+  "math500_think_s4": {
+   "original": 100,
+   "effective": 100
+  }
+ },
+ "task_versions": {
+  "math500_think_s4": 1.0
+ },
+ "task_hashes": {
+  "math500_think_s4": "995ba06edde4289954227b1d307b62c3fdd6a1fe99ea910bdbeae9fc9a0bc516"
+ },
+ "lm_eval_version": "0.4.9",
+ "transformers_version": "4.54.1",
+ "start": "2026-11-15T22:56:36.785428+00:00",
+ "seconds": "5815.628934731707",
+ "results": {
+  "math500_think_s4": {
+   "alias": "math500_think_s4",
+   "math_verify,none": 0.82,
+   "math_verify_stderr,none": 0.03861229196653691
+  }
+ },
+ "samples": [
+  {
+   "file": "samples_math500_think_s4_2026-11-16T08-33-30.448135.jsonl",
+   "sha256": "c19b4f8959561291fa873ba1c652140015bf9fa55d25a0a0ac9e5aa5d0eb487f",
+   "items": 100
+  }
+ ],
+ "log": true,
+ "commands": [
+  "thinkseed2_q.txt.log: 06:56:29 gpu5: ./lm1.sh $GPU T26s2-a42-math500_think_s4 - \"path=/dev/shm/big-small-ouro/model-2.6b-think,condition=a42,checkpoint=/dev/shm/big-small-ouro/runs/T26-a-seed2/checkpoint-48m.pt,max_length=16384,batch_tokens=160000,max_batch=64\" \"--tasks math500_think_s4 --apply_chat_template\""
+ ],
+ "checkpoint": {
+  "run": "T26-a-seed2",
+  "checkpoint": "checkpoint-48m.pt",
+  "sha256": "1767b2384e5a4aa6b854432bb813793afefef998aa523688da20b28443cc64e4",
+  "bytes": 760170237
+ }
+}

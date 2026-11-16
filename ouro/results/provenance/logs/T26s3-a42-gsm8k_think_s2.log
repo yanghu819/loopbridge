@@ -1,0 +1,44 @@
+2026-11-16:06:22:16 INFO     [__main__:347] Including path: ouro/lmeval_tasks
+2026-11-16:06:22:18 INFO     [__main__:440] Selected Tasks: ['gsm8k_think_s2']
+2026-11-16:06:22:18 INFO     [evaluator:189] Setting random seed to 0 | Setting numpy seed to 1234 | Setting torch manual seed to 1234 | Setting fewshot manual seed to 1234
+2026-11-16:06:22:18 INFO     [evaluator:227] Initializing ouro model, with arguments: {'path': '/dev/shm/big-small-ouro/model-2.6b-think', 'condition': 'a42', 'checkpoint': '/dev/shm/big-small-ouro/runs/T26-a-seed3/checkpoint-48m.pt', 'max_length': 16384, 'batch_tokens': 160000, 'max_batch': 64}
+2026-11-16:06:22:27 INFO     [evaluator:247] Using cache at /dev/shm/big-small-ouro/runs/lmeval/cache/T26s3-a42-gsm8k_think_s2_rank0.db
+Using the latest cached version of the dataset since gsm8k couldn't be found on the Hugging Face Hub (offline mode is enabled).
+2026-11-16:06:22:27 WARNING  [datasets.load:1377] Using the latest cached version of the dataset since gsm8k couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'main' at /dev/shm/big-small-ouro/hf-lmeval/datasets/gsm8k/main/0.0.0/740312add88f781978c0658806c59bc2815b9866 (last modified on Sun Oct 25 19:52:48 2026).
+2026-11-16:06:22:27 WARNING  [datasets.packaged_modules.cache.cache:94] Found the latest cached dataset configuration 'main' at /dev/shm/big-small-ouro/hf-lmeval/datasets/gsm8k/main/0.0.0/740312add88f781978c0658806c59bc2815b9866 (last modified on Sun Oct 25 19:52:48 2026).
+2026-11-16:06:22:27 INFO     [evaluator:290] gsm8k_think_s2: Using gen_kwargs: {'until': [], 'max_gen_toks': 4096, 'do_sample': False, 'temperature': 0.0}
+2026-11-16:06:22:27 WARNING  [evaluator:465] Chat template formatting change affects loglikelihood and multiple-choice tasks. See docs/chat-template-readme.md for details.
+2026-11-16:06:22:27 INFO     [api.task:434] Building contexts for gsm8k_think_s2 on rank 0...
+
+2026-11-16:06:22:27 INFO     [evaluator:559] Running generate_until requests
+2026-11-16:06:22:27 INFO     [api.model:261] Loading 'generate_until' responses from cache '/dev/shm/big-small-ouro/runs/lmeval/cache/T26s3-a42-gsm8k_think_s2_rank0.db' where possible...
+
+2026-11-16:06:22:27 INFO     [api.model:285] Cached requests: 0, Requests remaining: 330
+
+[ouro] batch done 515.2s generated=[773, 787, 1124, 918, 1140, 905, 820, 984, 3711, 588, 820, 630, 4096, 702, 631, 853, 793, 584, 1230, 429, 527, 1528, 580, 443, 1596, 511, 620, 783, 4096, 4096, 859, 1539, 726, 623, 676, 721, 459]
+
+[ouro] batch done 430.1s generated=[551, 817, 1060, 464, 1225, 1237, 557, 714, 484, 743, 689, 1130, 1627, 997, 324, 1281, 1642, 694, 746, 911, 581, 4096, 996, 568, 4096, 844, 603, 1195, 4096, 450, 847, 1309, 546, 619, 4096, 718, 897]
+
+[ouro] batch done 492.7s generated=[619, 630, 828, 711, 607, 959, 3730, 847, 843, 685, 474, 1795, 462, 463, 1316, 1088, 832, 626, 943, 680, 725, 969, 620, 548, 613, 457, 4096, 1196, 982, 645, 424, 854, 2147, 359, 549, 959, 4096]
+
+[ouro] batch done 502.5s generated=[591, 467, 351, 855, 563, 4096, 832, 755, 548, 673, 646, 665, 438, 700, 508, 692, 467, 456, 520, 743, 1923, 4048, 574, 375, 880, 552, 462, 383, 621, 416, 464, 702, 463, 483, 555, 821, 754, 710]
+
+[ouro] batch done 413.3s generated=[519, 450, 908, 502, 840, 606, 638, 4096, 466, 1161, 534, 748, 808, 1071, 1084, 520, 591, 456, 473, 421, 422, 575, 597, 980, 599, 499, 4096, 1008, 517, 419, 513, 899, 854, 550, 1046, 495, 642, 357]
+
+[ouro] batch done 135.8s generated=[985, 788, 916, 364, 1237, 457, 587, 361, 663, 589, 593, 607, 921, 529, 863, 656, 403, 506, 827, 583, 711, 640, 608, 520, 680, 481, 639, 710, 566, 688, 970, 787, 334, 820, 758, 365, 591, 725]
+
+[ouro] batch done 485.9s generated=[617, 328, 1346, 300, 258, 507, 427, 334, 1394, 4096, 563, 807, 385, 377, 575, 589, 433, 688, 1048, 496, 319, 451, 628, 691, 449, 384, 444, 951, 484, 675, 568, 456, 515, 805, 462, 540, 538, 496]
+
+[ouro] batch done 393.7s generated=[976, 1131, 946, 601, 357, 333, 4096, 366, 346, 587, 795, 715, 459, 463, 498, 497, 473, 760, 471, 378, 486, 986, 373, 301, 374, 531, 644, 430, 465, 343, 929, 326, 566, 615, 526, 309, 475, 439]
+
+[ouro] batch done 263.1s generated=[453, 365, 1315, 665, 602, 431, 326, 413, 307, 451, 411, 438, 511, 449, 540, 494, 458, 503, 831, 393, 502, 562, 435, 570, 621, 368, 385, 396, 2532]
+
+fatal: not a git repository (or any of the parent directories): .git
+2026-11-16:07:23:02 INFO     [loggers.evaluation_tracker:209] Saving results aggregated
+2026-11-16:07:23:02 INFO     [loggers.evaluation_tracker:298] Saving per-sample results for: gsm8k_think_s2
+ouro (path=/dev/shm/big-small-ouro/model-2.6b-think,condition=a42,checkpoint=/dev/shm/big-small-ouro/runs/T26-a-seed3/checkpoint-48m.pt,max_length=16384,batch_tokens=160000,max_batch=64), gen_kwargs: (None), limit: None, num_fewshot: None, batch_size: 1
+|    Tasks     |Version|Filter|n-shot|  Metric   |   |Value |   |Stderr|
+|--------------|------:|------|-----:|-----------|---|-----:|---|-----:|
+|gsm8k_think_s2|      1|none  |     0|math_verify|↑  |0.9152|±  |0.0154|
+

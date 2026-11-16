@@ -36,10 +36,8 @@
    "items": 100
   }
  ],
- "log": true,
- "commands": [
-  "aligned_q.txt.log: 06:39:44 gpu7: ./lm1.sh $GPU T26-a42-math500_think_s3 - \"path=/dev/shm/big-small-ouro/model-2.6b-think,condition=a42,checkpoint=/dev/shm/big-small-ouro/runs/T26-a-universal/checkpoint-48m.pt,max_length=16384,batch_tokens=160000,max_batch=64\" \"--tasks math500_think_s3 --apply_chat_template\""
- ],
+ "log": false,
+ "commands": [],
  "checkpoint": {
   "run": "T26-a-universal",
   "checkpoint": "checkpoint-48m.pt",

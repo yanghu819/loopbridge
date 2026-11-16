@@ -1,0 +1,20 @@
+{
+  "event": "update",
+  "arm": "E",
+  "optimizer_step": 3342,
+  "next_sample": 80208,
+  "kl_tokens": 48001807,
+  "block_kl_tokens": 16045,
+  "kl": 0.17220717145112044,
+  "student_ce": 0.8351050210764343,
+  "teacher_ce": 0.6973354359808351,
+  "loss_positions": 16069.0,
+  "lr": 1e-05,
+  "grad_norm": 0.07979066669940948,
+  "elapsed_seconds": 13069.37942888122,
+  "cumulative": {
+    "fineweb_kl_tokens": 4800334,
+    "gsm_kl_tokens": 43201473,
+    "input_tokens": 194972663
+  }
+}

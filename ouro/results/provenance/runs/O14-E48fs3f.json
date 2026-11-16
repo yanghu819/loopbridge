@@ -1,0 +1,31 @@
+{
+ "run": "O14-E48fs3f",
+ "kind": "evaluate_bench (RULER / HELMET / BBH / MMLU-Pro scripts)",
+ "outputs": [
+  {
+   "file": "O14-E48fs3f/s0/ruler16k.jsonl",
+   "sha256": "f425ac5068103e1a3b613972a1f2ba272a18b678ca07d45b4ade6635a4d72699",
+   "items": 520
+  },
+  {
+   "file": "O14-E48fs3f/s0/ruler4k.jsonl",
+   "sha256": "4708dd9880b034a94557ca33950e824802fa5fa8a28a783074e5ebdc30616559",
+   "items": 520
+  },
+  {
+   "file": "O14-E48fs3f/s0/ruler8k.jsonl",
+   "sha256": "c01be0729a6b227f50599ab33f280b5a0dc08141e57d74e2a1e6538d49f7a746",
+   "items": 520
+  }
+ ],
+ "log": true,
+ "commands": [
+  "seed14E3_q.txt.log: 17:56:29 gpu4: cd /root/big-small && MODEL=/dev/shm/big-small-ouro/model-1.4b DATA=/dev/shm/big-small-ouro/bench BENCHES='ruler4k ruler8k ruler16k' ./ouro/runs_scripts/bench3.sh O14-E48fs3f E /dev/shm/big-small-ouro/runs/X14-E48f-p1d1-s3/checkpoint-48m.pt $GPU 1"
+ ],
+ "checkpoint": {
+  "run": "X14-E48f-p1d1-s3",
+  "checkpoint": "checkpoint-48m.pt",
+  "sha256": "86fddf77e1749676d19b11c0dd2eca43cd1023525f4593c9a149467ee2caab95",
+  "bytes": 75741619
+ }
+}

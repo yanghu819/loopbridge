@@ -1,0 +1,204 @@
+== s0.log
+ile "/root/big-small/ouro/evaluate_bench.py", line 359, in main
+    prepare(args) if args.mode == "prepare" else evaluate(args)
+                                                 ^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 326, in evaluate
+    for row, (text, n, reason) in zip(batch, greedy_batch(runner, tok, batch)):
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 224, in greedy_batch
+    logits, cache = runner.prefill(ids, None if single else mask)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/environments/ouro/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 522, in prefill
+    cache = self.system.loop_adapter.build(prefix, n, self.system.decode_steps)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 161, in build
+    key = self.map_key(prefix.all_keys[src][:, :, :n], k, layer)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 148, in map_key
+    return torch.cat((x1 * (1 + a) - x2 * b, x1 * b + x2 * (1 + a)), dim=-1).to(raw_key.dtype)
+                                             ~~~~~~~^~~~~~~~~~~~~~
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 330.00 MiB. GPU 0 has a total capacity of 267.68 GiB of which 240.25 MiB is free. Process 846027 has 104.92 GiB memory in use. Including non-PyTorch memory, this process has 162.51 GiB memory in use. Of the allocated memory 161.70 GiB is allocated by PyTorch, and 32.81 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+[W1116 08:00:03.113031345 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 19136512, total: 287421038592).
+[W1116 08:00:03.139361388 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 262144, total: 287421038592).
+[W1116 08:00:03.141704299 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 262144, total: 287421038592).
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/root/big-small/ouro/evaluate_bench.py", line 363, in <module>
+    main()
+  File "/root/big-small/ouro/evaluate_bench.py", line 359, in main
+    prepare(args) if args.mode == "prepare" else evaluate(args)
+                                                 ^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 326, in evaluate
+    for row, (text, n, reason) in zip(batch, greedy_batch(runner, tok, batch)):
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 224, in greedy_batch
+    logits, cache = runner.prefill(ids, None if single else mask)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/environments/ouro/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 522, in prefill
+    cache = self.system.loop_adapter.build(prefix, n, self.system.decode_steps)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 161, in build
+    key = self.map_key(prefix.all_keys[src][:, :, :n], k, layer)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 148, in map_key
+    return torch.cat((x1 * (1 + a) - x2 * b, x1 * b + x2 * (1 + a)), dim=-1).to(raw_key.dtype)
+                                             ~~~~~~~^~~~~~~~~~~~~~
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 330.00 MiB. GPU 0 has a total capacity of 267.68 GiB of which 120.25 MiB is free. Process 846027 has 105.03 GiB memory in use. Including non-PyTorch memory, this process has 162.51 GiB memory in use. Of the allocated memory 161.70 GiB is allocated by PyTorch, and 32.81 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+[W1116 08:03:05.367890170 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 19136512, total: 287421038592).
+[W1116 08:03:05.395830606 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 262144, total: 287421038592).
+[W1116 08:03:05.405189943 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 262144, total: 287421038592).
+[W1116 08:03:05.405295843 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 262144, total: 287421038592).
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/root/big-small/ouro/evaluate_bench.py", line 363, in <module>
+    main()
+  File "/root/big-small/ouro/evaluate_bench.py", line 359, in main
+    prepare(args) if args.mode == "prepare" else evaluate(args)
+                                                 ^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 326, in evaluate
+    for row, (text, n, reason) in zip(batch, greedy_batch(runner, tok, batch)):
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 224, in greedy_batch
+    logits, cache = runner.prefill(ids, None if single else mask)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/environments/ouro/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 522, in prefill
+    cache = self.system.loop_adapter.build(prefix, n, self.system.decode_steps)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 161, in build
+    key = self.map_key(prefix.all_keys[src][:, :, :n], k, layer)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 148, in map_key
+    return torch.cat((x1 * (1 + a) - x2 * b, x1 * b + x2 * (1 + a)), dim=-1).to(raw_key.dtype)
+                                             ~~~~~~~^~~~~~~~~~~~~~
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 330.00 MiB. GPU 0 has a total capacity of 267.68 GiB of which 256.00 KiB is free. Process 846027 has 105.15 GiB memory in use. Including non-PyTorch memory, this process has 162.51 GiB memory in use. Of the allocated memory 161.70 GiB is allocated by PyTorch, and 32.81 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+[W1116 08:06:05.095705508 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 10747904, total: 287421038592).
+[W1116 08:06:05.126350434 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 12845056, total: 287421038592).
+[W1116 08:06:05.152221812 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 12845056, total: 287421038592).
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/root/big-small/ouro/evaluate_bench.py", line 363, in <module>
+    main()
+  File "/root/big-small/ouro/evaluate_bench.py", line 359, in main
+    prepare(args) if args.mode == "prepare" else evaluate(args)
+                                                 ^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 326, in evaluate
+    for row, (text, n, reason) in zip(batch, greedy_batch(runner, tok, batch)):
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 224, in greedy_batch
+    logits, cache = runner.prefill(ids, None if single else mask)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/environments/ouro/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 522, in prefill
+    cache = self.system.loop_adapter.build(prefix, n, self.system.decode_steps)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 161, in build
+    key = self.map_key(prefix.all_keys[src][:, :, :n], k, layer)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 148, in map_key
+    return torch.cat((x1 * (1 + a) - x2 * b, x1 * b + x2 * (1 + a)), dim=-1).to(raw_key.dtype)
+                      ~~~~~~~~~~~~~^~~~~~~~
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 330.00 MiB. GPU 0 has a total capacity of 267.68 GiB of which 172.25 MiB is free. Process 846027 has 105.28 GiB memory in use. Including non-PyTorch memory, this process has 162.21 GiB memory in use. Of the allocated memory 161.38 GiB is allocated by PyTorch, and 62.11 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+[W1116 08:09:04.220769669 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 262144, total: 287421038592).
+[W1116 08:09:04.268148781 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 2359296, total: 287421038592).
+[W1116 08:09:04.276369331 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 2359296, total: 287421038592).
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/root/big-small/ouro/evaluate_bench.py", line 363, in <module>
+    main()
+  File "/root/big-small/ouro/evaluate_bench.py", line 359, in main
+    prepare(args) if args.mode == "prepare" else evaluate(args)
+                                                 ^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 326, in evaluate
+    for row, (text, n, reason) in zip(batch, greedy_batch(runner, tok, batch)):
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 224, in greedy_batch
+    logits, cache = runner.prefill(ids, None if single else mask)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/environments/ouro/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 522, in prefill
+    cache = self.system.loop_adapter.build(prefix, n, self.system.decode_steps)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 161, in build
+    key = self.map_key(prefix.all_keys[src][:, :, :n], k, layer)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 148, in map_key
+    return torch.cat((x1 * (1 + a) - x2 * b, x1 * b + x2 * (1 + a)), dim=-1).to(raw_key.dtype)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 660.00 MiB. GPU 0 has a total capacity of 267.68 GiB of which 642.25 MiB is free. Process 846027 has 105.40 GiB memory in use. Including non-PyTorch memory, this process has 161.63 GiB memory in use. Of the allocated memory 160.73 GiB is allocated by PyTorch, and 120.70 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+[W1116 08:12:04.787993485 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 262144, total: 287421038592).
+[W1116 08:12:04.835825116 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 2359296, total: 287421038592).
+[W1116 08:12:04.842456076 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 2359296, total: 287421038592).
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/root/big-small/ouro/evaluate_bench.py", line 363, in <module>
+    main()
+  File "/root/big-small/ouro/evaluate_bench.py", line 359, in main
+    prepare(args) if args.mode == "prepare" else evaluate(args)
+                                                 ^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 326, in evaluate
+    for row, (text, n, reason) in zip(batch, greedy_batch(runner, tok, batch)):
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 224, in greedy_batch
+    logits, cache = runner.prefill(ids, None if single else mask)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/environments/ouro/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 522, in prefill
+    cache = self.system.loop_adapter.build(prefix, n, self.system.decode_steps)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 161, in build
+    key = self.map_key(prefix.all_keys[src][:, :, :n], k, layer)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 148, in map_key
+    return torch.cat((x1 * (1 + a) - x2 * b, x1 * b + x2 * (1 + a)), dim=-1).to(raw_key.dtype)
+                                             ~~~~~~~^~~~~~~~~~~~~~
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 330.00 MiB. GPU 0 has a total capacity of 267.68 GiB of which 262.25 MiB is free. Process 846027 has 105.52 GiB memory in use. Including non-PyTorch memory, this process has 161.88 GiB memory in use. Of the allocated memory 161.06 GiB is allocated by PyTorch, and 51.40 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+[W1116 08:15:07.224649178 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 17039360, total: 287421038592).
+[W1116 08:15:07.274565816 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 19136512, total: 287421038592).
+[W1116 08:15:07.279501482 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 19136512, total: 287421038592).
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/root/big-small/ouro/evaluate_bench.py", line 363, in <module>
+    main()
+  File "/root/big-small/ouro/evaluate_bench.py", line 359, in main
+    prepare(args) if args.mode == "prepare" else evaluate(args)
+                                                 ^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 326, in evaluate
+    for row, (text, n, reason) in zip(batch, greedy_batch(runner, tok, batch)):
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/evaluate_bench.py", line 224, in greedy_batch
+    logits, cache = runner.prefill(ids, None if single else mask)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/environments/ouro/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 522, in prefill
+    cache = self.system.loop_adapter.build(prefix, n, self.system.decode_steps)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 161, in build
+    key = self.map_key(prefix.all_keys[src][:, :, :n], k, layer)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/big-small/ouro/adapter_model.py", line 148, in map_key
+    return torch.cat((x1 * (1 + a) - x2 * b, x1 * b + x2 * (1 + a)), dim=-1).to(raw_key.dtype)
+                                             ~~~~~~~^~~~~~~~~~~~~~
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 330.00 MiB. GPU 0 has a total capacity of 267.68 GiB of which 258.25 MiB is free. Process 846027 has 105.52 GiB memory in use. Including non-PyTorch memory, this process has 161.88 GiB memory in use. Of the allocated memory 161.06 GiB is allocated by PyTorch, and 51.40 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)

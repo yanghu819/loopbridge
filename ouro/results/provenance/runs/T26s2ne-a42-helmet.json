@@ -1,0 +1,21 @@
+{
+ "run": "T26s2ne-a42-helmet",
+ "kind": "evaluate_bench (RULER / HELMET / BBH / MMLU-Pro scripts)",
+ "outputs": [
+  {
+   "file": "T26s2ne-a42-helmet/s0/helmet.jsonl",
+   "sha256": "0cbc98add6577d094d12c280422ccfc2b13ab6d02da5e99c18c2999ad90e0590",
+   "items": 1108
+  }
+ ],
+ "log": true,
+ "commands": [
+  "thinkseed2_q.txt.log: 07:29:18 gpu6: cd /root/big-small && NO_EMPTY=1 MODEL=/dev/shm/big-small-ouro/model-2.6b-think DATA=/dev/shm/big-small-ouro/bench-mini BENCHES=helmet BATCH=65536 ./ouro/runs_scripts/bench3.sh T26s2ne-a42-helmet a42 /dev/shm/big-small-ouro/runs/T26-a-seed2/checkpoint-48m.pt $GPU 1"
+ ],
+ "checkpoint": {
+  "run": "T26-a-seed2",
+  "checkpoint": "checkpoint-48m.pt",
+  "sha256": "1767b2384e5a4aa6b854432bb813793afefef998aa523688da20b28443cc64e4",
+  "bytes": 760170237
+ }
+}

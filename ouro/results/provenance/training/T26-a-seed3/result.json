@@ -1,0 +1,35 @@
+{
+  "status": "stopped_at_requested_observation",
+  "arm": "a",
+  "kl_tokens": 48001608,
+  "optimizer_steps": 3342,
+  "next_sample": 80208,
+  "cumulative": {
+    "fineweb_kl_tokens": 4800334,
+    "gsm_kl_tokens": 43201274,
+    "input_tokens": 195907009
+  },
+  "elapsed_seconds": 26120.356580968015,
+  "checkpoint": "/dev/shm/big-small-ouro/runs/T26-a-seed3/checkpoint-48m.pt",
+  "last_update": {
+    "event": "update",
+    "arm": "a",
+    "optimizer_step": 3342,
+    "next_sample": 80208,
+    "kl_tokens": 48001608,
+    "block_kl_tokens": 16046,
+    "kl": 0.040475343979610015,
+    "student_ce": 0.69301177063711,
+    "teacher_ce": 0.67250870142764,
+    "loss_positions": 16070.0,
+    "lr": 1e-05,
+    "grad_norm": 0.03045991063117981,
+    "elapsed_seconds": 26118.759723844938,
+    "cumulative": {
+      "fineweb_kl_tokens": 4800334,
+      "gsm_kl_tokens": 43201274,
+      "input_tokens": 195907009
+    }
+  },
+  "continues_automatically": false
+}
