@@ -32,14 +32,20 @@ def main():
     # generated table rows (paper_figs.py tab_equal) are inlined so the arXiv source is one file
     tex = re.sub(r"\\csname @@input\\endcsname \.\./figs/(\S+\.tex)",
                  lambda m: (P / "figs" / m.group(1)).read_text().strip(), tex)
+    # the arXiv source is public: no trailing LaTeX comments, and only the figures the paper uses (old figure files in
+    # paper/figs, e.g. removed results, must not ship)
+    tex = "\n".join(re.sub(r"(?<!\\)\s+%\s.*$", "", line) for line in tex.splitlines()) + "\n"
     OUT.mkdir(exist_ok=True)
-    (OUT / "figs").mkdir(exist_ok=True)
+    shutil.rmtree(OUT / "figs", ignore_errors=True)
+    (OUT / "figs").mkdir()
     (OUT / "main.tex").write_text(tex)
     for f in ("acl.sty", "acl_natbib.bst", "references.bib"):
         shutil.copy(SRC / f, OUT / f)
-    figs = sorted((P / "figs").glob("fig*.pdf"))
+    used = sorted(set(re.findall(r"\\includegraphics(?:\[[^\]]*\])?\{figs/([^}]+)\}", tex)))
+    figs = [P / "figs" / u for u in used]
     for f in figs:
         shutil.copy(f, OUT / "figs" / f.name)
+    n_figs = len(re.findall(r"\\begin\{figure\*?\}", tex))   # figure environments (one is pseudocode, no image)
     subprocess.run(["tectonic", "-X", "compile", "--keep-intermediates", "main.tex"], cwd=OUT, check=True)
     with tarfile.open(OUT / "arxiv.tar.gz", "w:gz") as t:
         for f in ("main.tex", "main.bbl", "acl.sty", "acl_natbib.bst"):
@@ -49,7 +55,7 @@ def main():
     pages = re.search(r"Pages:\s+(\d+)", subprocess.run(["pdfinfo", str(OUT / "main.pdf")], capture_output=True,
                                                           text=True).stdout).group(1)
     abstract = tex[tex.index("\\begin{abstract}") + 16:tex.index("\\end{abstract}")]
-    (OUT / "ARXIV_SUBMISSION.md").write_text(SUBMISSION.format(pages=pages, figs=len(figs), url=URL, abstract=plain(abstract)))
+    (OUT / "ARXIV_SUBMISSION.md").write_text(SUBMISSION.format(pages=pages, figs=n_figs, url=URL, abstract=plain(abstract)))
     print("wrote", OUT / "arxiv.tar.gz", (OUT / "arxiv.tar.gz").stat().st_size, "bytes;", pages, "pages")
 
 
