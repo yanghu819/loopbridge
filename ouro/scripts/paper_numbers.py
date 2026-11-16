@@ -1384,6 +1384,9 @@ def thinking_batched(reps=5000):
         got = (acc, r4, (min(r["diff"] for r in two), max(r["diff"] for r in two)), (min(r["ratio"] for r in two), max(r["ratio"] for r in two)))
         if got != ([94.6, 94.6, 94.3, 94.2], [0.47, 0.57], (1.7, 2.8), (0.79, 0.97)) or any(r["lo"] <= 0 for r in two):
             print(f"Think batch  {got}  !! paper: 94.6/94.2-94.3, x0.47-0.57, +1.7 to +2.8 (all intervals > 0), x0.79-0.97")
+        toks = tuple(round(out[f"gsmthink {c}@16"]["tokens"]) for c in ("a4x2pm", "native2st", "D2st"))   # Table 15 caption
+        print(f"Think batch  answer tokens at batch 16, Ours 4/2 / Original 2/2 / Distilled 2/2: {toks}"
+              + ("" if toks == (788, 937, 893) else "  !! paper: (788, 937, 893)"))
     return out
 
 

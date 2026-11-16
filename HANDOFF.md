@@ -6,9 +6,16 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 
 ## 1. Where things stand
 
+- **Status (2026-11-16 evening): ACL fact-check round in progress** (user, 11-16: "screenshots and comparison, fact-check
+  every citation source and number, with Gemini, Kaiming He style throughout; the paper goes to ACL"). Done: every
+  benchmark, tool and training set is cited; bib venues, title case and authors checked against the arXiv API; every
+  citation's claim checked against the cited paper's full text (two subagents) and by agy; printed numbers re-audited
+  (all numbers in the text are in `paper_numbers.json` or checked by hand); Kaiming-style abstract and introduction.
+  Open: Google Scholar check of every entry via Kimi WebBridge (stopped by a captcha at entry 22, the user must click
+  it; `scratchpad/bib/scholar_run.py` resumes), agy round 2 (style passes, review 6), then `BIB_VERIFICATION.md`.
 - **Status (2026-11-16 14:30): ready for the user to submit to arXiv.** Every experiment is in the paper and nothing is
   running on a1 or a2. The user submits personally: upload `paper/arxiv/arxiv.tar.gz` (rebuilt by `pn_sync.sh
-  pipeline`; 13 figure files, own `main.bbl`), copy the metadata from `paper/arxiv/ARXIV_SUBMISSION.md` (25 pages, 14
+  pipeline`; 13 figure files, own `main.bbl`), copy the metadata from `paper/arxiv/ARXIV_SUBMISSION.md` (27 pages, 14
   figures), and check arXiv's preview PDF (arXiv compiles with pdflatex; we checked the unpacked package with tectonic
   and its shipped `main.bbl`, and the source is pure ASCII). For ARR (deadline 2027-01-04) the **TODO** items in
   `paper/ARR_CHECKLIST.md` (licenses, total GPU hours, AI-assistance wording, anonymous code link) need the author.
