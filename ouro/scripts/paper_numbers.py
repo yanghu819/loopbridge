@@ -1298,6 +1298,10 @@ def batched_serving_14(reps=5000):
     return out
 
 
+USE_TBATCH2 = False   # GSM8K requests 401-1,319 served in batches (time_batch_think.sh START=400 N=919, tbatchB*)
+THINK_BATCH_BLOCKS = (("tbatch", "tbatchb", "tbatchc"),) + ((("tbatchB", "tbatchBb", "tbatchBc"),) if USE_TBATCH2 else ())
+
+
 def thinking_batched(reps=5000):
     """Ouro-2.6B-Thinking served with batch_requests.py (time_batch_think.sh; passes tbatch / tbatchb): GSM8K (400
     requests, 4,096-token budget) at batch 16 and 32 and MATH-500 (500, 8,192 tokens) at batch 16, chat template;
@@ -1308,20 +1312,27 @@ def thinking_batched(reps=5000):
         for b in sizes:
             got = {}
             for c in ("native2st", "native4st", "D2st", "a4x2pm"):
-                runs = []
-                for pre in ("tbatch", "tbatchb", "tbatchc"):
-                    f, sm = E2E / f"{pre}{b}-{c}-{task}.jsonl", E2E / f"{pre}{b}-{c}-{task}.summary.json"
-                    if f.exists() and sm.exists():
-                        runs.append(([json.loads(x) for x in open(f)], json.load(open(sm))))
-                if not runs:
+                rows, wall, passes = {}, 0.0, []
+                for i, block in enumerate(THINK_BATCH_BLOCKS if task == "gsmthink" else THINK_BATCH_BLOCKS[:1]):
+                    runs = []   # the timing passes of one block of requests (the answers are the same in every pass)
+                    for pre in block:
+                        f, sm = E2E / f"{pre}{b}-{c}-{task}.jsonl", E2E / f"{pre}{b}-{c}-{task}.summary.json"
+                        if f.exists() and sm.exists():
+                            runs.append(([json.loads(x) for x in open(f)], json.load(open(sm))))
+                    if not runs:
+                        if i == 0:
+                            break
+                        continue
+                    rows.update({r["id"]: (replay_score(r["id"], r["text"], r["target"]), r["prefill_s"], r["new_tokens"])
+                                 for r in runs[0][0]})
+                    wall += float(np.mean([sm["wall_s"] for _, sm in runs]))   # wall time = mean of the block's passes
+                    passes.append(len(runs))
+                if not rows:
                     continue
-                rows = {r["id"]: (replay_score(r["id"], r["text"], r["target"]), r["prefill_s"], r["new_tokens"])
-                        for r in runs[0][0]}
-                wall = float(np.mean([sm["wall_s"] for _, sm in runs]))
                 got[c] = (rows, wall)
                 v = list(rows.values())
                 k = f"{task} {c}@{b}"
-                out[k] = dict(n=len(v), passes=len(runs), acc=round(100 * float(np.mean([x[0] for x in v])), 1),
+                out[k] = dict(n=len(v), passes=min(passes), acc=round(100 * float(np.mean([x[0] for x in v])), 1),
                               s_per_request=round(wall / len(v), 3), prefill_pct=round(100 * sum(x[1] for x in v) / wall, 1),
                               tokens=round(float(np.mean([x[2] for x in v])), 1))
                 r = out[k]

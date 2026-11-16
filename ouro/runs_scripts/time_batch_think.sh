@@ -4,13 +4,14 @@
 # shards, 8,192 tokens), N requests chosen by hash, for Original
 # 2/2 and 4/4, Distilled 2/2 (T26-Df-native22, merged) and LoopBridge 4/2 (T26-a-universal, maps folded in), at batch
 # sizes $BATCHES (default 16 32). Output: runs/e2e/<OUT><B>-<name>-<gsm|math>think.jsonl (env OUT, default tbatch; N
-# default 400).
-M=/dev/shm/big-small-ouro; R=$M/runs; Q=$R/btime_q.txt; mkdir -p $R/e2e; cd $R; O=${OUT:-tbatch}; N=${N:-400}
+# default 400; env START: skip the first START requests of the hash order, for a further block, default 0). With no GPU
+# arguments it only queues (several passes, then start the workers once).
+M=/dev/shm/big-small-ouro; R=$M/runs; Q=$R/btime_q.txt; mkdir -p $R/e2e; cd $R; O=${OUT:-tbatch}; N=${N:-400}; S=${START:-0}
 T=${TASK:-gsm8k}; X=${T%8k}; X=${X%500}think; P=$R/e2e/prompts/T26-a42-${T}_think; mkdir -p $P
 for d in $R/lmeval/out/T26-a42-${T}_think_s*; do s=${d##*_}; [ -e $P/$s ] || ln -s $(ls -d $d/*/ | head -1) $P/$s; done
 A=$R/T26-a-universal/checkpoint-48m.pt; D=$R/T26-Df-native22/checkpoint-48m.pt
 job() {  # COND CKPT NAME B
-  echo "cd /root/big-small && OURO_NO_CUDNN_SDP=1 CUDA_VISIBLE_DEVICES=\$GPU HF_HUB_OFFLINE=1 PYTHONPATH=/root/big-small environments/ouro/.venv/bin/python ouro/scripts/batch_requests.py $M/model-2.6b-think $1 $2 $P $N $4 $R/e2e/$O$4-$3-$X.jsonl > $R/e2e/$O$4-$3-$X.log 2>&1"
+  echo "cd /root/big-small && OURO_TIME_START=$S OURO_NO_CUDNN_SDP=1 CUDA_VISIBLE_DEVICES=\$GPU HF_HUB_OFFLINE=1 PYTHONPATH=/root/big-small environments/ouro/.venv/bin/python ouro/scripts/batch_requests.py $M/model-2.6b-think $1 $2 $P $N $4 $R/e2e/$O$4-$3-$X.jsonl > $R/e2e/$O$4-$3-$X.log 2>&1"
 }
 {
   for b in ${BATCHES:-16 32}; do
