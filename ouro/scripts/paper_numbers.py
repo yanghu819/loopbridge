@@ -682,6 +682,11 @@ def repro():
         want = REPRO_PRINTED.get(bench)
         flag = "" if want is None or (ours is not None and abs(ours - want) < 0.051) else f"  !! paper: {want}"
         print(f"Repro        {bench:28s} ours {ours}  Ouro {reported}  n={out[-1]['items']}{flag}")
+    # Appendix H text: within one point on five benchmarks, 1.8 above on Winogrande, 1.2 to 3.1 below on the code tasks
+    gap = {r["bench"]: round(r["ours"] - r["reported"], 1) for r in out if r["ours"] is not None and r["reported"] is not None}
+    got = (all(abs(gap[b]) <= 1 for b in ("MMLU", "MMLU-Pro", "BBH", "ARC-C", "HellaSwag")), gap["Winogrande"],
+           (min(-gap[b] for b in ("HumanEval", "HumanEval+", "MBPP", "MBPP+")), max(-gap[b] for b in ("HumanEval", "HumanEval+", "MBPP", "MBPP+"))))
+    print(f"Repro        gaps to the published numbers {got}" + ("" if got == (True, 1.8, (1.2, 3.1)) else "  !! paper: (True, 1.8, (1.2, 3.1))"))
     return out
 
 
@@ -704,6 +709,18 @@ def e2e_table():
                                  tokens=round(float(np.mean([x["new_tokens"] for x in r.values()]))),
                                  ms_per_token=round(float(np.mean([x["ms_per_token"] for x in r.values()])), 1)))
                 print(f"Table 3      {group:11s} {model} {task} {c:10s} acc {rows[-1]['acc']:5.1f}  s/answer {rows[-1]['seconds']:6.1f}  n={len(r)}")
+    # Section 5.1: on the 192 GSM8K problems Ouro-2.6B-Thinking reads about 100 tokens and writes about 900; prefill takes
+    # 0.2-0.3% of the summed time (0.1% on MATH-500), over the timed configurations of Table 3 ("main")
+    share = lambda r: 100 * sum(x["ttft_s"] for x in r.values()) / sum(x["total_s"] for x in r.values())
+    G = {c: e2e("think", "gsm", c) for c in ("native2st", "native4st", "Df2st", "S22sb", "S42sb")}
+    M = {c: e2e("think", "math", c) for c in ("native2st", "native4st", "S42sb")}
+    common = set.intersection(*(set(r) for r in G.values()))
+    G = {c: {i: r[i] for i in common} for c, r in G.items()}
+    got = (len(common), round(float(np.mean([x["prompt_tokens"] for r in G.values() for x in r.values()])), -1),
+           round(float(np.mean([x["new_tokens"] for r in G.values() for x in r.values()])), -2),
+           (round(min(map(share, G.values())), 1), round(max(map(share, G.values())), 1)), round(max(map(share, M.values())), 1))
+    print(f"Time         Thinking GSM8K: problems, in tokens, out tokens, prefill share range; MATH-500 share {got}"
+          + ("" if got == (192, 100, 900, (0.2, 0.3), 0.1) else "  !! paper: (192, 100, 900, (0.2, 0.3), 0.1)"))
     # Table 9 caption: pooled decode time per generated token, prefill 4 / decode 2 against native 2/2 (192 problems)
     A, B = e2e("think", "gsm", "S42sb"), e2e("think", "gsm", "native2st")
     ids = sorted(set(A) & set(B))
@@ -886,12 +903,12 @@ def equal(arm="S"):
     if arm == "a" and len(T) == 8 and all("vs22" in r for r in T):   # Section 5.7, introduction, Appendix D.1
         gap = round(float(np.mean([r["native4"] for r in T]) - np.mean([r["ours"] for r in T])), 1)
         above = sum(r["vs2"][0] > 0 for r in T)
-        below = round(max(-r["vs2"][0] for r in T if r["vs2"][0] <= 0), 1)
+        below = max(shown_diff(r["native2"], r["ours"]) for r in T if r["vs2"][0] <= 0)   # printed values (Table 13)
         up = {r["bench"]: round(r["vs2"][0]) for r in T if r["bench"] in ("HELMET", "MMLU-Pro", "BBH")}
         near4 = sum(r["vs4"][0] >= -2 for r in T)
-        s22 = (sum(r["vs22"][0] > 0 for r in T), round(max(r["vs22"][0] for r in T), 1))
+        s22 = (sum(r["vs22"][0] > 0 for r in T), max(shown_diff(r["ours"], r["same22"]) for r in T))   # Table 13 values
         got = (gap, above, below, up, near4, s22)
-        want = (0.8, 6, 0.5, {"MMLU-Pro": 8, "BBH": 8, "HELMET": 15}, 6, (8, 9.5))
+        want = (0.8, 6, 0.5, {"MMLU-Pro": 8, "BBH": 8, "HELMET": 15}, 6, (8, 9.6))
         print(f"Equal a      2.6B-T LoopBridge 4/2: gap to 4/4, above 2/2, worst below, gains, within 2 of 4/4, same 2/2 lower {got}"
               + ("" if got == want else f"  !! paper: {want}"))
     return out
@@ -996,7 +1013,7 @@ MAIN_ROWS = [("native 1/1", "native", 1), ("native 2/2", "native", 2), ("native 
 # quoted in the abstract, introduction and Section 4.2
 MAIN_AVG = {"aligned LoRA-only 4/1": 56.6, "aligned LoRA-only 4/2": 68.3, "distilled r80 1/1": 49.3, "distilled r80 2/2": 65.5, "fixed-4 LoRA 4/1": 58.6, "fixed-4 LoRA 4/2": 69.0, "native 1/1": 44.2, "LoRA-distilled 1/1": 49.5, "loop adapter 4/1": 57.8, "native 2/2": 63.7,
             "LoRA-distilled 2/2": 66.2, "loop adapter 4/2": 68.1, "native 4/4": 71.9,
-            "training-free 4/1": 28.7, "training-free 4/2": 30.9, "aligned adapter 4/1": 58.2, "aligned adapter 4/2": 69.1}
+            "training-free 4/1": 28.7, "training-free 4/2": 31.0, "aligned adapter 4/1": 58.2, "aligned adapter 4/2": 69.1}
 MAIN_CELLS = {("MMLU", "native 1/1"): 51.5, ("MMLU", "loop adapter 4/1"): 66.6, ("BBH 3-shot", "native 1/1"): 30.9,
               ("BBH 3-shot", "loop adapter 4/1"): 51.7, ("HumanEval+", "native 1/1"): 44.5,
               ("HumanEval+", "loop adapter 4/1"): 64.6, ("GSM8K", "training-free 4/2"): 11.7,
@@ -1566,12 +1583,13 @@ def time_breakdown():
         got = (round(q["a1x1pm"], 1), round(q["a4x1pm"], 1), round(100 * (t["a4x1pm"] / t["a1x1pm"] - 1)),
                o["a1x1pm"], o["a4x1pm"], mp["a1x1pm"], mp["a4x1pm"])
         print(f"Time         prefill 1 -> 4 at decode 1: quality, time %, out tokens, MMLU-Pro out tokens {got} (not quoted)")
-    for c, w in (("a4x1pm", (45.0, 12.8)), ("native1st", (27.8, 10.6)), ("D1st", (34.2, 11.7)), ("native2st", (57.1, 20.4)),
-                 ("a4x2pm", (62.5, 20.1)), ("D2st", (59.2, 21.4)), ("f4x2pm", (63.8, 19.9)), ("f4x1pm", (46.4, 12.0)),
-                 ("a4x1sb", (45.4, None))):   # Section 5.5, Figure 6, Appendix A
+    for c, w in (("a4x1pm", (45.0, 12.82)), ("native1st", (27.8, 10.58)), ("D1st", (34.2, 11.69)), ("native2st", (57.1, 20.4)),
+                 ("a4x2pm", (62.5, 20.1)), ("D2st", (59.2, 21.4)), ("f4x2pm", (63.8, 19.9)), ("f4x1pm", (46.4, 12.03)),
+                 ("a4x1sb", (45.4, None))):   # Section 5.5 (two decimals, so 14% and 21% follow from them), Figure 6, App. A
         v = [r for r in out if r["model"] == "Ouro-2.6B" and r["cond"] == c]   # abstract and Section 5, batch 1
         if len(v) == 4:
-            got = (round(float(np.mean([r["quality"] for r in v])), 1), round(float(np.mean([r["total_s"] for r in v])), 1))
+            nd = len(str(w[1]).split(".")[1]) if w[1] is not None else 1
+            got = (round(float(np.mean([r["quality"] for r in v])), 1), round(float(np.mean([r["total_s"] for r in v])), nd))
             ok = got[0] == w[0] and (w[1] is None or got[1] == w[1])
             print(f"Time         {c} mean over the four tasks {got}" + ("" if ok else f"  !! paper: {w}"))
     tok = lambda c: [r for r in out if r["model"] == "Ouro-2.6B" and r["cond"] == c]
@@ -2341,7 +2359,7 @@ def main_table():
         out.append(row)
     for label, _, _ in MAIN_ROWS:
         vals = [r[label] for r in out]
-        avg = None if None in vals else float(np.mean(vals))
+        avg = None if None in vals else float(np.mean([round(v, 1) for v in vals]))   # mean of the printed cells (Table 1)
         want = MAIN_AVG.get(label)
         flag = "  !! paper: " + str(want) if want is not None and (avg is None or abs(avg - want) > 0.051) else ""
         print(f"Main table   {label:20s} " + " ".join("  -- " if v is None else f"{v:5.1f}" for v in vals)

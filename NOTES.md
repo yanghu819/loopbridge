@@ -531,3 +531,25 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   (`after_x26_distill.sh H first`, 11 days old) that waited for a Distilled 3/3 control (X26-H48f-p3d3) never trained;
   it would have queued evaluations on every GPU if such a run appeared. Cleaned /root/pn on both boxes (old chain
   helpers and launcher logs); kept the pipeline logs, replay_cache.json, nocudnn, lora80.sh and hold_w8s3.txt.
+- 2026-11-16 17:00: fact-check round for ACL (user: screenshots, sources of every citation, every number, Gemini,
+  Kaiming He style). Numbers: every number in prose and captions matched against `paper_numbers.json` (16 unmatched
+  were configuration constants; checked by hand, e.g. 63,307,776 = rank-16 LoRA on q/k/v/o over 48 layers plus 128 + 128^2
+  per decode loop, layer and KV head). Fixed: 9.5 -> 9.6 (Table 13 values), 1.9 -> 1.8 (Winogrande, Table 10),
+  Training-free 4/2 average 30.9 -> 31.0 (Table 1 averages are now the mean of the printed cells), Section 5.5 times
+  with two decimals and Table 14 with three (so 14%, 21% and 1.18x follow from printed values), Table 4 gains the summed
+  prefill share (Figure 2's statistic; the median column differs on MMLU-Pro), Lev "+5.3" names its m and "12 of 13"
+  becomes "above on all 13, significantly on 12". New guards: Thinking prefill share, repro gaps, Table 13 gaps.
+  Citations: benchmark papers were not cited since the 11-07 rewrite (the bib had them, the text did not); now cited in
+  Section 4 with MBPP, Minerva, lm-evaluation-harness, FlashAttention (original), OpenThoughts, Tulu 3, LongLoRA
+  (LongAlpaca) and FineWeb. Bib: OverFill -> COLM 2025, Tandem -> ICML 2024 (PMLR 235), Afendulev et al. -> Findings of
+  EMNLP 2026, PLatour -> arXiv 2611.06976, titles fully brace-protected (three printed in lower case), arXiv notes
+  dropped from venue entries (printed as "ArXiv:"), six unused entries removed. Claims checked against the cited
+  papers' full text: Ouro's last-loop KV reuse is an option it tests for decoding (not its default), Ouro trains a fixed
+  loop count (8, then 4) with a loss at every loop, LoopDuet uses prefill no deeper than decode on Huginn and recurrent
+  OLMo-2, Tandem is not an encoder-decoder, BridgeKV has an optional LoRA stage, YOCO-U's local caches grow, Coconut
+  feeds embeddings, LEV reads a context (max 5,120 tokens). LevBench 3,270 = the public development subset (3,570)
+  minus its 300 unknowable questions; S31 = LEV's training recipe, 8,925 records public. Gemini's flags on CDB, PHD, SPS
+  and OverFill were wrong (the papers support our wording). Style: abstract and introduction rewritten toward Kaiming
+  He's papers (one research question, results as paragraphs instead of bullets); one name per thing in the appendix
+  (no "aligned/loop adapter", "native", "BBH 3-shot"). Google Scholar check via Kimi WebBridge: 21 of 98 entries done,
+  then a captcha (waiting for the user).

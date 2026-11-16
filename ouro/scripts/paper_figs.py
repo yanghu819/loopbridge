@@ -467,7 +467,7 @@ def tab_main(key="main_table", name="tab_main"):
     for n, labels in groups:
         labels = [l for l in labels if any(T[b].get(l) is not None for b in benches)]   # rows not run for this model
         vals = {l: [T[b].get(l) for b in benches] for l in labels}
-        avg = {l: (sum(v) / len(v) if None not in v else None) for l, v in vals.items()}
+        avg = {l: (sum(float(f"{x:.1f}") for x in v) / len(v) if None not in v else None) for l, v in vals.items()}   # mean of the printed cells
         cols = [[vals[l][j] for l in labels] for j in range(len(benches))] + [[avg[l] for l in labels]]
         best = [max((x for x in c if x is not None), default=None) for c in cols]
         for i, l in enumerate(labels):
@@ -555,14 +555,14 @@ def tab_aligned():
     native n/n (each column on the items all available configurations share); bold: the best m at each n
     (paper_numbers.json, aligned_cells)."""
     rows = PN.get("aligned_cells", [])
-    short = {"MATH-500": "MATH", "BBH 3-shot": "BBH", "MMLU-Pro": "MMLU-P", "HumanEval+": "HE+",
-             "HellaSwag": "HSwag", "Winogrande": "Wino", "RULER-16K": "R-16K"}
+    short = {"MATH-500": "MATH", "BBH 3-shot": "BBH", "HumanEval+": "HE+",   # the column names of Table 1
+             "HellaSwag": "HellaSw.", "Winogrande": "Winogr.", "RULER-16K": "RULER"}
     lines = [" & " + " & ".join(short.get(r["bench"], r["bench"]) for r in rows) + r" \\", r"\midrule"]
     f = lambda x, b: "--" if x is None else (rf"\textbf{{{x:.1f}}}" if b else f"{x:.1f}")
     for n in range(1, 4):   # n = 4 = m is the released model's own setting: nothing is untied there
         best = {r["bench"]: max((r[f"a{m}{n}"] for m in range(1, 5) if r[f"a{m}{n}"] is not None), default=None)
                 for r in rows}
-        lines.append(rf"native {n}/{n} & " + " & ".join(f(r[f"native{n}"], False) for r in rows) + r" \\")
+        lines.append(rf"Original {n}/{n} & " + " & ".join(f(r[f"native{n}"], False) for r in rows) + r" \\")
         for m in range(1, 5):
             cells = [f(r[f"a{m}{n}"], r[f"a{m}{n}"] is not None and r[f"a{m}{n}"] == best[r["bench"]]) for r in rows]
             lines.append(rf"{m}\,/\,{n} & " + " & ".join(cells) + r" \\")
@@ -833,7 +833,7 @@ def tab_batched():
         if f"{c}@32" not in B:
             continue
         sh = r"\rowcolor{oursbg} " if c.startswith(("a4", "f4")) else ""
-        t = " & ".join(f"{B[f'{c}@{b}']['s_per_request']:.2f}" if f"{c}@{b}" in B else "--" for b in (8, 32))
+        t = " & ".join(f"{B[f'{c}@{b}']['s_per_request']:.3f}" if f"{c}@{b}" in B else "--" for b in (8, 32))   # 3 decimals: ratios in Sec 5.5 follow from the printed times
         lines.append(rf"{sh}{lab} & {B[f'{c}@32']['acc']:.1f} & {t} & {B[f'{c}@32']['prefill_pct']:.0f}\% \\")
     (OUT / "tab_batched.tex").write_text("\n".join(lines) + "\n")
 
@@ -924,7 +924,8 @@ def tab_time():
             r = next((r for r in rows if r["task"] == t and r["cond"] == c), None)
             if r:
                 lines.append(f"{t} & {lab} & {r['in_median']:.0f} & {r['out_median']:.0f} & {r['out_p90']:.0f} & "
-                             f"{r['total_median']:.1f} & {r['total_p90']:.1f} & {r['share_median']:.2f} & {r['share_p90']:.2f} \\\\")
+                             f"{r['total_median']:.1f} & {r['total_p90']:.1f} & {r['share_median']:.2f} & {r['share_p90']:.2f} & "
+                             f"{r['prefill_share']:.1f} \\\\")   # last: share of the summed time (Figure 2, Section 5.1)
     (OUT / "tab_time.tex").write_text("\n".join(lines) + "\n")
 
 
@@ -1019,4 +1020,6 @@ def tab_build():
 
 if __name__ == "__main__":
     fig_concept(); fig_time(); tab_time(); tab_plateau(); tab_depthwide(); tab_depth14(); tab_prefilltrn(); tab_build(); tab_lr(); fig_depth_main(); fig_depth(); fig_sametime(); fig_budget(); fig_batched(); tab_batched(); fig_tbatched(); tab_tbatched(); fig0(); fig2(); fig_equal(); fig_lev(); fig_aligned(["MMLU", "BBH 3-shot", "ARC-C", "Winogrande", "GSM8K", "HumanEval+", "MBPP+", "RULER-16K"]); tab_equal("2.6B-T"); tab_lev(); tab_main(); tab_main("main_table_14", "tab_main14"); tab_ablation(); tab_tokens(); tab_e2e(); tab_repro(); tab_aligned()
+    for f in OUT.glob("tab_*.tex"):   # one name per benchmark in every table: BBH is 3-shot throughout (Appendix H)
+        f.write_text(f.read_text().replace("BBH 3-shot", "BBH"))
     print("\n".join(sorted(p.name for p in OUT.iterdir())))
