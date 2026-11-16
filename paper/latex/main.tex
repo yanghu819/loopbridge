@@ -105,7 +105,7 @@ average from 44.2 to 58.6 with the fixed-depth adapter (58.2 with LoopBridge). T
 loop on the same data reaches
 only 49.5 (49.3 with as many parameters as our adapter). With two decode loops, the average rises from 63.7 to 69.0
 and 69.1 with our two adapters (Table~\ref{tab:main}).
-\item \textbf{A little more time, much higher accuracy.} At one decode loop, our models take 14--21\% more time per request than the original model and are 17--19 points more accurate (Figure~\ref{fig:budget}). At the same mean time, they beat a mix of the original model's one- and two-loop settings by 10--14 points. Served in batches of 32,
+\item \textbf{A little more time, much higher accuracy.} At one decode loop, on the four chain-of-thought tasks we time, our models take 14--21\% more time per request than the original model and are 17--19 points more accurate (Figure~\ref{fig:budget}). At the same mean time, they beat a mix of the original model's one- and two-loop settings by 10--14 points. Served in batches of 32,
 LoopBridge 4/1 keeps an 18.5-point lead over Original 1/1 for 18\% more time.
 \item \textbf{A few prefill loops are enough.} Two to five prefill loops give most of the gain (Figure~\ref{fig:depth}).
 \item \textbf{The gain carries over.} It holds on Ouro-1.4B, on looped decision models and on Ouro-2.6B-Thinking.
@@ -266,7 +266,7 @@ prefill loops lift the average from 44.2 (Original 1/1) to 58.6 with the fixed-d
 That is about 9 points above the original model distilled to one loop on the same data (49.5), also at rank 80 (49.3).
 Both adapters beat Original 1/1 on all 11 benchmarks. They lead by 15 to 24 points on MMLU, MMLU-Pro, BBH,
 ARC-Challenge, HumanEval+ and RULER-16K. With two decode loops, the fixed-depth adapter and LoopBridge average 69.0
-and 69.1, against 63.7
+and 69.1 (69.0 and 68.6 over three seeds), against 63.7
 for Original 2/2. They come within three points of Original 4/4 (71.9) with half its decode loops. The ranking holds
 over three training seeds. It also holds at other learning rates for both methods (Table~\ref{tab:ablate}c), and
 without the benchmark items that overlap the training data (Appendix~\ref{app:training}).

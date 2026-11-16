@@ -2349,7 +2349,7 @@ def main_table():
                     "aligned adapter 4/2": (68.6, 0.4), "LoRA-distilled 2/2": (66.1, 0.1), "LoRA-distilled 1/1": (49.6, 0.3),
                     "fixed-4 LoRA 4/1": (58.3, 0.2), "fixed-4 LoRA 4/2": (69.0, 0.3), "aligned LoRA-only 4/1": (55.8, 0.6),
                     "aligned LoRA-only 4/2": (68.2, 0.2), "distilled r80 1/1": (49.2, 0.2),
-                    "distilled r80 2/2": (65.6, 0.2)}.get(label)   # Table 1 caption
+                    "distilled r80 2/2": (65.6, 0.2)}.get(label)   # Table 1 caption; the 4/2 means of both adapters also in Sec 5.2
             print(f"Main table   {label:20s} seeds: " + " ".join(f"{a:5.1f}" for a in avgs)
                   + f"  mean {got[0]:5.1f} sd {got[1]:.1f}" + (f"  !! paper: {want}" if want and got != want else ""))
             SEED_MEANS[label] = (avgs[0], float(np.mean(avgs)))   # (first seed, mean over seeds)

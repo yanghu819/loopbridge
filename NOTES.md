@@ -508,3 +508,16 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
 - 2026-11-16 06:31: batched serving of the second block done (batch_set2.sh; `USE_SET2_BATCH = True`): batched results
   are on the same 800 requests. Batch 32: LoopBridge 4/1 +18.5 [14.9, 22.1] over Original 1/1 at 1.18x, +11.2 [7.8,
   14.9] over Distilled 1/1 at 1.19x (first 400 alone: +20.5 / +13.0); prefill 26.7% of the wall time at batch 32.
+- 2026-11-16 10:24: Thinking batched serving, second block of GSM8K requests (401-1,319; `time_batch_think.sh` with
+  START=400 N=919): pass tbatchB on a2, passes tbatchBb / tbatchBc on a1 (same split as the first block: pass 1 on a2,
+  passes 2-3 on a1). `USE_TBATCH2` merges it. Expectation from lm-eval on all 1,319 items (Table 13): LoopBridge 4/2
+  94.1 vs Original 4/4 94.2, Original 2/2 92.2, Distilled 2/2 93.0, so the +2.3..+4.3 over the 2/2 models on the first
+  400 may shrink; report whatever the full set gives (no reverting to 400).
+- 2026-11-16 10:27: T26s2-a42-math500_think_s2 (Thinking LoopBridge seed 2, MATH-500 shard 2) hung in its first batch
+  from 06:37 (GPU at 100%, log unchanged for 3 h 48 min; the other shards took about 1.5 h). Killed by exact PID and
+  re-queued with cuDNN SDPA off (lm1.sh PYTHONPATH prefix /root/pn/nocudnn:), as for the distilled shard on 11-14.
+- 2026-11-16: rank-80 Distilled 1/1 seed 3 (X26-E48fr80-p1d1-s3) evaluated on a2: GSM8K 39.3 strict (49.1 flexible) / MATH-500
+  23.4 / MMLU 53.2 / ARC 54.9 (norm) / Winogrande 66.2, HumanEval+ 56.7, MBPP+ 49.5; RULER running.
+- 2026-11-16: agy review 5 first attempt died on a network error (TLS handshake timeout, error step type 17) and the
+  helper waited 25 min; `agy_ask.py` now exits on an error step (the run script retries three times). Antigravity on this
+  Mac is also used for other projects: never touch conversations that are not ours.
