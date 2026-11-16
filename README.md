@@ -22,10 +22,10 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
    one loop on the same data (49.5; 49.3 at rank 80); with two decode loops, 63.7 -> 69.0 / 69.1. Both adapters beat
    the original 1/1 on all 11 benchmarks. MATH-500 is scored zero-shot (Minerva prompt without exemplars).
 3. **A little more time, much more accuracy.** At one decode loop, our models take 14-21% more time per request than
-   the original model and are +18.6 / +17.2 points more accurate (+12.1 / +10.8 over the distilled one; paired over 800
+   the original model and are +18.6 / +17.2 points more accurate (+12.2 / +10.8 over the distilled one; paired over 800
    timed requests, MATH-500 zero-shot). At the same mean time they beat a mix of the original model's 1/1 and 2/2
    settings by 10-14 points. With two decode loops they take 0.93-0.99x the time of Original 2/2 and Distilled 2/2 and
-   score 3-7 points higher. Served at batch 32, LoopBridge 4/1 keeps +18.5 / +11.2 points for 1.18x / 1.19x their
+   score 3-7 points higher. Served at batch 32, LoopBridge 4/1 keeps +18.5 / +11.3 points for 1.18x / 1.19x their
    time.
 4. **A few prefill loops suffice.** The gain peaks after two to five prefill loops (also for an adapter trained up to
    16 loops, over seeds, and when the prefill loops are trained too).
@@ -36,7 +36,7 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
 6. **LoopBridge's key/value maps keep retrieval over 16K-token prompts** when one adapter serves every depth
    (RULER-16K at 4/1 over three seeds: 63.9 vs 57.6 for a parameter-matched rank-80 LoRA and 44.7 at rank 16); on
    HELMET (item average) LoopBridge is 2.0 points above the rank-16 LoRA and level with the rank-80 one.
-7. **The baselines are not under-tuned:** the distilled controls move by at most 0.9 points over a 0.3x-3x
+7. **The baselines are not under-tuned:** the distilled controls move by at most 0.8 points over a 0.3x-3x
    learning-rate range and at rank 80; LoopBridge's weakest learning rate still beats the best distilled control.
 
 ![Untying prefill and decode loops](paper/figs/fig_concept.png)

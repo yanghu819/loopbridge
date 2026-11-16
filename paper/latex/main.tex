@@ -212,7 +212,7 @@ the loops without an adapter. \emph{Distilled $n/n$} is the $n$-loop model with 
 the
 same data, teacher and 48M tokens as our adapter. We train it at rank 16 and at rank 80 (62.9M parameters, as many as
 the
-adapter). Scaling its learning rate by 0.3 or 3 changes its average by at most 0.9 points (Table~\ref{tab:ablate}c), so
+adapter). Scaling its learning rate by 0.3 or 3 changes its average by at most 0.8 points (Table~\ref{tab:ablate}c), so
 it is not under-tuned.
 
 \paragraph{Time.} We time each request at batch 1 on one B300 GPU (bfloat16, greedy decoding). We split the time into
@@ -403,19 +403,19 @@ Lev-3B: $m=2$), decided with $n<m$ loops; one fixed $m$, no selection. All pairs
 
 Models with the same number of decode loops do not always take the same time, so we time the same 800 requests (Figure~\ref{fig:budget}; per task in Appendix~\ref{app:time}). With the maps folded into the prompt cache, LoopBridge takes about as long per new token as the original model (35.5 against 35.0 ms at one decode loop). But on MMLU-Pro more of our outputs run on to the 2,048-token limit without giving an answer (29 of 200 for LoopBridge 4/1, against 15 for Distilled 1/1 and 4 for Original 1/1;
 Appendix~\ref{app:time}). So at one decode loop the fixed-depth adapter and LoopBridge take 12.0 and 12.8 seconds per request, against 10.6 for Original 1/1 and 11.7 for Distilled 1/1. On the four
-chain-of-thought tasks, the fixed-depth adapter scores 46.4 and LoopBridge 45.0, against 27.8 for Original 1/1 and 34.2 for Distilled 1/1. Paired over the 800 requests, LoopBridge is $+17.2$\ci{13.6}{20.9} points above Original 1/1 and $+10.8$\ci{7.0}{14.5} above Distilled 1/1. For the fixed-depth adapter, these gains are $+18.6$\ci{15.1}{22.3} and $+12.1$\ci{8.4}{15.9}. One decode loop is the setting to use when each new token must come out fast, as in chat.
+chain-of-thought tasks, the fixed-depth adapter scores 46.4 and LoopBridge 45.0, against 27.8 for Original 1/1 and 34.2 for Distilled 1/1. Paired over the 800 requests, LoopBridge is $+17.2$\ci{13.6}{20.9} points above Original 1/1 and $+10.8$\ci{7.0}{14.5} above Distilled 1/1. For the fixed-depth adapter, these gains are $+18.6$\ci{15.1}{22.3} and $+12.2$\ci{8.4}{15.9}. One decode loop is the setting to use when each new token must come out fast, as in chat.
 
 The original model could spend the same extra time by serving some of its requests with two loops. At the mean time
 of LoopBridge 4/1, such a mix of Original 1/1 and 2/2 scores 34.5, and LoopBridge is $+10.5$\ci{5.7}{15.4} points above it (the arrow in Figure~\ref{fig:budget}). Against the same mix of Distilled 1/1 and 2/2, LoopBridge is $+7.8$\ci{3.0}{12.7} points above. For the fixed-depth adapter, the two gains are $+14.3$\ci{9.7}{18.9} and $+11.3$\ci{6.6}{15.3}. With two decode loops, both adapters take 0.93--0.99 of the time of Original 2/2 and Distilled 2/2 and score 3 to 7 points higher.
 
 The gain also holds when many requests are served together. In continuous batching, each prompt is prefilled alone
 while the batch waits (Figure~\ref{fig:batched} in Appendix~\ref{app:serve}). At batch 32, LoopBridge 4/1 stays
-$+18.5$\ci{14.9}{22.1} and $+11.2$\ci{7.8}{14.9} points above Original 1/1 and Distilled 1/1. It takes $1.18\times$ the time per request of Original 1/1 and $1.19\times$
+$+18.5$\ci{14.9}{22.1} and $+11.3$\ci{7.8}{14.9} points above Original 1/1 and Distilled 1/1. It takes $1.18\times$ the time per request of Original 1/1 and $1.19\times$
 that of Distilled 1/1.
 
 The Thinking model shows an even better trade-off. When served in batches (Figure~\ref{fig:tbatched}),
 Ouro-2.6B-Thinking with LoopBridge 4/2 matches Original 4/4 on 400 GSM8K problems (96.5 against 95.5) in 0.46--0.56 of
-the time of Original 4/4. It also beats Original 2/2 and Distilled 2/2 by 2.2 to 4.2 points in 0.80--0.98 of their
+the time of Original 4/4. It also beats Original 2/2 and Distilled 2/2 by 2.3 to 4.3 points in 0.80--0.98 of their
 time.
 
 
@@ -428,7 +428,7 @@ LoRA
 on all $(m,n)$ pairs with the maps fixed at the identity, it works at every depth. But it loses 1.6 points on average
 and
 14.9 on RULER-16K at 4/1 (Table~\ref{tab:ablate}a). A bigger LoRA does not fix this. At rank 80, with as many
-parameters as LoopBridge, the all-pairs LoRA is still 8.8\ci{6.1}{11.7} points below LoopBridge on RULER-16K. Over
+parameters as LoopBridge, the all-pairs LoRA is still 8.9\ci{6.1}{11.7} points below LoopBridge on RULER-16K. Over
 three training seeds each, LoopBridge reaches 63.9$\pm$1.0 on RULER-16K, against 57.6$\pm$1.6 at rank 80 and
 44.7$\pm$4.4 at rank 16. So it is the key and value maps that keep retrieval over 16K-token prompts working when one
 adapter serves every depth. On average, one LoopBridge is as good as the fixed-depth adapter, and a server can change the depth of each request
@@ -440,7 +440,7 @@ cache saves memory and costs 0.4 points.
 one-cache LoopBridge already averages 54.8 at 4/1. This is above the distilled model trained on 48M (49.5;
 Table~\ref{tab:ablate}b). With 12M tokens, using LoRA rank 4 or 64 instead of 16 changes its averages by at most 0.7
 points.
-Scaling the learning-rate schedule by 0.3 or 3 moves the distilled model by at most 0.9 points and LoopBridge by at
+Scaling the learning-rate schedule by 0.3 or 3 moves the distilled model by at most 0.8 points and LoopBridge by at
 most 1.4. The worst LoopBridge setting (56.8) is still above the best distilled one (49.5; Table~\ref{tab:ablate}c).
 
 \subsection{Other models}

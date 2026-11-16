@@ -285,10 +285,12 @@ def fig_lev():
 
 def tab_equal(model="1.4B-T"):
     """Appendix table: the headline comparison on another Thinking checkpoint (LaTeX rows from paper_numbers.json)."""
-    pm = lambda v: (r"\up{%.1f}" if v[0] >= 0 else r"\dn{%.1f}") % abs(v[0]) + ci(v[1], v[2])
+    def pm(e):   # the gap as the difference of the shown values; the paired interval as computed
+        d = round(round(e["ours"], 1) - round(e["native2"], 1), 1)
+        return (r"\up{%.1f}" if d >= 0 else r"\dn{%.1f}") % abs(d) + ci(e["vs2"][1], e["vs2"][2])
     rows = [e for e in PN["equal_aligned"] if e.get("model") == model]   # LoopBridge (per-loop caches), as Figure 11
     s22 = lambda e: f"{e['same22']:.1f}" if "same22" in e else "--"   # the same adapter reading 2 prefill loops
-    lines = [rf"{e['bench']} & {e['n']:,} & {e['native2']:.1f} & {s22(e)} & {e['ours']:.1f} & {e['native4']:.1f} & {pm(e['vs2'])} \\"
+    lines = [rf"{e['bench']} & {e['n']:,} & {e['native2']:.1f} & {s22(e)} & {e['ours']:.1f} & {e['native4']:.1f} & {pm(e)} \\"
              for e in rows]
     (OUT / f"tab_equal_{model.replace('.', '')}.tex").write_text("\n".join(lines) + "\n")
 
@@ -719,10 +721,10 @@ def fig_sametime():
     ax.bar(x, [p[1] for p in pts], width=0.62, color=[p[3] for p in pts], zorder=3)
     for xi, (lab, q, t, col) in zip(x, pts):
         ax.text(xi, q + 0.8, f"{q:.1f}", ha="center", va="bottom", fontsize=8.5, color=INK, fontweight="bold")
-        if col == OURS:   # gain over Original (grey) and over Distilled (blue)
-            ax.text(xi, q + 10.2, f"+{q - pts[0][1]:.1f}", ha="center", va="bottom", fontsize=7.8, color=NAT,
+        if col == OURS:   # gain over Original (grey) and over Distilled (blue), as the difference of the shown values
+            ax.text(xi, q + 10.2, f"+{round(q, 1) - round(pts[0][1], 1):.1f}", ha="center", va="bottom", fontsize=7.8, color=NAT,
                     fontweight="bold")
-            ax.text(xi, q + 5.6, f"+{q - pts[1][1]:.1f}", ha="center", va="bottom", fontsize=7.8, color=DIST,
+            ax.text(xi, q + 5.6, f"+{round(q, 1) - round(pts[1][1], 1):.1f}", ha="center", va="bottom", fontsize=7.8, color=DIST,
                     fontweight="bold")
     ax.hlines(pts[0][1], x[0] - 0.31, x[-1] + 0.31, color=NAT, lw=0.7, ls=(0, (2, 2)), zorder=4)
     ax.hlines(pts[1][1], x[1] - 0.31, x[-1] + 0.31, color=DIST, lw=0.7, ls=(0, (2, 2)), zorder=4)

@@ -505,6 +505,12 @@ def agg(v, ids):
     return 100 * float(np.mean([v[i] for i in ids]))
 
 
+def shown_diff(a, b):
+    """A gap as the paper prints it next to its two values: the difference of the one-decimal values, so a reader who
+    subtracts the printed numbers gets the printed gap (the bootstrap interval is unchanged)."""
+    return round(round(a, 1) - round(b, 1), 1)
+
+
 def boot(a, b, reps=5000, groups=None):
     """Paired bootstrap of mean(a - b); with `groups` (item -> group), resample groups (LevBench record groups)."""
     ids = sorted(set(a) & set(b), key=str)
@@ -1232,14 +1238,14 @@ def batched_serving(reps=5000):
             qa, qc = np.array([A[i][0] for i in ids]), np.array([C[i][0] for i in ids])
             rng = np.random.default_rng(0)
             dq = 100 * (qa - qc)[rng.integers(0, len(ids), (reps, len(ids)))].mean(1)
-            row = dict(a=a, b=c, batch=b, n=len(ids), diff=round(100 * float((qa - qc).mean()), 1),
+            row = dict(a=a, b=c, batch=b, n=len(ids), diff=shown_diff(100 * float(qa.mean()), 100 * float(qc.mean())),
                        lo=round(float(np.percentile(dq, 2.5)), 1), hi=round(float(np.percentile(dq, 97.5)), 1),
                        ratio=round((got[a][1] / got[a][2]) / (got[c][1] / got[c][2]), 2))
             out[f"{a} vs {c}@{b}"] = row
             print(f"Batched      batch {b:2d} {a:10s} vs {c:10s} n={row['n']}  acc {row['diff']:+5.1f} [{row['lo']:+5.1f},"
                   f" {row['hi']:+5.1f}]  time x{row['ratio']:.2f}")
     # Section 5.5, introduction and Limitations (batch 32)
-    want = {"a4x1pm vs native1st@32": ((18.5, 14.9, 22.1), 1.18), "a4x1pm vs D1st@32": ((11.2, 7.8, 14.9), 1.19)}   # mean of three passes
+    want = {"a4x1pm vs native1st@32": ((18.5, 14.9, 22.1), 1.18), "a4x1pm vs D1st@32": ((11.3, 7.8, 14.9), 1.19)}   # mean of three passes
     for k, (acc, ratio) in want.items():
         r = out.get(k)
         if r and ((acc and (r["diff"], r["lo"], r["hi"]) != acc) or r["ratio"] != ratio):
@@ -1329,8 +1335,8 @@ def thinking_batched(reps=5000):
                 d = np.array([A[i][0] - C[i][0] for i in ids])
                 rng = np.random.default_rng(0)
                 dq = 100 * d[rng.integers(0, len(ids), (reps, len(ids)))].mean(1)
-                row = dict(n=len(ids), diff=round(100 * float(d.mean()), 1), lo=round(float(np.percentile(dq, 2.5)), 1),
-                           hi=round(float(np.percentile(dq, 97.5)), 1),
+                row = dict(n=len(ids), diff=shown_diff(100 * float(np.mean([A[i][0] for i in ids])), 100 * float(np.mean([C[i][0] for i in ids]))),
+                           lo=round(float(np.percentile(dq, 2.5)), 1), hi=round(float(np.percentile(dq, 97.5)), 1),
                            ratio=round((got["a4x2pm"][1] / len(A)) / (got[c][1] / len(C)), 2))
                 out[f"{task} a4x2pm vs {c}@{b}"] = row
                 print(f"Think batch  {task} batch {b:2d} a4x2pm vs {c:10s} n={row['n']}  acc {row['diff']:+5.1f}"
@@ -1342,8 +1348,8 @@ def thinking_batched(reps=5000):
         r4 = sorted(out[f"gsmthink a4x2pm vs native4st@{b}"]["ratio"] for b in (16, 32))
         two = [out[f"gsmthink a4x2pm vs {c}@{b}"] for c in ("native2st", "D2st") for b in (16, 32)]
         got = (acc, r4, (min(r["diff"] for r in two), max(r["diff"] for r in two)), (min(r["ratio"] for r in two), max(r["ratio"] for r in two)))
-        if got != ([96.5, 96.5, 95.5, 95.5], [0.46, 0.56], (2.2, 4.2), (0.8, 0.98)) or any(r["lo"] <= 0 for r in two):
-            print(f"Think batch  {got}  !! paper: 96.5/95.5, x0.46-0.56, +2.2 to +4.2 (all intervals > 0), x0.80-0.98")
+        if got != ([96.5, 96.5, 95.5, 95.5], [0.46, 0.56], (2.3, 4.3), (0.8, 0.98)) or any(r["lo"] <= 0 for r in two):
+            print(f"Think batch  {got}  !! paper: 96.5/95.5, x0.46-0.56, +2.3 to +4.3 (all intervals > 0), x0.80-0.98")
     return out
 
 
@@ -1428,7 +1434,7 @@ def time_matched(reps=5000):
             rng = np.random.default_rng(0)
             ds = [gap(rng.integers(0, len(ids), len(ids)))[0] for _ in range(reps)]
             row = dict(ours=ours, family=fam, n=len(ids), p=round(p, 3), mix_acc=round(100 * ((1 - p) * q1.mean() + p * q2.mean()), 1),
-                       ours_acc=round(100 * qo.mean(), 1), diff=round(d, 1), lo=round(float(np.percentile(ds, 2.5)), 1),
+                       ours_acc=round(100 * qo.mean(), 1), diff=shown_diff(100 * qo.mean(), 100 * ((1 - p) * q1.mean() + p * q2.mean())), lo=round(float(np.percentile(ds, 2.5)), 1),
                        hi=round(float(np.percentile(ds, 97.5)), 1))
             out[f"{ours} vs {fam}"] = row
             want = {("a4x1pm", "Original"): (34.5, 10.5, 5.7, 15.4), ("a4x1pm", "Distilled"): (37.2, 7.8, 3.0, 12.7),
@@ -1455,13 +1461,13 @@ def budget_pairs(reps=5000):
         draws = rng.integers(0, len(ids), (reps, len(ids)))
         dq = 100 * (qa[draws] - qb[draws]).mean(1)
         rt = ta[draws].sum(1) / tb[draws].sum(1)
-        row = dict(a=a, b=b, n=len(ids), diff=round(100 * float((qa - qb).mean()), 1),
+        row = dict(a=a, b=b, n=len(ids), diff=shown_diff(100 * float(qa.mean()), 100 * float(qb.mean())),
                    diff_lo=round(float(np.percentile(dq, 2.5)), 1), diff_hi=round(float(np.percentile(dq, 97.5)), 1),
                    ratio=round(float(ta.sum() / tb.sum()), 2), ratio_lo=round(float(np.percentile(rt, 2.5)), 2),
                    ratio_hi=round(float(np.percentile(rt, 97.5)), 2))
         out.append(row)
         want = {("a4x1pm", "native1st"): (17.2, 13.6, 20.9, 1.21), ("a4x1pm", "D1st"): (10.8, 7.0, 14.5, 1.1),
-                ("f4x1pm", "native1st"): (18.6, 15.1, 22.3, 1.14), ("f4x1pm", "D1st"): (12.1, 8.4, 15.9, 1.03)}.get((a, b))   # Section 5.5
+                ("f4x1pm", "native1st"): (18.6, 15.1, 22.3, 1.14), ("f4x1pm", "D1st"): (12.2, 8.4, 15.9, 1.03)}.get((a, b))   # Section 5.5
         if want and (row["diff"], row["diff_lo"], row["diff_hi"], row["ratio"]) != want:
             print(f"Budget pair  {a} vs {b}: {row}  !! paper: {want}")
         if a in ("a4x2pm", "f4x2pm") and b in ("native2st", "D2st") and not (0.93 <= row["ratio"] <= 0.99
@@ -1828,12 +1834,12 @@ def lora80():
             if not all(sets.values()):
                 break
             ids = set.intersection(*(set(v) for v in sets.values()))
-            per[b] = {a: round(100 * float(np.mean([v[i] for i in ids])), 2) for a, v in sets.items()}
+            per[b] = {a: round(100 * float(np.mean([v[i] for i in ids])), 3) for a, v in sets.items()}
             if b == "RULER-16K":   # paired interval, LoopBridge minus the rank-80 LoRA, on the same items
                 sub = lambda v: {i: v[i] for i in ids}
                 rl = boot(sub(sets["LoopBridge"]), sub(sets["LoRA r80, maps frozen"]))
         else:
-            out[c] = dict(per_bench=per, avg={a: round(float(np.mean([per[b][a] for b in MAIN_BENCH])), 2) for a, _ in arms},
+            out[c] = dict(per_bench=per, avg={a: round(float(np.mean([per[b][a] for b in MAIN_BENCH])), 3) for a, _ in arms},
                           ruler={a: per["RULER-16K"][a] for a, _ in arms}, ruler_lb_minus_r80=rl)
             print(f"LoRA r80     {c}: avg " + "  ".join(f"{a} {v:.1f}" for a, v in out[c]["avg"].items())
                   + "  | RULER-16K " + "  ".join(f"{v:.1f}" for v in out[c]["ruler"].values()))
@@ -1844,9 +1850,9 @@ def lora80():
                 print(f"LoRA r80     a42 RULER-16K {out[c]['ruler']}  !! paper: 71.6 to 73.7")
             if c == "a41":   # Section 5.6 / Table 2a
                 got = (round(out[c]["avg"]["LoRA r80, maps frozen"], 1), round(out[c]["ruler"]["LoRA r80, maps frozen"], 1),
-                       round(r["diff"], 1), round(r["lo"], 1), round(r["hi"], 1))
-                if got != (57.7, 55.8, 8.8, 6.1, 11.7):
-                    print(f"LoRA r80     {got}  !! paper: (57.7, 55.8, 8.8, 6.1, 11.7)")
+                       shown_diff(out[c]["ruler"]["LoopBridge"], out[c]["ruler"]["LoRA r80, maps frozen"]), round(r["lo"], 1), round(r["hi"], 1))
+                if got != (57.7, 55.8, 8.9, 6.1, 11.7):   # the gap as the difference of the Table 2a values
+                    print(f"LoRA r80     {got}  !! paper: (57.7, 55.8, 8.9, 6.1, 11.7)")
             # same item population as Table 1 / Table 2a: the rank-16 and LoopBridge rows must reproduce their values
             want = {"a41": {"LoRA r16, maps frozen": (56.6, 49.8), "LoopBridge": (58.2, 64.7)},
                     "a42": {"LoRA r16, maps frozen": (68.3, 71.6), "LoopBridge": (69.1, 73.5)}}[c]
@@ -2406,12 +2412,12 @@ def lr_check():
         if bad:
             print(f"LR check     Distilled {c}/{c}: {bad}  !! paper: {want}")
         if None not in out[c].values():
-            d = max(abs(out[c][v] - out[c]["lr1"]) for v in ("lr0.3", "lr3"))
-            d = max(d, abs(out[c]["r80lr3"] - out[c]["r80"]))
+            d = max(abs(shown_diff(out[c][v], out[c]["lr1"])) for v in ("lr0.3", "lr3"))   # from the printed values
+            d = max(d, abs(shown_diff(out[c]["r80lr3"], out[c]["r80"])))
             out[c]["max_change"] = round(d, 1)
     ch = [out[c].get("max_change") for c in (1, 2)]
-    if None not in ch:   # Setup and Section 5.6: "by at most 0.9 points"
-        print(f"LR check     max change from scaling the LR: {max(ch)}" + ("" if max(ch) == 0.9 else "  !! paper: 0.9"))
+    if None not in ch:   # Setup and Section 5.6: "by at most 0.8 points"
+        print(f"LR check     max change from scaling the LR: {max(ch)}" + ("" if max(ch) == 0.8 else "  !! paper: 0.8"))
     for cell in ("a41", "a42"):   # Ours (aligned) at x1 and x3 (launch_variant.sh lr, runs X26alr3-a4<n>-*)
         q = {v: [] for v in ("lr1", "lr0.3", "lr3")}
         for b in MAIN_BENCH:
@@ -2465,8 +2471,8 @@ def ablations():
             print(f"Ablation     {c} {label:14s} " + ("  --" if avg is None else f"avg {avg:5.1f}")
                   + "  " + " ".join("  -- " if v is None else f"{v:5.1f}" for v in vals))
     A = {(r["cell"], r["label"]): r["avg"] for r in out}
-    d = [abs(A[(c, l)] - A[(c, "12M tokens")]) for c in ("S41", "S42") for l in ("rank 4, 12M", "rank 64, 12M")
-         if None not in (A[(c, l)], A[(c, "12M tokens")])]
+    d = [abs(shown_diff(A[(c, l)], A[(c, "12M tokens")])) for c in ("S41", "S42") for l in ("rank 4, 12M", "rank 64, 12M")
+         if None not in (A[(c, l)], A[(c, "12M tokens")])]   # from the printed values
     if len(d) == 4 and round(max(d), 1) != 0.7:   # Section 5.6: rank 4 or 64 changes the average by at most 0.7
         print(f"Ablation     rank 4/64 vs 16 at 12M: max change {max(d):.2f}  !! paper: 0.7")
     return out

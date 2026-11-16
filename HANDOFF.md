@@ -92,7 +92,7 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
   fixed4-s3 and lora-s3 lost their eval step; re-run the launcher, which skips the finished training).
 - **Review status 11-13**: three acceptance-focused rounds (`~/.b300-handoff/red_review.sh`), Overall 3 -> 3 -> 4/5
   (Accept). The parameter-matched control is in Table 2a: rank-80 all-(m,n) LoRA 56.3 average / 55.8 RULER-16K vs
-  LoopBridge 56.8 / 64.7 (+8.8 [6.1, 11.7]). At 4/2 all three all-pairs adapters reach 71.6-73.7 on
+  LoopBridge 56.8 / 64.7 (+8.9 [6.1, 11.7]). At 4/2 all three all-pairs adapters reach 71.6-73.7 on
   RULER-16K (in Section 5.6). Seeds 2 and 3 landed 11-13/14 (X26los2r80-*, X26los3r80-*; see "Done 11-14").
 - **Review 11-13 (Codex astra-ultra, ARR-style, Overall 3/5)**: fixed in the text (depth stop "two to five", Figure 5
   title, Thinking claim scoped to Figure 13's items, Figure 8 names the one-cache variant, Section 5.5 states that the

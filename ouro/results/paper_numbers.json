@@ -26654,39 +26654,39 @@
   "a41": {
    "per_bench": {
     "MMLU": {
-     "LoRA r16, maps frozen": 66.81,
-     "LoRA r80, maps frozen": 67.01,
-     "LoopBridge": 67.06
+     "LoRA r16, maps frozen": 66.814,
+     "LoRA r80, maps frozen": 67.013,
+     "LoopBridge": 67.056
     },
     "MMLU-Pro": {
-     "LoRA r16, maps frozen": 46.9,
+     "LoRA r16, maps frozen": 46.905,
      "LoRA r80, maps frozen": 46.19,
      "LoopBridge": 45.0
     },
     "BBH 3-shot": {
-     "LoRA r16, maps frozen": 49.94,
-     "LoRA r80, maps frozen": 52.41,
-     "LoopBridge": 52.72
+     "LoRA r16, maps frozen": 49.938,
+     "LoRA r80, maps frozen": 52.407,
+     "LoopBridge": 52.716
     },
     "ARC-C": {
-     "LoRA r16, maps frozen": 62.97,
+     "LoRA r16, maps frozen": 62.969,
      "LoRA r80, maps frozen": 63.14,
-     "LoopBridge": 62.8
+     "LoopBridge": 62.799
     },
     "HellaSwag": {
-     "LoRA r16, maps frozen": 72.45,
-     "LoRA r80, maps frozen": 72.68,
-     "LoopBridge": 72.7
+     "LoRA r16, maps frozen": 72.446,
+     "LoRA r80, maps frozen": 72.685,
+     "LoopBridge": 72.705
     },
     "Winogrande": {
-     "LoRA r16, maps frozen": 65.9,
+     "LoRA r16, maps frozen": 65.904,
      "LoRA r80, maps frozen": 66.14,
-     "LoopBridge": 68.03
+     "LoopBridge": 68.035
     },
     "GSM8K": {
-     "LoRA r16, maps frozen": 47.54,
-     "LoRA r80, maps frozen": 47.23,
-     "LoopBridge": 44.96
+     "LoRA r16, maps frozen": 47.536,
+     "LoRA r80, maps frozen": 47.233,
+     "LoopBridge": 44.958
     },
     "MATH-500": {
      "LoRA r16, maps frozen": 40.8,
@@ -26694,30 +26694,30 @@
      "LoopBridge": 41.0
     },
     "HumanEval+": {
-     "LoRA r16, maps frozen": 64.02,
-     "LoRA r80, maps frozen": 65.85,
-     "LoopBridge": 65.24
+     "LoRA r16, maps frozen": 64.024,
+     "LoRA r80, maps frozen": 65.854,
+     "LoopBridge": 65.244
     },
     "MBPP+": {
-     "LoRA r16, maps frozen": 55.29,
-     "LoRA r80, maps frozen": 56.61,
-     "LoopBridge": 56.35
+     "LoRA r16, maps frozen": 55.291,
+     "LoRA r80, maps frozen": 56.614,
+     "LoopBridge": 56.349
     },
     "RULER-16K": {
-     "LoRA r16, maps frozen": 49.77,
-     "LoRA r80, maps frozen": 55.84,
-     "LoopBridge": 64.66
+     "LoRA r16, maps frozen": 49.772,
+     "LoRA r80, maps frozen": 55.843,
+     "LoopBridge": 64.663
     }
    },
    "avg": {
-    "LoRA r16, maps frozen": 56.58,
-    "LoRA r80, maps frozen": 57.68,
+    "LoRA r16, maps frozen": 56.582,
+    "LoRA r80, maps frozen": 57.684,
     "LoopBridge": 58.23
    },
    "ruler": {
-    "LoRA r16, maps frozen": 49.77,
-    "LoRA r80, maps frozen": 55.84,
-    "LoopBridge": 64.66
+    "LoRA r16, maps frozen": 49.772,
+    "LoRA r80, maps frozen": 55.843,
+    "LoopBridge": 64.663
    },
    "ruler_lb_minus_r80": {
     "n": 520,
@@ -26731,39 +26731,39 @@
   "a42": {
    "per_bench": {
     "MMLU": {
-     "LoRA r16, maps frozen": 73.21,
-     "LoRA r80, maps frozen": 73.24,
-     "LoopBridge": 73.47
+     "LoRA r16, maps frozen": 73.209,
+     "LoRA r80, maps frozen": 73.245,
+     "LoopBridge": 73.465
     },
     "MMLU-Pro": {
-     "LoRA r16, maps frozen": 52.62,
-     "LoRA r80, maps frozen": 55.95,
-     "LoopBridge": 54.05
+     "LoRA r16, maps frozen": 52.619,
+     "LoRA r80, maps frozen": 55.952,
+     "LoopBridge": 54.048
     },
     "BBH 3-shot": {
-     "LoRA r16, maps frozen": 73.02,
-     "LoRA r80, maps frozen": 72.72,
-     "LoopBridge": 73.46
+     "LoRA r16, maps frozen": 73.025,
+     "LoRA r80, maps frozen": 72.716,
+     "LoopBridge": 73.457
     },
     "ARC-C": {
-     "LoRA r16, maps frozen": 64.85,
-     "LoRA r80, maps frozen": 64.85,
-     "LoopBridge": 65.02
+     "LoRA r16, maps frozen": 64.846,
+     "LoRA r80, maps frozen": 64.846,
+     "LoopBridge": 65.017
     },
     "HellaSwag": {
-     "LoRA r16, maps frozen": 78.27,
-     "LoRA r80, maps frozen": 78.41,
-     "LoopBridge": 78.25
+     "LoRA r16, maps frozen": 78.271,
+     "LoRA r80, maps frozen": 78.411,
+     "LoopBridge": 78.251
     },
     "Winogrande": {
-     "LoRA r16, maps frozen": 74.19,
-     "LoRA r80, maps frozen": 74.19,
-     "LoopBridge": 75.14
+     "LoRA r16, maps frozen": 74.191,
+     "LoRA r80, maps frozen": 74.191,
+     "LoopBridge": 75.138
     },
     "GSM8K": {
-     "LoRA r16, maps frozen": 67.25,
+     "LoRA r16, maps frozen": 67.248,
      "LoRA r80, maps frozen": 67.93,
-     "LoopBridge": 66.26
+     "LoopBridge": 66.262
     },
     "MATH-500": {
      "LoRA r16, maps frozen": 64.2,
@@ -26771,30 +26771,30 @@
      "LoopBridge": 66.4
     },
     "HumanEval+": {
-     "LoRA r16, maps frozen": 69.51,
-     "LoRA r80, maps frozen": 70.73,
-     "LoopBridge": 70.12
+     "LoRA r16, maps frozen": 69.512,
+     "LoRA r80, maps frozen": 70.732,
+     "LoopBridge": 70.122
     },
     "MBPP+": {
-     "LoRA r16, maps frozen": 62.43,
-     "LoRA r80, maps frozen": 62.96,
-     "LoopBridge": 64.29
+     "LoRA r16, maps frozen": 62.434,
+     "LoRA r80, maps frozen": 62.963,
+     "LoopBridge": 64.286
     },
     "RULER-16K": {
-     "LoRA r16, maps frozen": 71.57,
-     "LoRA r80, maps frozen": 73.72,
-     "LoopBridge": 73.53
+     "LoRA r16, maps frozen": 71.571,
+     "LoRA r80, maps frozen": 73.721,
+     "LoopBridge": 73.532
     }
    },
    "avg": {
-    "LoRA r16, maps frozen": 68.28,
-    "LoRA r80, maps frozen": 69.1,
-    "LoopBridge": 69.09
+    "LoRA r16, maps frozen": 68.284,
+    "LoRA r80, maps frozen": 69.101,
+    "LoopBridge": 69.089
    },
    "ruler": {
-    "LoRA r16, maps frozen": 71.57,
-    "LoRA r80, maps frozen": 73.72,
-    "LoopBridge": 73.53
+    "LoRA r16, maps frozen": 71.571,
+    "LoRA r80, maps frozen": 73.721,
+    "LoopBridge": 73.532
    },
    "ruler_lb_minus_r80": {
     "n": 520,
@@ -27271,7 +27271,7 @@
    "a": "a4x2pm",
    "b": "D2st",
    "n": 800,
-   "diff": 3.2,
+   "diff": 3.3,
    "diff_lo": 0.1,
    "diff_hi": 6.4,
    "ratio": 0.94,
@@ -27315,7 +27315,7 @@
    "a": "a3x2pm",
    "b": "D2st",
    "n": 400,
-   "diff": 3.5,
+   "diff": 3.4,
    "diff_lo": -0.2,
    "diff_hi": 7.5,
    "ratio": 0.95,
@@ -27348,7 +27348,7 @@
    "a": "f4x1pm",
    "b": "D1st",
    "n": 800,
-   "diff": 12.1,
+   "diff": 12.2,
    "diff_lo": 8.4,
    "diff_hi": 15.9,
    "ratio": 1.03,
@@ -27381,7 +27381,7 @@
    "a": "f4x2pm",
    "b": "D2r80st",
    "n": 800,
-   "diff": 4.8,
+   "diff": 4.7,
    "diff_lo": 1.5,
    "diff_hi": 7.9,
    "ratio": 0.93,
@@ -27753,7 +27753,7 @@
    "b": "D1st",
    "batch": 8,
    "n": 800,
-   "diff": 10.8,
+   "diff": 10.7,
    "lo": 7.0,
    "hi": 14.4,
    "ratio": 1.21
@@ -27833,7 +27833,7 @@
    "b": "D2r80st",
    "batch": 8,
    "n": 800,
-   "diff": 3.9,
+   "diff": 3.8,
    "lo": 0.8,
    "hi": 7.1,
    "ratio": 0.98
@@ -27943,7 +27943,7 @@
    "b": "D1st",
    "batch": 32,
    "n": 800,
-   "diff": 11.2,
+   "diff": 11.3,
    "lo": 7.8,
    "hi": 14.9,
    "ratio": 1.19
@@ -27953,7 +27953,7 @@
    "b": "D1r80st",
    "batch": 32,
    "n": 800,
-   "diff": 12.6,
+   "diff": 12.7,
    "lo": 8.9,
    "hi": 16.4,
    "ratio": 1.16
@@ -27963,7 +27963,7 @@
    "b": "native1st",
    "batch": 32,
    "n": 800,
-   "diff": 19.0,
+   "diff": 18.9,
    "lo": 15.4,
    "hi": 22.6,
    "ratio": 1.21
@@ -27973,7 +27973,7 @@
    "b": "D1st",
    "batch": 32,
    "n": 800,
-   "diff": 11.8,
+   "diff": 11.7,
    "lo": 8.2,
    "hi": 15.2,
    "ratio": 1.21
@@ -27983,7 +27983,7 @@
    "b": "a4x1pm",
    "batch": 32,
    "n": 800,
-   "diff": 12.5,
+   "diff": 12.4,
    "lo": 8.9,
    "hi": 16.2,
    "ratio": 1.62
@@ -27993,7 +27993,7 @@
    "b": "a4x1pm",
    "batch": 32,
    "n": 800,
-   "diff": 14.5,
+   "diff": 14.4,
    "lo": 10.9,
    "hi": 18.1,
    "ratio": 1.56
@@ -28023,7 +28023,7 @@
    "b": "D2r80st",
    "batch": 32,
    "n": 800,
-   "diff": 4.0,
+   "diff": 3.9,
    "lo": 0.9,
    "hi": 7.2,
    "ratio": 1.03
@@ -28071,14 +28071,14 @@
   },
   "gsmthink a4x2pm vs native2st@16": {
    "n": 400,
-   "diff": 2.2,
+   "diff": 2.3,
    "lo": 0.5,
    "hi": 4.2,
    "ratio": 0.8
   },
   "gsmthink a4x2pm vs D2st@16": {
    "n": 400,
-   "diff": 4.2,
+   "diff": 4.3,
    "lo": 2.2,
    "hi": 6.5,
    "ratio": 0.81
@@ -28124,14 +28124,14 @@
   },
   "gsmthink a4x2pm vs native2st@32": {
    "n": 400,
-   "diff": 2.2,
+   "diff": 2.3,
    "lo": 0.5,
    "hi": 4.2,
    "ratio": 0.94
   },
   "gsmthink a4x2pm vs D2st@32": {
    "n": 400,
-   "diff": 3.8,
+   "diff": 3.7,
    "lo": 1.5,
    "hi": 6.0,
    "ratio": 0.98
@@ -29599,7 +29599,7 @@
    "lr3": 49.4,
    "r80": 49.34,
    "r80lr3": 48.45,
-   "max_change": 0.9
+   "max_change": 0.8
   },
   "2": {
    "lr1": 66.21,
