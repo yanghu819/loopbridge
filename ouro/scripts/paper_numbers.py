@@ -898,7 +898,8 @@ def equal(arm="S"):
 
 
 THINK_SEEDS = (2, 3)   # Ouro-2.6B-Thinking LoopBridge training seeds 2 and 3 (runs_scripts/think_seed.sh)
-THINK_SEED_PRINTED = None   # Section 5.7 / Figure 11: (gap to Original 4/4, its s.d.) over three seeds once in the paper
+THINK_SEED_PRINTED = (1.1, 0.3)   # Section 5.7 / Figure 11: gap to Original 4/4 over three seeds (mean, s.d.)
+THINK_SEED_ABOVE2 = (6, 7)   # Section 5.7: beats Original 2/2 on six or seven of the eight benchmarks in each seed
 
 
 def think_seed_key(key, sd):
@@ -931,7 +932,7 @@ def think_seeds():
     for j, sd in enumerate((1,) + THINK_SEEDS):
         ours = float(np.mean([rows[b][j][0]["a"] for b in rows]))
         n4 = float(np.mean([rows[b][j][0]["b"] for b in rows]))
-        above = sum(rows[b][j][1]["diff"] > 0 for b in rows)
+        above = int(sum(rows[b][j][1]["diff"] > 0 for b in rows))
         per.append(dict(seed=sd, avg=round(ours, 2), gap4=round(n4 - ours, 2), above2=above,
                         by_bench={b: round(rows[b][j][0]["a"], 1) for b in rows}))
         print(f"Think seeds  seed {sd}: LoopBridge 4/2 average {ours:5.2f}, gap to 4/4 {n4 - ours:+5.2f}, above 2/2 on {above} of 8  "
@@ -940,8 +941,11 @@ def think_seeds():
     out = dict(per_seed=per, gap4=(round(float(np.mean(gaps)), 1), round(float(np.std(gaps, ddof=1)), 1)),
                avg=(round(float(np.mean([r["avg"] for r in per])), 1), round(float(np.std([r["avg"] for r in per], ddof=1)), 1)),
                above2=[r["above2"] for r in per])
+    above = (int(min(out["above2"])), int(max(out["above2"])))
+    out["above2"] = [int(x) for x in out["above2"]]
     print(f"Think seeds  over seeds 1-3: average {out['avg']}, gap to 4/4 {out['gap4']}, above 2/2 {out['above2']}"
-          + ("" if THINK_SEED_PRINTED in (None, out["gap4"]) else f"  !! paper: {THINK_SEED_PRINTED}"))
+          + ("" if THINK_SEED_PRINTED in (None, out["gap4"]) else f"  !! paper: {THINK_SEED_PRINTED}")
+          + ("" if above == THINK_SEED_ABOVE2 else f"  !! paper: above 2/2 on {THINK_SEED_ABOVE2}"))
     return out
 
 
@@ -1298,13 +1302,15 @@ def batched_serving_14(reps=5000):
     return out
 
 
-USE_TBATCH2 = False   # GSM8K requests 401-1,319 served in batches (time_batch_think.sh START=400 N=919, tbatchB*)
-THINK_BATCH_BLOCKS = (("tbatch", "tbatchb", "tbatchc"),) + ((("tbatchB", "tbatchBb", "tbatchBc"),) if USE_TBATCH2 else ())
+USE_TBATCH2 = True   # GSM8K requests 401-1,319 served in batches (time_batch_think.sh START=400 N=919; files tbatch2a on a2,
+# tbatch2b / tbatch2c on a1). Never name a pass by case alone (tbatchB vs tbatchb): on the Mac's case-insensitive disk
+# pn_sync.sh copied one over the other.
+THINK_BATCH_BLOCKS = (("tbatch", "tbatchb", "tbatchc"),) + ((("tbatch2a", "tbatch2b", "tbatch2c"),) if USE_TBATCH2 else ())
 
 
 def thinking_batched(reps=5000):
-    """Ouro-2.6B-Thinking served with batch_requests.py (time_batch_think.sh; passes tbatch / tbatchb): GSM8K (400
-    requests, 4,096-token budget) at batch 16 and 32 and MATH-500 (500, 8,192 tokens) at batch 16, chat template;
+    """Ouro-2.6B-Thinking served with batch_requests.py (time_batch_think.sh; passes tbatch / tbatchb / tbatchc): GSM8K
+    (all 1,319 requests in two blocks, THINK_BATCH_BLOCKS; 4,096-token budget) at batch 16 and 32 and MATH-500 (500, 8,192 tokens) at batch 16, chat template;
     accuracy (math_verify, as lm-eval), wall seconds per request (mean of the passes), prefill share; LoopBridge 4/2
     against Original 4/4, Original 2/2 and Distilled 2/2."""
     out = {}
@@ -1352,15 +1358,15 @@ def thinking_batched(reps=5000):
                 out[f"{task} a4x2pm vs {c}@{b}"] = row
                 print(f"Think batch  {task} batch {b:2d} a4x2pm vs {c:10s} n={row['n']}  acc {row['diff']:+5.1f}"
                       f" [{row['lo']:+5.1f}, {row['hi']:+5.1f}]  time x{row['ratio']:.2f}")
-    # Section 5.5: "as accurately as Original 4/4 (96.5 against 95.5) in 0.49--0.58 of its time, and 2.2 to 4.2 points
-    # more accurately than Original 2/2 and Distilled 2/2 in 0.80--1.02 of their time" (GSM8K, batch 16 and 32)
+    # Section 5.5: "matches Original 4/4 on all 1,319 GSM8K problems (94.6 against 94.2--94.3) in 0.47--0.57 of the time
+    # of Original 4/4 ... beats Original 2/2 and Distilled 2/2 by 1.7 to 2.8 points in 0.79--0.97 of their time" (batch 16, 32)
     if all(f"gsmthink a4x2pm vs {c}@{b}" in out for c in ("native4st", "native2st", "D2st") for b in (16, 32)):
         acc = [out[f"gsmthink {c}@{b}"]["acc"] for c in ("a4x2pm", "native4st") for b in (16, 32)]
         r4 = sorted(out[f"gsmthink a4x2pm vs native4st@{b}"]["ratio"] for b in (16, 32))
         two = [out[f"gsmthink a4x2pm vs {c}@{b}"] for c in ("native2st", "D2st") for b in (16, 32)]
         got = (acc, r4, (min(r["diff"] for r in two), max(r["diff"] for r in two)), (min(r["ratio"] for r in two), max(r["ratio"] for r in two)))
-        if got != ([96.5, 96.5, 95.5, 95.5], [0.46, 0.56], (2.3, 4.3), (0.8, 0.98)) or any(r["lo"] <= 0 for r in two):
-            print(f"Think batch  {got}  !! paper: 96.5/95.5, x0.46-0.56, +2.3 to +4.3 (all intervals > 0), x0.80-0.98")
+        if got != ([94.6, 94.6, 94.3, 94.2], [0.47, 0.57], (1.7, 2.8), (0.79, 0.97)) or any(r["lo"] <= 0 for r in two):
+            print(f"Think batch  {got}  !! paper: 94.6/94.2-94.3, x0.47-0.57, +1.7 to +2.8 (all intervals > 0), x0.79-0.97")
     return out
 
 
@@ -2348,7 +2354,7 @@ def main_table():
             want = {"loop adapter 4/1": (57.9, 0.1), "loop adapter 4/2": (68.1, 0.1), "aligned adapter 4/1": (58.3, 0.1),
                     "aligned adapter 4/2": (68.6, 0.4), "LoRA-distilled 2/2": (66.1, 0.1), "LoRA-distilled 1/1": (49.6, 0.3),
                     "fixed-4 LoRA 4/1": (58.3, 0.2), "fixed-4 LoRA 4/2": (69.0, 0.3), "aligned LoRA-only 4/1": (55.8, 0.6),
-                    "aligned LoRA-only 4/2": (68.2, 0.2), "distilled r80 1/1": (49.2, 0.2),
+                    "aligned LoRA-only 4/2": (68.2, 0.2), "distilled r80 1/1": (49.2, 0.1),
                     "distilled r80 2/2": (65.6, 0.2)}.get(label)   # Table 1 caption; the 4/2 means of both adapters also in Sec 5.2
             print(f"Main table   {label:20s} seeds: " + " ".join(f"{a:5.1f}" for a in avgs)
                   + f"  mean {got[0]:5.1f} sd {got[1]:.1f}" + (f"  !! paper: {want}" if want and got != want else ""))
@@ -2388,7 +2394,7 @@ ABL_PRINTED = {("6M tokens", "S41"): 54.8, ("6M tokens", "S42"): 67.2, ("48M tok
 
 
 DIST_SEEDS = {1: ("s2", "s3"), 2: ("s2", "s3")}
-R80_SEEDS = {1: ("s2",), 2: ("s2", "s3")}   # rank-80 Distilled: further seeds (RANK=80 SEED=k launch_x26_distill.sh)   # further training seeds of Distilled n/n (SEED=<k> launch_x26_distill.sh)
+R80_SEEDS = {1: ("s2", "s3"), 2: ("s2", "s3")}   # rank-80 Distilled: further seeds (RANK=80 SEED=k launch_x26_distill.sh)
 
 
 def dist_seed_key(bench, c, sd):

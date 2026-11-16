@@ -509,7 +509,7 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   are on the same 800 requests. Batch 32: LoopBridge 4/1 +18.5 [14.9, 22.1] over Original 1/1 at 1.18x, +11.2 [7.8,
   14.9] over Distilled 1/1 at 1.19x (first 400 alone: +20.5 / +13.0); prefill 26.7% of the wall time at batch 32.
 - 2026-11-16 10:24: Thinking batched serving, second block of GSM8K requests (401-1,319; `time_batch_think.sh` with
-  START=400 N=919): pass tbatchB on a2, passes tbatchBb / tbatchBc on a1 (same split as the first block: pass 1 on a2,
+  START=400 N=919): pass tbatch2a on a2, passes tbatch2b / tbatch2c on a1 (same split as the first block: pass 1 on a2,
   passes 2-3 on a1). `USE_TBATCH2` merges it. Expectation from lm-eval on all 1,319 items (Table 13): LoopBridge 4/2
   94.1 vs Original 4/4 94.2, Original 2/2 92.2, Distilled 2/2 93.0, so the +2.3..+4.3 over the 2/2 models on the first
   400 may shrink; report whatever the full set gives (no reverting to 400).
@@ -521,3 +521,9 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
 - 2026-11-16: agy review 5 first attempt died on a network error (TLS handshake timeout, error step type 17) and the
   helper waited 25 min; `agy_ask.py` now exits on an error step (the run script retries three times). Antigravity on this
   Mac is also used for other projects: never touch conversations that are not ours.
+- 2026-11-16 12:50: the second-block passes were first named tbatchB / tbatchBb / tbatchBc. On the Mac's
+  case-insensitive disk pn_sync.sh then copied a2's tbatchB16/32-*-gsmthink.jsonl (919 rows) over the first block's
+  tbatchb16/32-*-gsmthink.jsonl (400 rows; "longer replaces shorter"). Caught in `git status` before any commit; the 8
+  files were restored from git and the passes renamed on the boxes to tbatch2a / tbatch2b / tbatch2c. The paper numbers
+  were not affected (block rows come from the first pass, walls from the summaries, which were not replaced).
+  Rule: never let two run names differ only by case.
