@@ -6,13 +6,17 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 
 ## 1. Where things stand
 
-- **Status (2026-11-16 evening): ACL fact-check round in progress** (user, 11-16: "screenshots and comparison, fact-check
-  every citation source and number, with Gemini, Kaiming He style throughout; the paper goes to ACL"). Done: every
-  benchmark, tool and training set is cited; bib venues, title case and authors checked against the arXiv API; every
-  citation's claim checked against the cited paper's full text (two subagents) and by agy; printed numbers re-audited
-  (all numbers in the text are in `paper_numbers.json` or checked by hand); Kaiming-style abstract and introduction.
-  Open: Google Scholar check of every entry via Kimi WebBridge (stopped by a captcha at entry 22, the user must click
-  it; `scratchpad/bib/scholar_run.py` resumes), agy round 2 (style passes, review 6), then `BIB_VERIFICATION.md`.
+- **Status (2026-11-16 19:30): ACL fact-check round done except the Google Scholar pass** (user, 11-16: "screenshots
+  and comparison, fact-check every citation source and number, with Gemini, Kaiming He style throughout; the paper goes
+  to ACL"). Done: every benchmark, tool and training set cited; bib venues/titles/authors checked against the arXiv API;
+  every citing sentence checked against the cited paper's full text (8 descriptions corrected); all printed numbers
+  audited (fixes: 9.6, 1.8, 31.0, +4.6, 0.3-2.6%, decimals in Section 5.5 and Table 14; HELMET Table 17 now shows all
+  four categories); three agy fact-check rounds (the third found nothing real), agy review 6 (Soundness 4, Excitement 4,
+  Overall 3.5), ~80 vetted style edits (Kaiming style: see memory `b300-kaiming-style`); every page rendered and
+  checked, figures pixel-identical to before. Open: Google Scholar check via Kimi WebBridge, 39 of 100 entries done;
+  Scholar shows "Please show you're not a robot" every ~20 queries and the user must click it. Resume with
+  `cd <scratchpad>/bib && python3 ~/.b300-handoff/bibcheck/scholar_run.py KEYS scholar.jsonl` (skips done keys; copy
+  the jsonl if the scratchpad is gone), then `analyze_scholar.py` and `mk_bibver.py`.
 - **Status (2026-11-16 14:30): ready for the user to submit to arXiv.** Every experiment is in the paper and nothing is
   running on a1 or a2. The user submits personally: upload `paper/arxiv/arxiv.tar.gz` (rebuilt by `pn_sync.sh
   pipeline`; 13 figure files, own `main.bbl`), copy the metadata from `paper/arxiv/ARXIV_SUBMISSION.md` (27 pages, 14
