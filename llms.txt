@@ -8,7 +8,7 @@
 > recomputed from released per-item scores by ouro/scripts/paper_numbers.py.
 
 Main findings (Ouro-2.6B; 95% paired bootstrap intervals in the paper):
-- Prefill is 0.4-2.6% of the time of a chain-of-thought request.
+- Prefill is 0.3-2.6% of the time of a chain-of-thought request.
 - One decode loop: four prefill loops raise the 11-benchmark average from 44.2 (original) to 58.6 (fixed m=4) and
   58.2 (LoopBridge), above the original model distilled to one loop on the same data (49.5; rank 80: 49.3); MATH-500
   zero-shot.

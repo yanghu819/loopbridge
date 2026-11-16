@@ -1719,7 +1719,11 @@
    "label": "2.6B-T prefill 4 vs 1 (decode 1) rag",
    "key_a": "B:T26ne-S41-helmet:helmet#rag",
    "key_b": "B:T26ne-S11-helmet:helmet#rag",
-   "printed": null,
+   "printed": [
+    15.4,
+    11.9,
+    18.8
+   ],
    "n": 700,
    "a": 49.0,
    "b": 33.625,
@@ -1732,7 +1736,11 @@
    "label": "2.6B-T prefill 4 vs 1 (decode 1) rerank",
    "key_a": "B:T26ne-S41-helmet:helmet#rerank",
    "key_b": "B:T26ne-S11-helmet:helmet#rerank",
-   "printed": null,
+   "printed": [
+    13.4,
+    7.2,
+    20.0
+   ],
    "n": 41,
    "a": 28.737,
    "b": 15.334,
@@ -1745,7 +1753,11 @@
    "label": "2.6B-T prefill 4 vs 1 (decode 1) icl",
    "key_a": "B:T26ne-S41-helmet:helmet#icl",
    "key_b": "B:T26ne-S11-helmet:helmet#icl",
-   "printed": null,
+   "printed": [
+    5.1,
+    -0.4,
+    10.5
+   ],
    "n": 333,
    "a": 62.393,
    "b": 57.304,
@@ -1758,7 +1770,11 @@
    "label": "2.6B-T prefill 4 vs 1 (decode 1) recall",
    "key_a": "B:T26ne-S41-helmet:helmet#recall",
    "key_b": "B:T26ne-S11-helmet:helmet#recall",
-   "printed": null,
+   "printed": [
+    -2.9,
+    -23.5,
+    17.6
+   ],
    "n": 34,
    "a": 17.647,
    "b": 20.588,
@@ -1771,7 +1787,11 @@
    "label": "1.4B-T prefill 4 vs 1 (decode 1) rag",
    "key_a": "B:T14ne-S41-helmet:helmet#rag",
    "key_b": "B:T14ne-S11-helmet:helmet#rag",
-   "printed": null,
+   "printed": [
+    14.5,
+    11.0,
+    18.0
+   ],
    "n": 700,
    "a": 47.25,
    "b": 32.75,
@@ -1784,7 +1804,11 @@
    "label": "1.4B-T prefill 4 vs 1 (decode 1) rerank",
    "key_a": "B:T14ne-S41-helmet:helmet#rerank",
    "key_b": "B:T14ne-S11-helmet:helmet#rerank",
-   "printed": null,
+   "printed": [
+    18.0,
+    11.8,
+    24.1
+   ],
    "n": 41,
    "a": 28.258,
    "b": 10.294,
@@ -1797,7 +1821,11 @@
    "label": "1.4B-T prefill 4 vs 1 (decode 1) icl",
    "key_a": "B:T14ne-S41-helmet:helmet#icl",
    "key_b": "B:T14ne-S11-helmet:helmet#icl",
-   "printed": null,
+   "printed": [
+    9.3,
+    3.6,
+    15.0
+   ],
    "n": 333,
    "a": 64.184,
    "b": 54.916,
@@ -1810,7 +1838,11 @@
    "label": "1.4B-T prefill 4 vs 1 (decode 1) recall",
    "key_a": "B:T14ne-S41-helmet:helmet#recall",
    "key_b": "B:T14ne-S11-helmet:helmet#recall",
-   "printed": null,
+   "printed": [
+    -23.5,
+    -38.2,
+    -8.8
+   ],
    "n": 34,
    "a": 2.941,
    "b": 26.471,

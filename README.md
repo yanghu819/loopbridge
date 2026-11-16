@@ -16,7 +16,7 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
 
 ## Key findings (Ouro-2.6B unless stated)
 
-1. **Generation is almost all decoding.** Prefill is 0.4-2.6% of the time of a chain-of-thought answer.
+1. **Generation is almost all decoding.** Prefill is 0.3-2.6% of the time of a chain-of-thought answer.
 2. **Same decode loops, more accuracy.** With one decode loop, four prefill loops raise the 11-benchmark average from
    44.2 (original model) to 58.6 (fixed-depth adapter) and 58.2 (LoopBridge), above the original model distilled to
    one loop on the same data (49.5; 49.3 at rank 80); with two decode loops, 63.7 -> 69.0 / 69.1. Both adapters beat

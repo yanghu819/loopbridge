@@ -44,6 +44,10 @@ def ruler(run, k):
     return f"B:{run}f:ruler{k}k"
 
 
+HELMET_CAT_PRINTED = {   # Appendix N, Table 17 (prefill 4 - 1 at decode 1, one-cache LoopBridge): (diff, lo, hi)
+    ("2.6B-T prefill 4 vs 1 (decode 1)", "rag"): (15.4, 11.9, 18.8), ("2.6B-T prefill 4 vs 1 (decode 1)", "rerank"): (13.4, 7.2, 20.0), ("2.6B-T prefill 4 vs 1 (decode 1)", "icl"): (5.1, -0.4, 10.5),
+    ("2.6B-T prefill 4 vs 1 (decode 1)", "recall"): (-2.9, -23.5, 17.6), ("1.4B-T prefill 4 vs 1 (decode 1)", "rag"): (14.5, 11.0, 18.0), ("1.4B-T prefill 4 vs 1 (decode 1)", "rerank"): (18.0, 11.8, 24.1),
+    ("1.4B-T prefill 4 vs 1 (decode 1)", "icl"): (9.3, 3.6, 15.0), ("1.4B-T prefill 4 vs 1 (decode 1)", "recall"): (-23.5, -38.2, -8.8)}
 # (section, label, A, B, printed value (diff, lo, hi) or None); difference = A - B
 EQUAL = [("GSM8K", "T:T26-S42-gsm8k_think:math_verify", "T:think-native{n}-gsm8k_think:math_verify"),
          ("MATH-500", "T:T26-S42-math500_think:math_verify", "T:think-native{n}-math500_think:math_verify"),
@@ -168,7 +172,7 @@ CMP += [
      None),
     ("App A", "2.6B-T answer once vs per-loop answer banks, prefill 4/decode 2 GSM8K (full)",
      "T:T26-O-universal-O42-gsm8k_think:math_verify", "T:T26-S42-gsm8k_think:math_verify", (0.5, -0.5, 1.6)),
-    *[("HELMET by category", f"{lab} {cat}", f"B:{x}:helmet#{cat}", f"B:{y}:helmet#{cat}", None)
+    *[("HELMET by category", f"{lab} {cat}", f"B:{x}:helmet#{cat}", f"B:{y}:helmet#{cat}", HELMET_CAT_PRINTED.get((lab, cat)))
       for lab, x, y in (("2.6B-T prefill 4/decode 2 vs native 4/4", "T26ne-S42-helmet", "T26ne-native4-helmet"),
                         ("2.6B-T prefill 4/decode 2 vs native 2/2", "T26ne-S42-helmet", "T26ne-native2-helmet"),
                         ("2.6B-T prefill 4 vs 1 (decode 1)", "T26ne-S41-helmet", "T26ne-S11-helmet"),
@@ -1051,7 +1055,7 @@ def main_key(bench, kind, c, model="Ouro-2.6B"):
 
 
 GSM_PROTOCOL_PRINTED = {   # Appendix B (diff, lo, hi)
-    (GFLEX, "aligned adapter 4/1", "LoRA-distilled 1/1"): (6.7, 4.0, 9.3), (GF, "aligned adapter 4/1", "LoRA-distilled 1/1"): (4.5, None, None),
+    (GFLEX, "aligned adapter 4/1", "LoRA-distilled 1/1"): (6.7, 4.0, 9.3), (GF, "aligned adapter 4/1", "LoRA-distilled 1/1"): (4.6, None, None),   # = 45.0 - 40.4 of Table 1
     (GF, "aligned adapter 4/2", "native 2/2"): (3.4, 1.2, 5.6), (GFLEX, "aligned adapter 4/2", "native 2/2"): (1.2, -0.8, 3.3)}
 
 
@@ -2241,7 +2245,8 @@ def gsm_protocol():
                 r = boot(sets[label], sets[ref])
                 out.append(dict(metric=metric, row=label, ref=ref, **{k: round(float(v), 2) for k, v in r.items()}))
                 want = GSM_PROTOCOL_PRINTED.get((metric, label, ref))
-                if want and any(abs(r[k] - w) > 0.051 for k, w in zip(("diff", "lo", "hi"), want) if w is not None):
+                chk = dict(r, diff=shown_diff(r["a"], r["b"])) if metric == GF else r   # strict: Table 1 prints both values
+                if want and any(abs(chk[k] - w) > 0.051 for k, w in zip(("diff", "lo", "hi"), want) if w is not None):
                     print(f"GSM protocol {label} vs {ref} ({metric}): {r['diff']:+.2f}  !! paper: {want}")
                 print(f"GSM protocol {metric.split(':')[1]:16s} {label:20s} {r['a']:5.1f} vs {ref:18s} {r['b']:5.1f} "
                       f"{r['diff']:+5.1f} [{r['lo']:+.1f}, {r['hi']:+.1f}] n={r['n']}")

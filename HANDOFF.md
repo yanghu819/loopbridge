@@ -32,7 +32,7 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 - **Removed from the paper (results stay in the repo)**: SenseNova-9B hybrid, one-cache task map and per-benchmark
   depth selection (cross-fitted), Nanbeige, the Ouro-1.4B-Thinking comparisons against Original. Kept: Ouro-2.6B core,
   Ouro-1.4B, the Thinking models, Lev decision models.
-- **Story**: (1) prefill is 0.4-2.6% of a chain-of-thought request (Figure 2); (2) same decode loops: 44.2 -> 58.6 /
+- **Story**: (1) prefill is 0.3-2.6% of a chain-of-thought request (Figure 2, Section 5.1); (2) same decode loops: 44.2 -> 58.6 /
   58.2 at n=1 vs Distilled 49.5 (Table 1, MATH-500 zero-shot since 11-15); (3) the gain levels off after two to five prefill loops (Figure 5); (4) measured time
   (800 requests): +18.6 / +17.2 over Original 1/1 for 1.14x / 1.21x the time, +10-14 at the same mean time (Figure 6);
   (5) transfers to Ouro-1.4B, Thinking (4/2 within 0.8 of 4/4, 1.1+-0.3 over three seeds; served in batches, as

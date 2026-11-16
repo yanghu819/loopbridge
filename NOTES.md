@@ -553,3 +553,14 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   He's papers (one research question, results as paragraphs instead of bullets); one name per thing in the appendix
   (no "aligned/loop adapter", "native", "BBH 3-shot"). Google Scholar check via Kimi WebBridge: 21 of 98 entries done,
   then a captcha (waiting for the user).
+- 2026-11-16 18:30: agy round 2 (fact check of the new text, ACL review 6, style on all five chunks). Review 6:
+  Soundness 4, Excitement 4, Overall 3.5; asks again for a self-speculative baseline (still declined) and why Thinking
+  4/2 beats the 2/2 models on time (answered: shorter answers, 788 vs 937 and 893 tokens, Table 15). Fact-check fixes:
+  strict GSM8K gain +4.5 -> +4.6 (Table 1 prints 45.0 and 40.4), abstract prefill share 0.3-2.6% (all original loop
+  settings, as in Section 5.1), Figure 2 no longer says "every configuration", Table 3 names the one-cache rows,
+  Table 5's m* is chosen on the first half of the items (so it need not match the row), the depth-sweep adapter is
+  described in Appendix G, Lev's fewer-prefill claim points at Table 16. HELMET Table 17 now shows all four categories
+  with intervals: synthetic recall (34 items) does not gain (-2.9 on 2.6B-T, -23.5 on 1.4B-T); ICL +5.1 on 2.6B-T is
+  not significant; all eight values guarded. Style: 25 main-text and 29 appendix edits vetted and applied (agy pushes
+  toward formal wording and participle chains; those were reworded). Scholar resumed after the captcha cleared;
+  FlashAttention-2 is ICLR 2024 (bib updated).
