@@ -208,6 +208,9 @@ def fig_equal():
         if hi - lo < 6:   # at least 6 points per panel, so differences within noise are not drawn as large gaps
             mid = (lo + hi) / 2
             ax.set_ylim(mid - 3, mid + 3)
+        low = e["ours"] if below else e["native2"]   # the point whose label goes below it: keep the label off the axis
+        lo, hi = ax.get_ylim()
+        ax.set_ylim(min(lo, low - 0.3 * (hi - lo)), hi)
     fig.supxlabel("decode loops n", fontsize=8.5, y=0.01); fig.supylabel("score (%)", fontsize=8.5, x=0.005)
     legend(fig, "Ours, prefill 4 / decode 2", "", y=1.02, ncol=2)
     fig.subplots_adjust(wspace=0.35, hspace=0.45, left=0.07, right=0.99, bottom=0.1, top=0.9)
@@ -911,9 +914,9 @@ def tab_longctx():
 
 
 def tab_time():
-    """Appendix: per-request distributions behind Figure 1 (200 requests per task, batch 1)."""
+    """Appendix: per-request distributions behind Figure 2 (200 requests per task, batch 1)."""
     rows = [r for r in PN.get("time_breakdown", []) if "total_median" in r]
-    confs = [("a4x1pm", "Ours 4/1"), ("a4x2pm", "Ours 4/2"), ("native1st", "Original 1/1"), ("native2st", "Original 2/2"),
+    confs = [("a4x1pm", "LoopBridge 4/1"), ("a4x2pm", "LoopBridge 4/2"), ("native1st", "Original 1/1"), ("native2st", "Original 2/2"),
              ("native4st", "Original 4/4")]
     lines = []
     for t in TIMED:

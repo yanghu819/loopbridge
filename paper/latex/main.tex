@@ -56,7 +56,7 @@ parameters). For a fixed prefill depth, LoRA on the decoder is enough. LoopBridg
 that one adapter serves every trained pair of loop counts and still retrieves facts from 16K-token prompts. On Ouro-2.6B with
 one decode loop, four prefill loops lift the average over 11 benchmarks from 44.2 to 58.6 with the fixed-depth adapter
 (58.2 with LoopBridge). Both scores are well above the original model distilled to one loop on the same data (49.5). On four
-chain-of-thought tasks, our models take 14--21\% more time per request than the original model and are 17--19 points more accurate. Two to five prefill loops give most of the gain. The gain holds on Ouro-1.4B, on the Thinking models
+chain-of-thought tasks, our models take 14--21\% more time per request than the original model with one loop and are 17--19 points more accurate. Two to five prefill loops give most of the gain. The gain holds on Ouro-1.4B, on the Thinking models
 and on looped decision models.
 \end{abstract}
 
@@ -74,7 +74,7 @@ written by four loops. *Chain-of-thought answers at batch 1 (Figure~\ref{fig:tim
 \label{fig:concept}
 \end{figure}
 
-Looped language models such as Ouro~\citep{ut,ouro} reuse one block of layers several times for each token. Ouro-2.6B
+Looped language models~\citep{ut} such as Ouro~\citep{ouro} reuse one block of layers several times for each token. Ouro-2.6B
 runs its block four times, for each prompt token and each answer token (Figure~\ref{fig:concept}a). Yet the two phases
 take very different amounts of time. Prefill reads the whole prompt at once, in parallel. Decoding runs again for
 every new token. On chain-of-thought tasks, decoding takes more than 97\% of the time (Figure~\ref{fig:time}).
@@ -108,7 +108,7 @@ and 69.1 with our two adapters (Table~\ref{tab:main}).
 \item \textbf{A little more time, much higher accuracy.} At one decode loop, our models take 14--21\% more time per request than the original model and are 17--19 points more accurate (Figure~\ref{fig:budget}). At the same mean time, they beat a mix of the original model's one- and two-loop settings by 10--14 points. Served in batches of 32,
 LoopBridge 4/1 keeps an 18.5-point lead over Original 1/1 for 18\% more time.
 \item \textbf{A few prefill loops are enough.} Two to five prefill loops give most of the gain (Figure~\ref{fig:depth}).
-\item \textbf{The gain carries over.} The gain holds on Ouro-1.4B, on looped decision models and on Ouro-2.6B-Thinking.
+\item \textbf{The gain carries over.} It holds on Ouro-1.4B, on looped decision models and on Ouro-2.6B-Thinking.
 On Ouro-2.6B-Thinking, LoopBridge with four prefill loops and two decode loops comes within 0.8 points of Original 4/4
 on average (Section~\ref{sec:others}). Served in batches, it matches the accuracy of Original 4/4 on 400 GSM8K problems in
 about half the time (Section~\ref{sec:budget}).
@@ -212,7 +212,7 @@ the loops without an adapter. \emph{Distilled $n/n$} is the $n$-loop model with 
 the
 same data, teacher and 48M tokens as our adapter. We train it at rank 16 and at rank 80 (62.9M parameters, as many as
 the
-adapter). Scaling its learning rate by 0.3 or 3 changes its average by at most 0.8 points (Table~\ref{tab:ablate}c), so
+adapter). Scaling its learning rate by 0.3 or 3 changes its average by at most 0.8 points (Table~\ref{tab:ablate}c; Appendix~\ref{app:method}), so
 it is not under-tuned.
 
 \paragraph{Time.} We time each request at batch 1 on one B300 GPU (bfloat16, greedy decoding). We split the time into
@@ -285,9 +285,9 @@ uses the items all points share; every benchmark and $(m,n)$ cell: Table~\ref{ta
 \label{fig:grid}
 \end{figure*}
 
-In Figure~\ref{fig:grid}, we vary the number of decode loops. The original model loses most of its accuracy when it
+In Figure~\ref{fig:grid}, we vary the number of decode loops. The original model loses much of its accuracy when it
 decodes with fewer
-loops. With a four-loop prefill, the decoder keeps much of this accuracy. At one decode loop, MMLU rises from 51.5 to
+loops. With a four-loop prefill, the decoder keeps much of it. At one decode loop, MMLU rises from 51.5 to
 67.1, BBH
 from 30.9 to 52.7, and HumanEval+ from 44.5 to 65.2. Multi-step math tasks rely on decode loops the most. On GSM8K,
 the original model
@@ -441,7 +441,7 @@ one-cache LoopBridge already averages 54.8 at 4/1. This is above the distilled m
 Table~\ref{tab:ablate}b). With 12M tokens, using LoRA rank 4 or 64 instead of 16 changes its averages by at most 0.7
 points.
 Scaling the learning-rate schedule by 0.3 or 3 moves the distilled model by at most 0.8 points and LoopBridge by at
-most 1.4. The worst LoopBridge setting (56.8) is still above the best distilled one (49.5; Table~\ref{tab:ablate}c).
+most 1.4 (Appendix~\ref{app:method}). The worst LoopBridge setting (56.8) is still above the best distilled one (49.5; Table~\ref{tab:ablate}c).
 
 \subsection{Other models}
 \label{sec:others}
@@ -472,7 +472,9 @@ decision loop: $+5.3$\ci{3.4}{7.2} on Lev-1.4B, $+7.5$\ci{5.7}{9.5} on Lev-2.6B 
 
 When a model writes a chain of thought, it spends almost all its time decoding. A looped model can therefore read the
 prompt with more loops than it uses for each answer token. We make this work with a small distilled adapter. With four
-prefill loops and one decode loop, accuracy rises by about 14 points on average over the original model. For 14--21\% more time per request, accuracy rises by 17--19 points, and by 10--14 points at the same mean time. LoopBridge lets
+prefill loops and one decode loop, the average over 11 benchmarks rises by about 14 points over the original model with
+one loop. On the four chain-of-thought tasks we time, our models take 14--21\% more time per request and are 17--19
+points more accurate. At the same mean time, they are 10--14 points more accurate. LoopBridge lets
 one adapter serve every trained pair of loop counts
 and keeps retrieval over 16K-token prompts working. Reading the prompt with many loops and decoding with few loops
 gives looped models a cheap way to spend more compute at test time.
@@ -993,9 +995,11 @@ bootstrap over items with 5,000 resamples. One script recomputes these intervals
 
 \paragraph{Scoring and prompts.} We score MATH-500 on the final answer. Math-verify compares the last \verb|\boxed{}|
 of each answer with the reference. The strict Minerva match in lm-evaluation-harness also asks for the exemplars'
-closing sentence. Zero-shot answers do not write this sentence. We evaluate Original throughput baselines under
+closing sentence. Zero-shot answers do not write this sentence.
+
+\paragraph{Throughput baselines.} We evaluate the original model's decode throughput under
 different cache options. Static per-loop caches with the same two-call flash attention run fastest. The standard
-dynamic cache reaches 500 / 245 / 105 tokens/s at $n=1/2/4$. A preallocated contiguous cache with one attention call
+dynamic cache reaches 500 / 245 / 105 \mbox{tokens/s} at $n=1/2/4$. A preallocated contiguous cache with one attention call
 reaches 267 / 130 / 57. All cache configurations produce identical greedy tokens.
 
 \FloatBarrier
@@ -1143,8 +1147,8 @@ answers and wall seconds per request at batch 16 and 32, mean of three timing pa
 \paragraph{Serving.} Storing the prompt once also raises throughput.
 We test this in a controlled decode benchmark with an 8K context and 32 repeated decode steps.
 We evaluate batch sizes up to the largest that fits on one B300 and report the best result.
-With one prompt KV cache, \rw{4}{n} decodes 406, 271 and 203 tokens/s at $n=2,3,4$.
-The fastest implementation of the original model we measured reaches 342, 200 and 125 tokens/s.
+With one prompt KV cache, \rw{4}{n} decodes 406, 271 and 203 \mbox{tokens/s} at $n=2,3,4$.
+The fastest implementation of the original model we measured reaches 342, 200 and 125 \mbox{tokens/s}.
 The one-cache model is $1.19$--$1.62\times$ as fast because it fits larger batches. The original model keeps $n$
 prompt caches, so the gap grows with $n$.
 This baseline uses the same flash attention and is faster than the standard dynamic cache (Appendix~\ref{app:eval}).
@@ -1157,7 +1161,7 @@ $3.3\times$ at 15K tokens, where \rw{4}{2} also outpaces \nat{2} ($1.12\times$).
 \includegraphics[width=\columnwidth]{../figs/fig2_frontier.pdf}
 \caption{\textbf{With one prompt cache, two decode loops come within 1.3 points of four decode loops on average at $3.2\times$
 the decode throughput.} Ouro-2.6B-Thinking with the one-cache LoopBridge: average accuracy over eight benchmarks (each on the items all
-configurations share) against a separate decode microbenchmark (best tokens/s over batch sizes at an 8K-token prompt,
+configurations share) against a separate decode microbenchmark (best \mbox{tokens/s} over batch sizes at an 8K-token prompt,
 Appendix~\ref{app:serve}). Labels: prefill/decode loops; the four
 prefill loops add 3.1 points over 2/2 at the same decode cost.}
 \label{fig:frontier}
