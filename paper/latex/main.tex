@@ -50,7 +50,7 @@ Looped language models run the same block of layers several times for every toke
 to read the prompt (prefill) and to write each new token (decode). Yet when a model writes a chain of thought, almost
 all of the time goes into decoding: on Ouro-2.6B at batch 1, prefill takes only 0.3--2.6\% of the time. Extra prefill
 loops therefore cost little at small batch sizes. We untie the two loop counts, reading the prompt with more loops and
-decoding with fewer. The original model cannot use a prompt read with more loops, so we distil a small adapter (at most 2.4\%
+decoding with fewer. Untying fails without training, so we distil a small adapter (at most 2.4\%
 of the parameters). For a fixed prefill depth, LoRA on the decoder is enough. LoopBridge adds key and value maps,
 so that one adapter serves every trained pair of loop counts and keeps retrieval over 16K-token prompts working. On
 Ouro-2.6B with one decode loop, four prefill loops lift the average over 11 benchmarks from 44.2 to 58.6 with the
@@ -77,7 +77,7 @@ written by four loops. *Chain-of-thought answers at batch 1 (Figure~\ref{fig:tim
 Looped language models~\citep{ut} such as Ouro~\citep{ouro} reuse one block of layers several times for each token. Ouro-2.6B
 runs its block four times, both for each prompt token and for each answer token (Figure~\ref{fig:concept}a). Yet the two
 phases take very different amounts of time, because prefill reads the whole prompt at once, in parallel, while decoding runs
-again for every new token. On chain-of-thought tasks at batch 1, decoding takes more than 97\% of the time (Figure~\ref{fig:time}).
+again for every new token. On chain-of-thought tasks at batch 1, decoding takes more than 97\% of the original model's time (Figure~\ref{fig:time}).
 
 \begin{figure}[t]
 \centering
@@ -101,12 +101,12 @@ enough. LoopBridge instead serves every trained pair of prefill and decode loop 
 keep retrieval over 16K-token prompts working, and we fold them into the prompt cache, so each decoded token costs about
 the same as in the original model.
 
-At the same number of decode loops, untying is much more accurate. On Ouro-2.6B with one decode loop, four prefill
+With one or two decode loops, untying is much more accurate. On Ouro-2.6B with one decode loop, four prefill
 loops lift the 11-benchmark average from 44.2 to 58.6 with the fixed-depth adapter and to 58.2 with LoopBridge
 (Table~\ref{tab:main}). The original model distilled to one loop on the same data reaches only 49.5 (49.3 with as many
-parameters as our adapter). With two decode loops, four prefill loops lift the average from 63.7 to 69.0 and 69.1. On the four
-chain-of-thought tasks we time, our models take 14--21\% more time per request than the
-original model with one loop and are 17--19 points more accurate (Figure~\ref{fig:budget}). At the same mean time, they
+parameters as LoopBridge). With two decode loops, four prefill loops lift it from 63.7 (Original 2/2) to 69.0 and 69.1, above Distilled 2/2 (66.2). On the
+four chain-of-thought tasks we time, our 4/1 models take 14--21\% more time per request than Original 1/1 and are
+17--19 points more accurate (Figure~\ref{fig:budget}). At the same mean time, they
 are 10--14 points more accurate than a mix of the original model's one- and two-loop settings. Served in batches of 32,
 LoopBridge 4/1 is 18.5 points more accurate than Original 1/1 and takes 18\% more time. Two to five prefill loops give most of the gain
 (Figure~\ref{fig:depth}).
@@ -463,11 +463,12 @@ on Lev-1.4B, $+7.5$\ci{5.7}{9.5} on Lev-2.6B and $+4.4$\ci{2.8}{6.1} on Lev-3B (
 
 When a model writes a chain of thought, it spends almost all its time decoding. A looped model can therefore read the
 prompt with more loops than it uses for each answer token. We make this work with a small distilled adapter. With four
-prefill loops and one decode loop, the average over 11 benchmarks rises by about 14 points over the original model with
-one loop. On the four chain-of-thought tasks we time, our models take 14--21\% more time per request than the original model with one loop and are 17--19
+prefill loops and one decode loop, the average over 11 benchmarks on Ouro-2.6B rises by about 14 points over the original
+model with one loop. On the four chain-of-thought tasks we time, our 4/1 models take 14--21\% more time per request than
+Original 1/1 and are 17--19
 points more accurate (10--14 points at the same mean time). LoopBridge lets
 one adapter serve every trained pair of loop counts
-and keeps retrieval over 16K-token prompts working. Reading the prompt with many loops and decoding with few loops
+and keeps retrieval over 16K-token prompts working. Reading the prompt with more loops than each answer token uses
 gives looped models a cheap way to spend more compute at test time.
 
 \section*{Limitations}
@@ -477,8 +478,7 @@ We measure run time on one GPU type, at batch sizes from 1 to 32. With larger ba
 larger share of the time. Folding the maps into the prompt cache keeps one prompt cache per decode loop, as the
 original model does at $n$ loops. The one-cache LoopBridge keeps a single cache, but applies its maps at every decode step, which costs decode time. We fix
 the prefill depth for each setting, rather than choosing it per prompt. The models we test have at most 3B parameters
-and four
-loops, and all benchmarks are in English.
+and were trained with at most four loops, and all benchmarks are in English.
 
 
 \FloatBarrier
