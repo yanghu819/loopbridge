@@ -637,4 +637,13 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   adds"); the Conclusion again ends well above the page-8 bottom. The arXiv
   package compiles on its own from the shipped main.bbl (tectonic re-runs BibTeX unless \bibliography is replaced by
   \input{main.bbl}; arXiv does not run BibTeX): 26 pages, text identical to the published PDF.
+- 2026-11-17 23:30: Huginn quick test (user: "其他的loop model效果一般? 你试试huginn, 快速试一下, 不ok的话不加了").
+  Huginn-0125, training-free (it was trained with random recurrence counts), GSM8K first 150 test items, 8-shot CoT,
+  greedy, same seed per item; prompt minus its last token prefilled with M recurrences, then decode recurrence k reads
+  prefill recurrence M-N+k (cache renumbered), as in the paper. Paired, strict match: 32/8 vs 8/8 +3.3 [-2.0, +8.7];
+  32/16 vs 16/16 -0.8 [-7.4, +5.8] (121 items); 32/4 vs 4/4 -2.0 [-5.3, +0.7] (Huginn barely solves GSM8K below 8
+  recurrences). No reliable gain without an adapter, so it is not in the paper (as with SenseNova-9B and Nanbeige).
+  Script, raw outputs and the transformers-4.54 cache patch: a2:/root/pn/huginn.
+  README and llms.txt synced with the paper (at most 2.4%; every trained (m, n); batch 1; Distilled 2/2 on the
+  Thinking model; the one-cache LoopBridge sentence; no HELMET item-average claim).
 

@@ -3,12 +3,12 @@
 > Looped (recurrent-depth) language models use the same number of loops to read the prompt (prefill) and to generate
 > each answer token (decode), although generation is almost all decoding. We untie the two loop counts (prefill m
 > loops, decode n < m) and distill a small adapter from the original four-loop model: LoRA on the decoder for a fixed
-> prefill depth ("Ours, fixed m"), or LoopBridge (LoRA + per-loop key/value maps) for every (m, n) with one set of
+> prefill depth ("Ours, fixed m"), or LoopBridge (LoRA + per-loop key/value maps) for every trained (m, n) with one set of
 > weights ("Ours, any m"). Ouro-2.6B, Ouro-1.4B, the Thinking models and Lev decision models. Every number is
 > recomputed from released per-item scores by ouro/scripts/paper_numbers.py.
 
 Main findings (Ouro-2.6B; 95% paired bootstrap intervals in the paper):
-- Prefill is 0.3-2.6% of the time of a chain-of-thought request.
+- At batch 1, prefill is 0.3-2.6% of the time of a chain-of-thought request.
 - One decode loop: four prefill loops raise the 11-benchmark average from 44.2 (original) to 58.6 (fixed m=4) and
   58.2 (LoopBridge), above the original model distilled to one loop on the same data (49.5; rank 80: 49.3); MATH-500
   zero-shot.
@@ -18,11 +18,11 @@ Main findings (Ouro-2.6B; 95% paired bootstrap intervals in the paper):
 - The gain peaks after two to five prefill loops (also for an adapter trained to 16 loops, over seeds, and with the
   prefill loops trained too).
 - Transfers to Ouro-1.4B (44.2-44.6 vs 40.5 distilled, three seeds), Ouro-2.6B-Thinking (4/2 within 0.8 points of 4/4 on
-  average; served in batches, as accurate as 4/4 on all 1,319 GSM8K problems in about half its time) and Lev.
+  average and 3.1 above Distilled 2/2; served in batches, as accurate as 4/4 on all 1,319 GSM8K problems in about half its time) and Lev.
 - Baselines: the distilled controls move by at most 0.8 points over 0.3x-3x learning rates and at rank 80.
 
 Limitations stated by the author: timing on one GPU type at batch 1 to 32; folded maps keep one prompt cache per decode
-loop (per-step maps keep one cache but cost decode time); the prefill depth is fixed per setting; models up to 3B with
+loop (the one-cache LoopBridge keeps one cache but applies its maps at every decode step, which costs decode time); the prefill depth is fixed per setting; models up to 3B with
 four loops; English benchmarks.
 
 ## Docs

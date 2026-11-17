@@ -7,16 +7,16 @@ compute, prefill vs decode, loop adapter, KV cache
 Looped (recurrent-depth) language models run one block of layers several times per token, with the same number of
 loops for reading the prompt (prefill) and for every answer token (decode). Generation is almost all decoding, so we
 **untie the two loop counts**: read the prompt with *m* loops and decode each answer token with fewer, *n < m*. The
-released model cannot do this by itself, so we distill a small adapter (2.4% of the parameters): **LoRA on the
+released model cannot do this by itself, so we distill a small adapter (at most 2.4% of the parameters): **LoRA on the
 decoder** when the prefill depth is fixed ("Ours, fixed m"), or **LoopBridge** (LoRA plus per-loop key/value maps on
-the prompt cache), which serves every (m, n) with one set of weights ("Ours, any m").
+the prompt cache), which serves every trained (m, n) with one set of weights ("Ours, any m").
 
 **Every number in the paper is recomputed from released per-item scores and timing records by one script** and checked
 against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [`REPRODUCE.md`](REPRODUCE.md).
 
 ## Key findings (Ouro-2.6B unless stated)
 
-1. **Generation is almost all decoding.** Prefill is 0.3-2.6% of the time of a chain-of-thought answer.
+1. **Generation is almost all decoding.** At batch 1, prefill is 0.3-2.6% of the time of a chain-of-thought answer.
 2. **Same decode loops, more accuracy.** With one decode loop, four prefill loops raise the 11-benchmark average from
    44.2 (original model) to 58.6 (fixed-depth adapter) and 58.2 (LoopBridge), above the original model distilled to
    one loop on the same data (49.5; 49.3 at rank 80); with two decode loops, 63.7 -> 69.0 / 69.1. Both adapters beat
@@ -31,12 +31,11 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
    16 loops, over seeds, and when the prefill loops are trained too).
 5. **It transfers** to Ouro-1.4B (both adapters 44.2-44.6 on average over three seeds, against 40.5 for the distilled
    model and 34.7 for the original), Ouro-2.6B-Thinking (LoopBridge 4/2 within 0.8 points of the original 4/4 on
-   average, 1.1 +- 0.3 over three seeds; served in batches, as accurate as 4/4 on all 1,319 GSM8K problems, 94.6 vs
+   average, 1.1 +- 0.3 over three seeds, and 3.1 above Distilled 2/2; served in batches, as accurate as 4/4 on all 1,319 GSM8K problems, 94.6 vs
    94.2-94.3, in 0.47-0.57x its time) and
    looped decision models (Lev, +4.4 to +7.5 at one decision loop).
 6. **LoopBridge's key/value maps keep retrieval over 16K-token prompts** when one adapter serves every depth
-   (RULER-16K at 4/1 over three seeds: 63.9 vs 57.6 for a parameter-matched rank-80 LoRA and 44.7 at rank 16); on
-   HELMET (item average) LoopBridge is 2.0 points above the rank-16 LoRA and level with the rank-80 one.
+   (RULER-16K at 4/1 over three seeds: 63.9 vs 57.6 for a parameter-matched rank-80 LoRA and 44.7 at rank 16).
 7. **The baselines are not under-tuned:** the distilled controls move by at most 0.8 points over a 0.3x-3x
    learning-rate range and at rank 80; LoopBridge's weakest learning rate still beats the best distilled control.
 
@@ -52,8 +51,8 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
 
 - Use more prefill loops when decoding must stay at one loop; with more time, a second decode loop buys more
   on long chain-of-thought answers.
-- Two to five prefill loops are enough on most tasks; more can hurt. The best count depends on the prompt format (with
-  the 4-shot Minerva MATH-500 prompt one prefill loop is best; zero-shot, four). It is not a per-prompt router.
+- Two to five prefill loops are enough on most tasks; more can hurt. The best count depends on the task and the prompt
+  format; it is chosen per setting, not per prompt.
 
 ## Repository map
 
