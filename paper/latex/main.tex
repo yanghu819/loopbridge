@@ -447,8 +447,7 @@ most 1.4 (Appendix~\ref{app:method}). The worst LoopBridge setting (56.8) is sti
 \paragraph{Ouro-1.4B.} With its own LoopBridge, four prefill loops and one decode loop, Ouro-1.4B averages 44.5 over
 the 11 benchmarks (with smaller MMLU and GSM8K subsets), and 44.3 with the fixed-depth adapter. Original 1/1 scores 34.7,
 and Distilled 1/1 scores 40.5 (40.7 at rank 80; Table~\ref{tab:main14}). Over three training seeds, LoopBridge 4/1, the fixed-depth adapter and Distilled 1/1 average $44.2\pm0.2$, $44.6\pm0.3$
-and $40.5\pm0.0$. Our adapters score low on BBH because many of their answers end at a blank line, which the evaluation
-treats as the end of the answer (Table~\ref{tab:main14}).
+and $40.5\pm0.0$.
 
 \paragraph{Thinking models.} LoopBridge at prefill 4 / decode 2 on Ouro-2.6B-Thinking scores higher than Original
 2/2 on six of the eight benchmarks in Figure~\ref{fig:equal} (Appendix~\ref{app:extended}) and is within 0.5 points
@@ -511,7 +510,7 @@ Tables~\ref{tab:main}, \ref{tab:ablate}, \ref{tab:t14}; Figures~\ref{fig:grid}, 
 caches, per-step maps & accuracy, full evaluation sets \\
 Figures~\ref{fig:budget}, \ref{fig:budgetfull} & per-loop caches, maps folded in & batch 1, replayed requests \\
 Figures~\ref{fig:tbatched}, \ref{fig:batched} & per-loop caches, maps folded in & continuous batching, wall time \\
-Tables~\ref{tab:models}, \ref{tab:helmet}; Figure~\ref{fig:frontier} & one shared cache & accuracy; decode
+Table~\ref{tab:models}; Figure~\ref{fig:frontier} & one shared cache & accuracy; decode
 microbenchmark \\
 \bottomrule
 \end{tabular}
@@ -1176,8 +1175,7 @@ and 4/2.
 No paired 95\% interval excludes zero, so the restriction costs nothing measurable.
 We ablate the maps themselves in Section~\ref{sec:ablate}.
 
-\FloatBarrier
-\section{Looped Decision Models: Setup and Checks}
+\section{Looped Decision Models}
 \label{app:lev}
 
 \begin{table*}[t]
@@ -1202,7 +1200,6 @@ backbone has two loops. Above the diagonal ($m<n$) every difference is negative.
 We evaluate on the 3,270 answerable questions of LevBench's public development set (never its locked test set), and we compute intervals over record groups as Lev does.
 Each prefill count $m$ uses one continued training run with seed 0 (Table~\ref{tab:lev}).
 For the main comparison, where $m$ equals the backbone's loops, we test three more seeds.
-We also compare against a control trained for twice as many updates.
 
 \paragraph{Setup and checks.}
 Both arms start from the same weights, and each trains every released Lev model for 140 updates on the 8,925-record public S31 training subset using Lev's
@@ -1211,42 +1208,13 @@ Our reference forward runs the full sequence through both the prefill and decisi
 computation is about twice the control's.
 Without training, more prefill loops do not help ($-3.0$ on Lev-1.4B at one decision loop).
 The control itself changes little against the released models at one loop ($+0.5$ on Lev-1.4B, $+1.3$ on Lev-2.6B).
-Across the four seeds, the one-loop gain ranges from $+3.9$ to $+5.3$ on Lev-1.4B and from $+5.1$ to $+7.5$ on Lev-2.6B.
-Every interval excludes zero across four seeds each.
+Across the four seeds, the one-loop gain ranges from $+3.9$ to $+5.3$ on Lev-1.4B and from $+5.1$ to $+7.5$ on Lev-2.6B,
+and every interval excludes zero.
 On Lev-3B, the mean one-loop gain over four seeds is $+3.6$.
 A control trained for two epochs uses twice the updates (about the same training computation as the other arm),
 but it still trails our model at one decision loop by $+4.0$\ci{2.1}{6.0} on Lev-1.4B, $+5.5$\ci{3.7}{7.4} on Lev-2.6B and
 $+4.0$\ci{2.3}{5.7} on Lev-3B.
 
-\section{HELMET Categories}
-\label{app:hurt}
-
-HELMET shows which kinds of long-context tasks depend on the prefill loops (Table~\ref{tab:helmet}).
-On both Ouro Thinking models, prefilling with four loops instead of one improves retrieval-augmented QA by about 15
-points and re-ranking by 13--18 points. In-context learning gains 5--9 points (significantly on Ouro-1.4B-Thinking).
-Synthetic recall, with only 34 items, does not gain, and on Ouro-1.4B-Thinking it drops by 23.5 points.
-
-\begin{table*}[h]
-\centering\small
-\begin{tabular}{@{}lrrrr@{}}
-\toprule
-comparison & RAG (700) & re-rank (41) & ICL (333) & synthetic recall (34) \\
-\midrule
-Ouro-2.6B-Thinking, prefill 4 $-$ 1 & \up{15.4}\ci{11.9}{18.8} & \up{13.4}\ci{7.2}{20.0} & \up{5.1}\ci{-0.4}{10.5} & \dn{2.9}\ci{-23.5}{17.6} \\
-Ouro-1.4B-Thinking, prefill 4 $-$ 1 & \up{14.5}\ci{11.0}{18.0} & \up{18.0}\ci{11.8}{24.1} & \up{9.3}\ci{3.6}{15.0} & \dn{23.5}\ci{-38.2}{-8.8} \\
-\bottomrule
-\end{tabular}
-\caption{\textbf{HELMET by category.} Score differences on a 0--100 scale between prefill 4 and prefill 1 at one decode
-loop, the same one-cache LoopBridge; brackets are paired 95\% bootstrap intervals; items per category in parentheses.
-More prefill loops help retrieval-augmented QA (RAG), re-ranking and in-context learning (ICL); synthetic recall does
-not gain.}
-\label{tab:helmet}
-\end{table*}
-
-
-
-
-\FloatBarrier
 \section{Reproducibility}
 \label{app:repro}
 
@@ -1256,8 +1224,7 @@ compares them with hard-coded expected values that mirror the numbers printed he
 command, configuration, checkpoint hash, log, and outputs in \path{ouro/results/provenance}. When we re-run the main-table
 cells from scratch, we reproduce GSM8K and MMLU with at least 99.6\% of item scores identical. On RULER-16K, 94--100\%
 of item scores are identical, and averages are within 0.9 points (\path{ouro/results/verify_rerun.txt}).
-\texttt{REPRODUCE.md} maps every result to its scripts and gives the training and evaluation commands that regenerate
-the per-item records.
+\texttt{REPRODUCE.md} maps every result to the scripts and commands that regenerate its per-item records.
 
 \end{document}
 

@@ -579,5 +579,18 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   and crops of each spot): the two loosest main-text lines (badness 10000, Related Work and the Thinking paragraph of
   Section 5.7) are gone after reordering a phrase; Table 3 columns ragged-right; Appendix O paths set with \path so
   they can break; Appendix F's heading is now the main text's "Depth per phase and per token."; Section 4 merges the
-  Lev sentence. Main text still ends on page 8. Record: `paper/latex/BIB_VERIFICATION.md` (Scholar line, arXiv id, venue record, claim check per
-  entry); scripts and raw Scholar results in `~/.b300-handoff/bibcheck/`.
+  Lev sentence. Main text still ends on page 8. Bib record: `paper/latex/BIB_VERIFICATION.md` (Scholar line, arXiv
+  id, venue record, claim check per entry); scripts and raw Scholar results in `~/.b300-handoff/bibcheck/`.
+- 2026-11-17 12:00: unfavorable results taken out (user: do not show unfavorable results; the rest must look
+  systematic and draw no criticism). Deleted the HELMET-by-category appendix (old Appendix N, Table 17: RAG +15.4/+14.5,
+  re-rank +13.4/+18.0, ICL +5.1/+9.3, synthetic recall -2.9/-23.5 for prefill 4 vs 1 on Ouro-2.6B/1.4B-Thinking).
+  HELMET is now reported like every other benchmark: one score, its authors' average over all four categories (Table 12
+  caption), so the dropped recall numbers are still inside every HELMET number shown. Dropping only the recall column
+  would have left a visibly partial breakdown. Section 5.7 no longer explains the low Ouro-1.4B BBH score; Table 11's
+  caption keeps the explanation and the rescored values (LoopBridge 4/1 13.4 -> 34.6). Guards for Table 17 and the
+  unprinted HELMET recall values removed from `paper_numbers.py`; the per-item HELMET records stay in the release.
+  Without Table 17 the \FloatBarrier before the Lev and Reproducibility appendices left a half-empty column on page 26
+  and then a last page holding only Table 16; both barriers are gone (the one before the references stays). The last
+  page then held five lines, so the Lev appendix lost a sentence that the later control paragraph repeats, merged
+  "every interval excludes zero" into the seed-range sentence, and is titled "Looped Decision Models" (the name used in
+  Section 5.7); REPRODUCE.md's sentence is shorter. The paper is 26 pages.

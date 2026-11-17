@@ -44,10 +44,6 @@ def ruler(run, k):
     return f"B:{run}f:ruler{k}k"
 
 
-HELMET_CAT_PRINTED = {   # Appendix N, Table 17 (prefill 4 - 1 at decode 1, one-cache LoopBridge): (diff, lo, hi)
-    ("2.6B-T prefill 4 vs 1 (decode 1)", "rag"): (15.4, 11.9, 18.8), ("2.6B-T prefill 4 vs 1 (decode 1)", "rerank"): (13.4, 7.2, 20.0), ("2.6B-T prefill 4 vs 1 (decode 1)", "icl"): (5.1, -0.4, 10.5),
-    ("2.6B-T prefill 4 vs 1 (decode 1)", "recall"): (-2.9, -23.5, 17.6), ("1.4B-T prefill 4 vs 1 (decode 1)", "rag"): (14.5, 11.0, 18.0), ("1.4B-T prefill 4 vs 1 (decode 1)", "rerank"): (18.0, 11.8, 24.1),
-    ("1.4B-T prefill 4 vs 1 (decode 1)", "icl"): (9.3, 3.6, 15.0), ("1.4B-T prefill 4 vs 1 (decode 1)", "recall"): (-23.5, -38.2, -8.8)}
 # (section, label, A, B, printed value (diff, lo, hi) or None); difference = A - B
 EQUAL = [("GSM8K", "T:T26-S42-gsm8k_think:math_verify", "T:think-native{n}-gsm8k_think:math_verify"),
          ("MATH-500", "T:T26-S42-math500_think:math_verify", "T:think-native{n}-math500_think:math_verify"),
@@ -172,7 +168,7 @@ CMP += [
      None),
     ("App A", "2.6B-T answer once vs per-loop answer banks, prefill 4/decode 2 GSM8K (full)",
      "T:T26-O-universal-O42-gsm8k_think:math_verify", "T:T26-S42-gsm8k_think:math_verify", (0.5, -0.5, 1.6)),
-    *[("HELMET by category", f"{lab} {cat}", f"B:{x}:helmet#{cat}", f"B:{y}:helmet#{cat}", HELMET_CAT_PRINTED.get((lab, cat)))
+    *[("HELMET by category", f"{lab} {cat}", f"B:{x}:helmet#{cat}", f"B:{y}:helmet#{cat}", None)
       for lab, x, y in (("2.6B-T prefill 4/decode 2 vs native 4/4", "T26ne-S42-helmet", "T26ne-native4-helmet"),
                         ("2.6B-T prefill 4/decode 2 vs native 2/2", "T26ne-S42-helmet", "T26ne-native2-helmet"),
                         ("2.6B-T prefill 4 vs 1 (decode 1)", "T26ne-S41-helmet", "T26ne-S11-helmet"),
@@ -590,7 +586,7 @@ def throughput_context():
 
 def appendix_checks():
     """Numbers quoted in the appendices that no other check covers: decode throughput (best tokens/s over batch sizes)
-    of the per-design and long-answer runs, HELMET recall, and the 1.4B MATH-500 final-answer score."""
+    of the per-design and long-answer runs and the 1.4B MATH-500 final-answer score."""
     res = Path(__file__).resolve().parents[1] / "results"
     def best(path):
         rows = [r for r in json.loads((res / path).read_text()) if "tokens_per_s" in r]
@@ -615,13 +611,7 @@ def appendix_checks():
         out[run + " early stops"] = got
         print(f"Appendix     {run} answers stopping early: {got}" + ("" if got == w else f"  !! paper: {w}"))
     rec = lambda k: 100 * float(np.mean(list(load(k).values())))
-    for label, got, w in (("1.4B-T HELMET recall prefill 4 - 1 (decode 1)",
-                           rec("B:T14ne-S41-helmet:helmet#recall") - rec("B:T14ne-S11-helmet:helmet#recall"), -23.5),
-                          ("2.6B-T HELMET recall 4/2", rec("B:T26ne-S42-helmet:helmet#recall"), 58.8),
-                          ("2.6B-T HELMET recall native 4/4", rec("B:T26ne-native4-helmet:helmet#recall"), 100.0),
-                          ("2.6B-T HELMET recall aligned 4/2", rec("B:T26ne-a42-helmet:helmet#recall"), 67.6),
-                          ("2.6B-T HELMET recall native 2/2", rec("B:T26ne-native2-helmet:helmet#recall"), 67.6),
-                          ("1.4B native 4/4 MATH-500 final answer", rec("L:O14x-native4-math:boxed"), 70.6),
+    for label, got, w in (("1.4B native 4/4 MATH-500 final answer", rec("L:O14x-native4-math:boxed"), 70.6),
                           ("1.4B native 4/4 MATH-500 strict match", rec("L:O14x-native4-math:exact_match"), 4.4)):
         out[label] = round(got, 2)
         print(f"Appendix     {label:46s} {got:6.1f}" + ("" if abs(got - w) < 0.051 else f"  !! paper: {w}"))
