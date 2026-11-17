@@ -619,3 +619,22 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   to Appendix K, and Figure 5's caption is shorter; the Conclusion now ends about eight lines above the page-8 bottom.
   Table 16 is defined at the start of Appendix L (a table* lands on the page after its definition, so it had been
   alone on page 27); Appendices L-N are tighter and drop the untrained-Lev sentence (-3.0, outside every claim). 26 pages.
+- 2026-11-17 19:30: wrap-up (user: "尽量少跑实验,尽快收尾"): no new experiments, including the second-model run both
+  reviews ask for. Gemini round 8 (review: Overall 3.5; number fact-check over the whole source, Hydrogen xhigh)
+  found real slips, all fixed: Section 5.1 explained the small prefill share by "short prompt, long answer", but
+  three of the four timed tasks have prompts longer than their answers (the reason is one parallel pass vs. one pass
+  per answer token); Table 10 printed HellaSwag 79.5 (raw 79.446 stored with two decimals, then rounded half up;
+  repro() now keeps four); the Limitations sentence on per-step maps described the one-cache LoopBridge; "costs 0.4
+  points" holds at 4/1; "our adapters ... at most 4.7%" is LoopBridge only; LoopBridge serves every *trained* (m, n);
+  Figure 5's adapter is trained on m in {1,2,3,4,6,8,12,16}; the Thinking sentence of Section 4 is about
+  Ouro-2.6B-Thinking; bootstrap intervals are over record groups on LevBench; "better on average" in Section 5.2; the overlap sentence now says the gaps barely change (largest change 0.9); Table 3's catch-all
+  row is "all other LoopBridge results"; "15 points higher on HELMET" (no "up to");
+  the learning-rate sentence points to Appendix E; the 512-token bfloat16 check vs. differing answers is
+  explained; rank-80 LoRA "about as many as LoopBridge"; Appendix K names the one-cache LoopBridge instead of
+  "Ours 4/n"; Lev's sign rule is for m != n; Table 1 bolds all printed ties. These additions pushed the Conclusion
+  onto page 9, so the main text gave back ~10 lines (RoPE/ELR expansions, a tie note, "on average" in Table 1's title,
+  a seed clause in 5.7, "one decode loop gives the lowest time per new token", the first sentence of "What LoopBridge
+  adds"); the Conclusion again ends well above the page-8 bottom. The arXiv
+  package compiles on its own from the shipped main.bbl (tectonic re-runs BibTeX unless \bibliography is replaced by
+  \input{main.bbl}; arXiv does not run BibTeX): 26 pages, text identical to the published PDF.
+

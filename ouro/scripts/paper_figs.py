@@ -486,7 +486,7 @@ def tab_main(key="main_table", name="tab_main"):
         best = [max((x for x in c if x is not None), default=None) for c in cols]
         for i, l in enumerate(labels):
             cells = [c[i] for c in cols]
-            fmt = lambda x, b: "--" if x is None else (rf"\textbf{{{x:.1f}}}" if len(labels) > 1 and abs(x - b) < 1e-9 else f"{x:.1f}")
+            fmt = lambda x, b: "--" if x is None else (rf"\textbf{{{x:.1f}}}" if len(labels) > 1 and f"{x:.1f}" == f"{b:.1f}" else f"{x:.1f}")   # printed ties all bold
             shade = r"\rowcolor{oursbg} " if l.startswith(("aligned adapter", "fixed-4 LoRA")) else ""   # both adapters are Ours
             lines.append(f"{shade}{show[l][0]} & {show[l][1]} & " + " & ".join(fmt(x, b) for x, b in zip(cells, best)) + r" \\")
         if n < 4:

@@ -6,6 +6,11 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 
 ## 1. Where things stand
 
+- **Status (2026-11-17 19:30): wrap-up, no new experiments** (user: run as few experiments as possible and finish
+  quickly). Gemini rounds 7-8 applied (NOTES 11-17 16:30 and 19:30). Nothing runs on a1 or a2 and nothing is queued.
+  The arXiv package compiles standalone from its main.bbl (26 pages; to check it with tectonic, replace
+  `\bibliography{references}` by `\input{main.bbl}` in a copy, since tectonic re-runs BibTeX). Left for the author:
+  the arXiv submission itself and the TODO items of `paper/ARR_CHECKLIST.md`.
 - **Status (2026-11-17 16:30): Gemini review round 7 applied** (user: work with Gemini through the agy CLI). Two ARR
   reviews (Overall 4 and 3.5) and a style pass; every fix is listed in NOTES 11-17 16:30. New: Distilled 2/2 on all
   eight Thinking benchmarks (Table 13, Figure 11); per-pass batched timing (Appendix K). Open: both reviews ask for a

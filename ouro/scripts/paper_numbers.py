@@ -671,7 +671,7 @@ def repro():
     out = []
     for bench, key, reported in REPRO:
         v = load(key)
-        ours = None if v is None else round(100 * float(np.mean(list(v.values()))), 2)
+        ours = None if v is None else round(100 * float(np.mean(list(v.values()))), 4)   # 4 decimals: Table 10 rounds once
         out.append(dict(bench=bench, ours=ours, reported=reported, items=0 if v is None else len(v)))
         want = REPRO_PRINTED.get(bench)
         flag = "" if want is None or (ours is not None and abs(ours - want) < 0.051) else f"  !! paper: {want}"
