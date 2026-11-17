@@ -594,3 +594,28 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   page then held five lines, so the Lev appendix lost a sentence that the later control paragraph repeats, merged
   "every interval excludes zero" into the seed-range sentence, and is titled "Looped Decision Models" (the name used in
   Section 5.7); REPRODUCE.md's sentence is shorter. The paper is 26 pages.
+- 2026-11-17 16:30: agy CLI round (user: "你和gemini合作可以用agy cli, 继续迭代"). `~/.local/bin/agy -p` (plan mode,
+  sandbox, JSON output) replaces agentapi. Two ARR-style reviews of the anonymous source (Gemini 4 Carbon high: Soundness
+  4, Excitement 3.5, Overall 4; Hydrogen xhigh: 4, 4, 3.5) and a Kaiming-style pass on the main text (23 suggestions:
+  16 taken, partly reworded; 4 rejected because they added a claim or a false "because"). Fixed from the reviews: Table
+  1 caption 0.4 -> 0.6 (rank-80 gap at 4/2: 69.1-65.5 vs 68.6-65.6; the guard now covers both distilled ranks on
+  printed values); "within three points" of Original 4/4 -> "about three" (LoopBridge seed mean 68.6 is 3.3 below);
+  Ouro-1.4B best depth 14 -> 15 of 18 (Table 8 bolds the MATH-500 tie at m = 2 and 4); "levels off" -> "stops"
+  (Table 7 falls past m = 8); Appendix C says it uses full MMLU and GSM8K; Table 10 notes Table 1's shared items; at
+  m = n decode loop k reads prefill loop k "as in the original model" (maps and LoRA still act); k defined; the
+  one-cache LoopBridge named where introduced, with its loop; LoopBridge 63M vs fixed-depth adapter 12.6M (abstract:
+  "at most 2.4%", no "small maps"); guide to the appendix rewritten to match A-N; Table 3 covers every result; rank
+  4/64 values in Table 2(b)'s caption (guarded); "as in chat" removed; the overlap paragraph no longer argues that
+  shared data "cannot favour either"; chunked-prefill sentence says it works against us; Section 4 lists the
+  MMLU-Pro/BBH subsets and the eight Thinking benchmarks; Figure 2 and 7 titles scoped (batch 1; GSM8K); last prompt
+  token through the decode loops (Appendix E). Batched timing: per pass, LoopBridge 4/1 takes 1.14-1.23x Original 1/1
+  and Distilled 1/1 at batch 32, and the time per request over 800 requests varies < 10% between passes (single tasks
+  10-30%); new guard `batched_passes`. Added from existing runs: Distilled 2/2 on all eight Thinking benchmarks
+  (T26-Df-native22, same data, teacher and 48M tokens): LoopBridge 4/2 is 3.1 above on average, higher on six, within
+  0.2 on MATH-500 and MBPP+ (Table 13 with an average row, Figure 11 blue triangles left of n = 2, Section 5.7,
+  Appendix D.1; guarded). Not done: a second, non-Ouro looped model (both reviews' one experiment).
+  Layout after these additions: the Conclusion had moved to the last line of page 8 (Limitations on page 9), too tight
+  for a pdflatex build, so Section 4 names the Thinking benchmarks via Table 13, Section 5.5 leaves the per-pass ratios
+  to Appendix K, and Figure 5's caption is shorter; the Conclusion now ends about eight lines above the page-8 bottom.
+  Table 16 is defined at the start of Appendix L (a table* lands on the page after its definition, so it had been
+  alone on page 27); Appendices L-N are tighter and drop the untrained-Lev sentence (-3.0, outside every claim). 26 pages.

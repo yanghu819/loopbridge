@@ -74,7 +74,7 @@ software versions, times, checkpoint sha256 and training log, the cleaned evalua
 | Ouro-1.4B loop adapter `O14-S-universal` | Ouro-1.4B task map, other checkpoints | `launch_scale.sh` |
 | Ouro-2.6B-Thinking `T26-S-universal` | Figure 4, timing, Thinking appendix | `launch_think.sh` |
 | Ouro-1.4B-Thinking `T14-S-universal` | Ouro-1.4B-Thinking appendix | `launch_think14.sh` |
-| LoRA distillation of native 2/2 `T26-Df-native22` (arm D, every answer token supervised; `T26-D-native22` is the earlier control without the first answer token) | distillation table, timing | `launch_t26df.sh` |
+| LoRA distillation of native 2/2 `T26-Df-native22` (arm D, every answer token supervised; `T26-D-native22` is the earlier control without the first answer token) | Table 13, Figures 11 and 14, timing | `launch_t26df.sh` |
 | LoRA distillation of native n/n `X26-{E,D,H}48f-p{1,2,3}d{1,2,3}`, `X14-*48f-*` (Ouro-2.6B / 1.4B) | distilled comparisons of the cross-fitted choice | `launch_x26_distill.sh ARM GPUS PORT first` (`SIZE=14`), evaluated by `after_x26_distill.sh` |
 | SenseNova-Loop-9B loop adapter `SN-C-universal`; GDN-state variant `SNG-C-universal` | SenseNova and hybrid appendices | `launch_sn.sh`; `launch_sng.sh` (`sensenova_bridge.py --mix G`) |
 | variants `X26-O`, `X26-M`, `X26-V`, `X26-Sfz` (maps frozen) | design-variant appendix | `launch_o.sh`, `launch_m.sh`, `launch_v.sh`, `launch_fz.sh` |

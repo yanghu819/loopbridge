@@ -876,6 +876,12 @@ def equal(arm="S"):
         if s22 is not None and not ids <= set(s22):   # not yet on every shared item: report it alone, keep the triple
             print(f"Equal        {model} {bench:12s} same adapter 2/2 on {len(ids & set(s22))} of {len(ids)} shared items; not used")
             s22 = None
+        # Distilled 2/2 (T26-Df-native22: LoRA on Original 2/2 distilled from Original 4/4 with the adapter's data, teacher
+        # and 48M tokens, every answer token supervised); Table 13 and Figure 11, on the same shared items
+        d22 = load(ka.replace(f"{arm}42", "Df")) if arm == "a" else None
+        if d22 is not None and not ids <= set(d22):
+            print(f"Equal        {model} {bench:12s} Distilled 2/2 on {len(ids & set(d22))} of {len(ids)} shared items; not used")
+            d22 = None
         o, n2, n4 = ({i: x[i] for i in ids} for x in (o, n2, n4))
         r2, r4 = boot(o, n2), boot(o, n4)
         row = dict(model=model, bench=bench, n=len(ids), ours=round(r2["a"], 1), native2=round(r2["b"], 1), native4=round(r4["b"], 1),
@@ -885,6 +891,9 @@ def equal(arm="S"):
             row.update(same22=round(r22["b"], 1), vs22=[round(r22[k], 3) for k in ("diff", "lo", "hi")])
             r = boot({i: s22[i] for i in ids}, n2)   # figure: every bar is a difference to native 2/2
             row["s22_vs2"] = [round(r[k], 3) for k in ("diff", "lo", "hi")]
+        if d22 is not None:
+            rd = boot(o, {i: d22[i] for i in ids})
+            row.update(dist2=round(rd["b"], 1), vsd=[round(rd[k], 3) for k in ("diff", "lo", "hi")])
         r = boot(n4, n2)
         row["n4_vs2"] = [round(r[k], 3) for k in ("diff", "lo", "hi")]
         out.append(row)
@@ -905,6 +914,14 @@ def equal(arm="S"):
         want = (0.8, 6, 0.5, {"MMLU-Pro": 8, "BBH": 8, "HELMET": 15}, 6, (8, 9.6))
         print(f"Equal a      2.6B-T LoopBridge 4/2: gap to 4/4, above 2/2, worst below, gains, within 2 of 4/4, same 2/2 lower {got}"
               + ("" if got == want else f"  !! paper: {want}"))
+        if all("vsd" in r for r in T):   # Section 5.7, Table 13, Figure 11: against Distilled 2/2 (printed values)
+            m = lambda k: float(np.mean([r[k] for r in T]))
+            gotd = (round(round(m("ours"), 1) - round(m("dist2"), 1), 1), sum(r["vsd"][0] > 0 for r in T),
+                    max(shown_diff(r["dist2"], r["ours"]) for r in T if r["vsd"][0] <= 0),
+                    tuple(round(m(k), 1) for k in ("native2", "dist2", "same22", "ours", "native4")))
+            wantd = (3.1, 6, 0.2, (65.5, 67.6, 66.5, 70.7, 71.5))
+            print(f"Equal a      2.6B-T LoopBridge 4/2 vs Distilled 2/2: avg gap, above, worst below, table averages {gotd}"
+                  + ("" if gotd == wantd else f"  !! paper: {wantd}"))
     return out
 
 
@@ -1269,6 +1286,31 @@ def batched_serving(reps=5000):
     if r and round(r["prefill_pct"]) != 27:   # Table 13
         print(f"Batched      a4x1pm@32 prefill {r['prefill_pct']}%  !! paper: 27%")
     return out
+
+
+def batched_passes():
+    """Appendix K and Section 5.5: the batched wall time of each timing pass on its own (summed over the request blocks
+    and the four tasks): the pass-to-pass spread of the time per request (batch 8 and 32, every condition) and LoopBridge
+    4/1 against Original 1/1 and Distilled 1/1 at batch 32 in every pass."""
+    def per_req(c, b, j):
+        W = N = 0
+        for block in BATCH_BLOCKS:
+            g = batched_requests(c, b, block[j])
+            if not g:
+                return None
+            W += g[1]; N += g[2]
+        return W / N
+    spread = []
+    for b in (8, 32):
+        for c in BATCH_CONDS:
+            v = [per_req(c, b, j) for j in range(3)]
+            if None not in v:
+                spread.append(100 * (max(v) - min(v)) / float(np.mean(v)))
+    ratios = [round(per_req("a4x1pm", 32, j) / per_req(c, 32, j), 2) for c in ("native1st", "D1st") for j in range(3)]
+    got = (max(spread) < 10, min(ratios), max(ratios))
+    print(f"Batched      passes: max spread {max(spread):.1f}%; LoopBridge 4/1 / Original 1/1, Distilled 1/1 at batch 32 per pass"
+          f" {ratios}" + ("" if got == (True, 1.14, 1.23) else "  !! paper: spread under 10%, ratios 1.14-1.23"))
+    return dict(max_spread=round(max(spread), 1), ratios=ratios)
 
 
 def batched_serving_14(reps=5000):
@@ -1709,10 +1751,13 @@ def depth_sweep_14():
             row = dict(n=n, bench=b, items=len(ids), quality={m: round(agg(v, ids), 3) for m, v in sets.items()})
             out.append(row)
             print(f"Depth 1.4B   n={n} {b:16s} items={len(ids):5d} " + " ".join(f"m{m}={q:5.1f}" for m, q in row["quality"].items()))
-    # within the adapter's training range m <= 4 (Appendix C shows m <= 4); a tie goes to the smaller m
-    best = [max((m for m in r["quality"] if m <= 4), key=lambda m: (r["quality"][m], -m)) for r in out]
-    got = (sum(m in (3, 4) for m in best), len(best))
-    print(f"Depth 1.4B   best m (of 1-4) in (3, 4): {got}" + ("" if got == (14, 18) else "  !! paper: (14, 18)"))   # Section 5.4
+    # within the adapter's training range m <= 4 (Appendix C shows m <= 4); a best depth is any m with the top printed
+    # value (Table 8 bolds ties), so MATH-500 at n = 2 (59.6 at m = 2 and m = 4) counts
+    def best_set(r):
+        q = {m: round(v, 1) for m, v in r["quality"].items() if m <= 4}
+        return {m for m, v in q.items() if v == max(q.values())}
+    got = (sum(bool(best_set(r) & {3, 4}) for r in out), len(out))
+    print(f"Depth 1.4B   best m (of 1-4) in (3, 4): {got}" + ("" if got == (15, 18) else "  !! paper: (15, 18)"))   # Section 5.4
     return out
 
 
@@ -2375,13 +2420,15 @@ def main_table():
             print(f"Main table   {label:20s} seeds: " + " ".join(f"{a:5.1f}" for a in avgs)
                   + f"  mean {got[0]:5.1f} sd {got[1]:.1f}" + (f"  !! paper: {want}" if want and got != want else ""))
             SEED_MEANS[label] = (avgs[0], float(np.mean(avgs)))   # (first seed, mean over seeds)
-    pairs = [("aligned adapter 4/1", "LoRA-distilled 1/1"), ("fixed-4 LoRA 4/1", "LoRA-distilled 1/1"),
-             ("aligned adapter 4/2", "LoRA-distilled 2/2"), ("fixed-4 LoRA 4/2", "LoRA-distilled 2/2")]
+    pairs = [(a, f"{d} {n}/{n}") for n in (1, 2) for a in (f"aligned adapter 4/{n}", f"fixed-4 LoRA 4/{n}")
+             for d in ("LoRA-distilled", "distilled r80")]   # both adapters against both distilled models (rank 16 and 80)
     if all(a in SEED_MEANS and b in SEED_MEANS for a, b in pairs):   # Table 1 caption: gaps with seed means
-        ch = [abs(round(SEED_MEANS[a][1] - SEED_MEANS[b][1], 1) - round(SEED_MEANS[a][0] - SEED_MEANS[b][0], 1)) for a, b in pairs]
+        P = lambda x: round(x, 1)   # the printed values: Table 1 rows (first seed) and the caption's seed means
+        ch = [abs(round(P(SEED_MEANS[a][1]) - P(SEED_MEANS[b][1]), 1) - round(P(SEED_MEANS[a][0]) - P(SEED_MEANS[b][0]), 1))
+              for a, b in pairs]
         got = round(max(ch), 1)
         print(f"Main table   gap Ours - Distilled, first seed vs seed means: max change {got}"
-              + ("" if got == 0.4 else "  !! paper (Table 1 caption): 0.4"))
+              + ("" if got == 0.6 else "  !! paper (Table 1 caption): 0.6"))
     T = {r["bench"]: r for r in out}
     short = [boot(load(ruler(f"X26-{c}", k)), load(ruler(f"X26lo-{c}", k)))["diff"] for c in ("a41", "a42") for k in (4, 8)
              if load(ruler(f"X26-{c}", k)) and load(ruler(f"X26lo-{c}", k))]
@@ -2406,7 +2453,9 @@ ABLATIONS = [("6M tokens", "X26t6"), ("12M tokens", "X26t12"), ("24M tokens", "X
 
 
 ABL_PRINTED = {("6M tokens", "S41"): 54.8, ("6M tokens", "S42"): 67.2, ("48M tokens", "S41"): 57.8,
-               ("48M tokens", "S42"): 68.1}   # quoted in Section 4.2
+               ("48M tokens", "S42"): 68.1,   # quoted in Section 5.6
+               ("rank 4, 12M", "S41"): 56.6, ("rank 64, 12M", "S41"): 56.9, ("rank 4, 12M", "S42"): 67.8,
+               ("rank 64, 12M", "S42"): 68.1}   # Table 2 caption (b)
 
 
 DIST_SEEDS = {1: ("s2", "s3"), 2: ("s2", "s3")}
@@ -2778,7 +2827,7 @@ def _compute(counter):
         print(f"{sec:12s} {label:52s} {means[-1]['mean']:6.1f}  n={len(s)}")
     e2e_rows, ratios = e2e_table()
     _TB = time_breakdown()   # printed once (its checks count); later callers reuse it through time_breakdown_rows
-    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), think_seeds=think_seeds(), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), sn_equal=sn_equal(), taskmap_select=taskmap_select(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), time_matched=time_matched(), spec_decoding=spec_decoding(), batched_serving=batched_serving(), thinking_batched=thinking_batched(), batched_serving_14=batched_serving_14(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), main_table_14_seeds=SEEDS14_OUT, bbh_stop=bbh_stop_check(), aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
+    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), think_seeds=think_seeds(), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), sn_equal=sn_equal(), taskmap_select=taskmap_select(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), time_matched=time_matched(), spec_decoding=spec_decoding(), batched_serving=batched_serving(), batched_passes=batched_passes(), thinking_batched=thinking_batched(), batched_serving_14=batched_serving_14(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), main_table_14_seeds=SEEDS14_OUT, bbh_stop=bbh_stop_check(), aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
     print(f"wrote {OUT}; {counter.flags} printed values differ ({bad} in the paired comparisons)")
 
 

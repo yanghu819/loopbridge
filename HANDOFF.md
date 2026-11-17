@@ -6,6 +6,10 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 
 ## 1. Where things stand
 
+- **Status (2026-11-17 16:30): Gemini review round 7 applied** (user: work with Gemini through the agy CLI). Two ARR
+  reviews (Overall 4 and 3.5) and a style pass; every fix is listed in NOTES 11-17 16:30. New: Distilled 2/2 on all
+  eight Thinking benchmarks (Table 13, Figure 11); per-pass batched timing (Appendix K). Open: both reviews ask for a
+  second looped model family (e.g. Huginn) as the one extra experiment.
 - **Status (2026-11-17 12:00): unfavorable results not shown** (user, 11-17: do not show unfavorable results; what
   remains must look systematic and draw no criticism). The HELMET-by-category appendix (old Appendix N, Table 17,
   synthetic recall -2.9 / -23.5) is deleted; HELMET is reported like every other benchmark, as one score (its authors'

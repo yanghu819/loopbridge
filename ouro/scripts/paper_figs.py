@@ -194,7 +194,7 @@ def fig2():
 
 
 def fig_equal():
-    """Ouro-2.6B-Thinking: native 2/2 and 4/4 against the loop adapter at prefill 4 / decode 2."""
+    """Ouro-2.6B-Thinking: native 2/2 and 4/4 and Distilled 2/2 against LoopBridge at prefill 4 / decode 2."""
     E = {e["bench"]: e for e in PN["equal_aligned"] if e.get("model", "2.6B-T") == "2.6B-T"}   # LoopBridge (per-loop caches)
     benches = ["GSM8K", "MATH-500", "MMLU-Pro", "ARC-C", "BBH", "HumanEval+", "MBPP+", "HELMET"]
     fig, axes = plt.subplots(2, 4, figsize=(6.9, 3.4))
@@ -211,8 +211,15 @@ def fig_equal():
         low = e["ours"] if below else e["native2"]   # the point whose label goes below it: keep the label off the axis
         lo, hi = ax.get_ylim()
         ax.set_ylim(min(lo, low - 0.3 * (hi - lo)), hi)
+        if "dist2" in e:   # Distilled 2/2, drawn a little left of n = 2: off the two points there and off the grey line
+            ax.scatter([1.7], [e["dist2"]], marker="^", s=20, color=DIST, zorder=3)
+            lo, hi = ax.get_ylim()
+            ax.set_ylim(min(lo, e["dist2"] - 0.06 * (hi - lo)), max(hi, e["dist2"] + 0.06 * (hi - lo)))
     fig.supxlabel("decode loops n", fontsize=8.5, y=0.01); fig.supylabel("score (%)", fontsize=8.5, x=0.005)
-    legend(fig, "Ours, prefill 4 / decode 2", "", y=1.02, ncol=2)
+    h = [plt.Line2D([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4), plt.Line2D([], [], color=OURS, marker="s", ms=4, lw=1.4),
+         plt.Line2D([], [], color=DIST, marker="^", ms=4.5, ls="none")]
+    fig.legend(h, ["Original n/n", "Ours, prefill 4 / decode 2", "Distilled 2/2"], loc="upper center", ncol=3, fontsize=8,
+               bbox_to_anchor=(0.5, 1.02), handlelength=1.6, frameon=False)
     fig.subplots_adjust(wspace=0.35, hspace=0.45, left=0.07, right=0.99, bottom=0.1, top=0.9)
     save(fig, "fig_equal")
 
@@ -287,14 +294,21 @@ def fig_lev():
 
 
 def tab_equal(model="1.4B-T"):
-    """Appendix table: the headline comparison on another Thinking checkpoint (LaTeX rows from paper_numbers.json)."""
-    def pm(e):   # the gap as the difference of the shown values; the paired interval as computed
-        d = round(round(e["ours"], 1) - round(e["native2"], 1), 1)
-        return (r"\up{%.1f}" if d >= 0 else r"\dn{%.1f}") % abs(d) + ci(e["vs2"][1], e["vs2"][2])
+    """Table 13: Figure 11 in numbers, with Distilled 2/2 and the average over the eight benchmarks (LaTeX rows from
+    paper_numbers.json)."""
+    def pm(a, b, iv):   # the gap as the difference of the shown values; the paired interval as computed
+        d = round(round(a, 1) - round(b, 1), 1)
+        sign = r"\up{%.1f}" if d > 0 else r"\dn{%.1f}" if d < 0 else "%.1f"   # a zero gap carries no sign
+        return sign % abs(d) + ("" if iv is None else ci(iv[1], iv[2]))
     rows = [e for e in PN["equal_aligned"] if e.get("model") == model]   # LoopBridge (per-loop caches), as Figure 11
-    s22 = lambda e: f"{e['same22']:.1f}" if "same22" in e else "--"   # the same adapter reading 2 prefill loops
-    lines = [rf"{e['bench']} & {e['n']:,} & {e['native2']:.1f} & {s22(e)} & {e['ours']:.1f} & {e['native4']:.1f} & {pm(e)} \\"
-             for e in rows]
+    v = lambda e, k: f"{e[k]:.1f}" if k in e else "--"   # same22: the same adapter reading 2 prefill loops
+    lines = [rf"{e['bench']} & {e['n']:,} & {e['native2']:.1f} & {v(e, 'dist2')} & {v(e, 'same22')} & {e['ours']:.1f} & "
+             rf"{e['native4']:.1f} & {pm(e['ours'], e['native2'], e['vs2'])} & "
+             + (pm(e["ours"], e["dist2"], e["vsd"]) if "dist2" in e else "--") + r" \\" for e in rows]
+    if rows and all(k in e for e in rows for k in ("dist2", "same22")):   # the unweighted mean of the eight benchmarks
+        m = {k: round(float(np.mean([e[k] for e in rows])), 1) for k in ("native2", "dist2", "same22", "ours", "native4")}
+        lines += [r"\midrule", rf"average & & {m['native2']:.1f} & {m['dist2']:.1f} & {m['same22']:.1f} & {m['ours']:.1f} & "
+                  rf"{m['native4']:.1f} & {pm(m['ours'], m['native2'], None)} & {pm(m['ours'], m['dist2'], None)} \\"]
     (OUT / f"tab_equal_{model.replace('.', '')}.tex").write_text("\n".join(lines) + "\n")
 
 
@@ -1006,7 +1020,7 @@ def tab_build():
     build = [("Ours, fixed $m{=}4$: LoRA r16", "fixed-4 LoRA 4/1", False, False),
              ("LoRA r16, all $(m,n)$", "aligned LoRA-only 4/1", True, False),
              ("LoRA r16 + KV maps (LoopBridge)", "aligned adapter 4/1", True, True),
-             ("LoopBridge, one shared cache", "loop adapter 4/1", True, False)]
+             ("one-cache LoopBridge", "loop adapter 4/1", True, False)]
     lines = []
     R = PN.get("lora80", {}).get("a41")   # rank-80 all-(m,n) LoRA with frozen maps (review control), when it has landed
     for name, l, allmn, default in build:

@@ -50,8 +50,8 @@ Looped language models run the same block of layers several times for every toke
 to read the prompt (prefill) and to write each new token (decode). Yet when a model writes a chain of thought, almost
 all of the time goes into decoding: on Ouro-2.6B at batch 1, prefill takes only 0.3--2.6\% of the time. Extra prefill
 loops therefore cost little at small batch sizes. We untie the two loop counts, reading the prompt with more loops and
-decoding with fewer. The original model cannot use a prompt read with more loops, so we distill a small adapter (2.4\%
-of the parameters). For a fixed prefill depth, LoRA on the decoder is enough. LoopBridge adds small key and value maps,
+decoding with fewer. The original model cannot use a prompt read with more loops, so we distill a small adapter (at most 2.4\%
+of the parameters). For a fixed prefill depth, LoRA on the decoder is enough. LoopBridge adds key and value maps,
 so that one adapter serves every trained pair of loop counts and keeps retrieval over 16K-token prompts working. On
 Ouro-2.6B with one decode loop, four prefill loops lift the average over 11 benchmarks from 44.2 to 58.6 with the
 fixed-depth adapter and to 58.2 with LoopBridge, well above the original model distilled to one loop on the same data
@@ -69,49 +69,49 @@ Ouro-1.4B, on the Thinking models and on looped decision models.
 \caption{\textbf{Untying prefill and decode loops.} (a) A looped model such as Ouro runs every token through the same
 loops. It reads the prompt once in parallel but writes the answer token by token. (b) We read the prompt with more
 loops ($m=4$) and decode each answer token with fewer ($n=1$). A small adapter lets the one-loop decoder read the
-prompt KV cache
+prompt's key-value (KV) cache
 written by four loops. *Chain-of-thought answers at batch 1 (Figure~\ref{fig:time}).}
 \label{fig:concept}
 \end{figure}
 
 Looped language models~\citep{ut} such as Ouro~\citep{ouro} reuse one block of layers several times for each token. Ouro-2.6B
 runs its block four times, both for each prompt token and for each answer token (Figure~\ref{fig:concept}a). Yet the two
-phases take very different amounts of time. Prefill reads the whole prompt at once, in parallel, while decoding runs
+phases take very different amounts of time, because prefill reads the whole prompt at once, in parallel, while decoding runs
 again for every new token. On chain-of-thought tasks, decoding takes more than 97\% of the time (Figure~\ref{fig:time}).
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{../figs/fig_time.pdf}
-\caption{\textbf{Prefill takes almost no time.} Share of the total time over 200 requests per task spent reading the
+\caption{\textbf{At batch 1, prefill takes almost no time.} Share of the total time over 200 requests per task spent reading the
 prompt (prefill, black) and writing the answer (decode, grey). We test the released Ouro-2.6B at one loop (Original
-1/1), batch 1, on one B300. Appendix~\ref{app:time} gives per-request medians and four more configurations.}
+1/1), batch 1, on one B300 GPU. Appendix~\ref{app:time} gives per-request medians and four more configurations.}
 \label{fig:time}
 \end{figure}
 
 This asymmetry suggests untying the two loop counts (Figure~\ref{fig:concept}b). We read the prompt with $m$ loops, which
 costs little time at small batch sizes, and decode each answer token with fewer loops ($n<m$), which saves time on every
-token. Translation models with a deep encoder and a shallow decoder make a similar trade with two separate
+token. We write $m/n$ for such a model and Original $n/n$ for the released model run with $n$ loops. Translation models with a deep encoder and a shallow decoder make a similar trade with two separate
 networks~\citep{deepshallow}. Here, one looped model does both.
 
 Untying fails without training. With four prefill loops and one decode loop, the released Ouro-2.6B averages 28.7
 points over 11 benchmarks, far below the 44.2 it gets with one loop for both (Table~\ref{tab:main}), because its
 decoder has never seen prompt states from more loops than it runs itself. We fix this with a small adapter, distilled
-from the original four-loop model (Section~\ref{sec:method}). If the prefill depth is fixed, LoRA on the decoder is
-enough. LoopBridge is one adapter for every trained pair of prefill and decode loop counts. Its small key and value maps
+from the original four-loop model (Section~\ref{sec:method}). If the prefill depth is fixed, LoRA~\citep{lora} on the decoder is
+enough. LoopBridge instead serves every trained pair of prefill and decode loop counts with one adapter. Its key and value maps
 keep retrieval over 16K-token prompts working, and we fold them into the prompt cache, so each decoded token costs about
 the same as in the original model.
 
 At the same number of decode loops, untying is much more accurate. On Ouro-2.6B with one decode loop, four prefill
 loops lift the 11-benchmark average from 44.2 to 58.6 with the fixed-depth adapter and to 58.2 with LoopBridge
 (Table~\ref{tab:main}). The original model distilled to one loop on the same data reaches only 49.5 (49.3 with as many
-parameters as our adapter). With two decode loops, the average rises from 63.7 to 69.0 and 69.1. The extra prefill
-costs little time. On the four chain-of-thought tasks we time, our models take 14--21\% more time per request than the
+parameters as our adapter). With two decode loops, four prefill loops lift the average from 63.7 to 69.0 and 69.1. On the four
+chain-of-thought tasks we time, our models take 14--21\% more time per request than the
 original model with one loop and are 17--19 points more accurate (Figure~\ref{fig:budget}). At the same mean time, they
-beat a mix of the original model's one- and two-loop settings by 10--14 points. Served in batches of 32, LoopBridge 4/1
-keeps an 18.5-point lead over Original 1/1 for 18\% more time. Two to five prefill loops give most of the gain
+are 10--14 points more accurate than a mix of the original model's one- and two-loop settings. Served in batches of 32,
+LoopBridge 4/1 is 18.5 points more accurate than Original 1/1 and takes 18\% more time. Two to five prefill loops give most of the gain
 (Figure~\ref{fig:depth}).
 
-The gain carries over to Ouro-1.4B, to the Thinking models and to looped decision models (Section~\ref{sec:others}).
+The gain carries over to Ouro-1.4B, to Ouro's Thinking models and to looped decision models (Section~\ref{sec:others}).
 On Ouro-2.6B-Thinking, LoopBridge with four prefill loops and two decode loops comes within 0.8 points of Original 4/4
 on average. Served in batches, it matches the accuracy of Original 4/4 on all 1,319 GSM8K problems in about half the
 time (Section~\ref{sec:budget}).
@@ -143,7 +143,7 @@ own depth.
 
 \paragraph{Asymmetric KV producers and consumers.} YOCO~\citep{yoco} uses a self-decoder to produce one global KV cache
 that a cross-decoder reads. KITE~\citep{kite} expands a checkpoint into two towers so that bulk prefill runs only
-the KV-producing tower. These architectures are built for the split. We adapt an existing looped model after
+the KV-producing tower. These architectures are built for the split, whereas we adapt an existing looped model after
 pretraining and choose $m$ and $n$ at inference. More related work is in Appendix~\ref{app:related}.
 
 \section{Method}
@@ -159,13 +159,13 @@ a few percent, extra prefill loops cost little (Section~\ref{sec:time}).
 
 \subsection{Untying the loops}
 
-When $m>n$, decode loop $k$ reads the prompt KV of prefill loop $\max(m-n+k,1)$, so the last decode loop reads the
-last prefill loop. When $m=n$, every decode loop reads exactly what the original model reads. Without an adapter, the
-released model fails at this (the training-free rows of Table~\ref{tab:main}), because each of its decode loops has
+Decode loop $k$ ($k=1,\dots,n$) reads the prompt KV of prefill loop $\max(m-n+k,1)$, so the last decode loop reads the
+last prefill loop. When $m=n$, decode loop $k$ reads prefill loop $k$, as in the original model. Without an adapter, the
+released model fails when untied (the training-free rows of Table~\ref{tab:main}), because each of its decode loops has
 only ever read prompt states written by the same loop. A small adapter fixes this.
 
-\paragraph{Fixed prefill depth.} For one prefill depth $m$, we train rank-16 LoRA~\citep{lora} on the query, key, value
-and output projections, which is active only during decoding. We train it on $m/1,\dots,m/4$. We call this
+\paragraph{Fixed prefill depth.} For one prefill depth $m$, we add rank-16 LoRA~\citep{lora} to the query, key, value
+and output projections, active only during decoding, and train it on $m/1,\dots,m/4$. We call this
 \emph{Ours, fixed $m$}, or the fixed-depth adapter.
 
 \paragraph{Any prefill depth: LoopBridge.} LoopBridge serves every $(m,n)$ with one set of weights
@@ -173,16 +173,16 @@ and output projections, which is active only during decoding. We train it on $m/
 key map and a value map. These maps act on the prompt KV that the loop reads. The key map is one complex scale per
 rotary
 frequency pair. It commutes with RoPE~\citep{rope}, so it can act on the query instead of the cache. The value map is
-linear. Because attention is linear in the values, it can act on the attention output. Prompt and answer attention share
+linear. Because attention is linear in the values, the map can act on the attention output. Prompt and answer attention share
 one softmax, merged exactly through their log-sum-exps. We can also fold both maps into the prompt cache once at
 prefill, which keeps one mapped copy per decode loop (as many copies as the original model keeps at $n$ loops). Decoding then
-runs the original attention at its normal cost per token (the form we time). A lighter variant keeps a single
-prompt cache for all decode loops and saves memory (Table~\ref{tab:ablate}a).
+runs the original attention at its normal cost per token (the form we time). A lighter variant, the one-cache LoopBridge, keeps a single
+prompt cache, that of the last prefill loop, for all decode loops and saves memory (Table~\ref{tab:ablate}a).
 
 \paragraph{Training.} We distill~\citep{kd} the adapter from Original 4/4 with a KL loss on 48M answer tokens of
 reasoning traces, instruction data, long-context data and web text. Each micro-batch uses one random
-$(m,n)$ pair. The adapter has 63M parameters, 2.4\% of Ouro-2.6B. The main LoopBridge is trained on $m,n\le4$. A second
-one, trained on $m\in\{1,2,3,4,6,8,12,16\}$ and $n\le4$, is used for the depth sweep (Appendix~\ref{app:training}).
+$(m,n)$ pair. LoopBridge has 63M parameters (2.4\% of Ouro-2.6B), and the fixed-depth adapter 12.6M. We train the main LoopBridge on $m,n\le4$, and a second
+one on $m\in\{1,2,3,4,6,8,12,16\}$ and $n\le4$ for the depth sweep (Appendix~\ref{app:training}).
 
 \begin{figure*}[t]
 \centering
@@ -205,7 +205,8 @@ Figure~\ref{alg:adapter} in Appendix~\ref{app:method} provides pseudocode.}
 \paragraph{Models and benchmarks.} We use Ouro-2.6B, Ouro-1.4B and their Thinking versions~\citep{ouro}, all with four
 loops, and test the Lev decision models~\citep{lev} in Section~\ref{sec:others}. We test base models on 11 benchmarks with the Ouro protocol (Appendix~\ref{app:eval}): MMLU~\citep{mmlu}, MMLU-Pro~\citep{mmlupro}, BBH~\citep{bbh}, ARC-Challenge~\citep{arc},
 HellaSwag~\citep{hellaswag}, Winogrande~\citep{winogrande}, GSM8K~\citep{gsm8k}, MATH-500~\citep{math,lightman2023lets},
-HumanEval+ and MBPP+~\citep{humaneval,mbpp,evalplus}, and RULER-16K~\citep{ruler}. We test Thinking models on eight benchmarks, including HELMET~\citep{helmet}.
+HumanEval+ and MBPP+~\citep{humaneval,mbpp,evalplus}, and RULER-16K~\citep{ruler}; MMLU-Pro and BBH use 30 items per subject and 60 per subtask. We test Thinking models
+on seven of these and on HELMET~\citep{helmet} (Table~\ref{tab:t14}).
 
 \paragraph{Baselines.} \emph{Original $n/n$} is the released model with $n$ loops. \emph{Training-free $4/n$} unties
 the loops without an adapter. \emph{Distilled $n/n$} is the $n$-loop model with LoRA trained to match Original 4/4, with
@@ -255,21 +256,20 @@ the items all rows share. Rows show the first training seed, fixed in advance. O
 (mean $\pm$ s.d.), the
 fixed-depth adapter averages $58.3\pm0.2$ at 4/1 and $69.0\pm0.3$ at 4/2, LoopBridge $58.3\pm0.1$ and $68.6\pm0.4$,
 Distilled $49.6\pm0.3$ at 1/1 and $66.1\pm0.1$ at 2/2 (rank 80: $49.2\pm0.1$ and $65.6\pm0.2$). With seed means, the
-gaps between our adapters and the distilled models change by at most 0.4 points.}
+gaps between our adapters and the distilled models change by at most 0.6 points.}
 \label{tab:main}
 \end{table*}
 
-Table~\ref{tab:main} compares our two adapters with the original and distilled models at the same number of decode
-loops. Without an adapter, untying fails (28.7 at 4/1 and 31.0 at 4/2), but with an adapter it works well. With one
-decode loop, four
-prefill loops lift the average from 44.2 (Original 1/1) to 58.6 with the fixed-depth adapter and 58.2 with LoopBridge.
-That is about 9 points above the original model distilled to one loop on the same data (49.5, and 49.3 at rank 80).
-Both adapters beat Original 1/1 on all 11 benchmarks. They lead by 15 to 24 points on MMLU, MMLU-Pro, BBH,
+At the same number of decode loops, our two adapters are better than the original and distilled models
+(Table~\ref{tab:main}). Without an adapter, untying fails (28.7 at 4/1 and 31.0 at 4/2). With one decode loop, four
+prefill loops lift the average from 44.2 (Original 1/1) to 58.6 with the fixed-depth adapter and 58.2 with LoopBridge,
+about 9 points above the original model distilled to one loop on the same data (49.5, and 49.3 at rank 80).
+Both adapters are better than Original 1/1 on all 11 benchmarks, by 15 to 24 points on MMLU, MMLU-Pro, BBH,
 ARC-Challenge, HumanEval+ and RULER-16K. With two decode loops, the fixed-depth adapter and LoopBridge average 69.0
 and 69.1 (69.0 and 68.6 over three seeds), against 63.7
-for Original 2/2. They come within three points of Original 4/4 (71.9) with half its decode loops. Both adapters stay
+for Original 2/2. They come within about three points of Original 4/4 (71.9) with half its decode loops. Both adapters stay
 ahead of the distilled models over three training seeds. LoopBridge also stays ahead when we scale the learning rate of
-both methods (Table~\ref{tab:ablate}c) and without the benchmark items that overlap the training data
+both methods (Table~\ref{tab:ablate}c) and when we drop the benchmark items that overlap the training data
 (Appendix~\ref{app:training}).
 
 \subsection{Fewer decode loops, more prefill loops}
@@ -282,12 +282,12 @@ both methods (Table~\ref{tab:ablate}c) and without the benchmark items that over
 accuracy (\%)
 against the number of decode loops $n$. Grey: the original model ($n/n$). Orange: LoopBridge with four prefill loops
 ($4/n$); at $n=4$ nothing is untied and the original model runs as released. Eight of the 11 benchmarks; each panel
-uses the items all points share; every benchmark and $(m,n)$ cell: Table~\ref{tab:alignedcells}.}
+uses the items all points share; every benchmark and every cell with $n\le3$: Table~\ref{tab:alignedcells}.}
 \label{fig:grid}
 \end{figure*}
 
-In Figure~\ref{fig:grid}, we vary the number of decode loops. The original model loses much of its accuracy when it
-decodes with fewer loops, but with four prefill loops LoopBridge keeps much of it. At one decode loop, MMLU rises from 51.5 to
+With fewer decode loops, the original model loses much of its accuracy, but with four prefill loops LoopBridge keeps
+much of it (Figure~\ref{fig:grid}). At one decode loop, MMLU rises from 51.5 to
 67.1, BBH
 from 30.9 to 52.7, and HumanEval+ from 44.5 to 65.2. Multi-step math tasks rely on decode loops the most. On GSM8K,
 the original model scores 32.4 at one loop and 69.4 at four, but four prefill loops still add 13 points. With three decode loops,
@@ -302,23 +302,22 @@ matches Original 3/3 (both average 70.8). It also matches Original 3/3 on long-c
 \centering
 \includegraphics[width=\textwidth]{../figs/fig_depth_main.pdf}
 \caption{\textbf{Two to five prefill loops give most of the gain.} One decode loop, Ouro-2.6B, one LoopBridge trained on
-prefill depths 1 to 16 (the same weights for every $m$). Orange: gain from one prefill loop to the best depth; grey
+prefill depths 1 to 16 (the same weights for every $m$); four tasks of different kinds. Orange: gain from one prefill loop to the best depth; grey
 band: two to five loops, where the best depth lies on all four tasks. Every value: Table~\ref{tab:depthwide}; two decode loops and the timed tasks:
-Figure~\ref{fig:depthfull}; where the gain stops on every benchmark: Table~\ref{tab:plateau}.}
+Figure~\ref{fig:depthfull}; where the gain stops: Table~\ref{tab:plateau}.}
 \label{fig:depth}
 \end{figure*}
 
-Next, we fix the decode loops and change only the prefill loops, using one set of weights. At one decode loop, a few more
-prefill loops raise GSM8K by 10.3 points, MMLU-Pro by 24.0, HumanEval+ by 17.7 and RULER-16K by 10.1
-(Figure~\ref{fig:depth}). For the main LoopBridge, four prefill loops instead of one raise the 11-benchmark average
-from 47.0 to 58.2 with the same weights. This gain averages $+10.7\pm0.5$ over three training seeds. The gain
-therefore comes from the prefill loops, not just from training.
+More prefill loops alone raise accuracy. With one set of weights and one decode loop, a few more prefill loops raise
+GSM8K by 10.3 points, MMLU-Pro by 24.0, HumanEval+ by 17.7 and RULER-16K by 10.1 (Figure~\ref{fig:depth}). For the
+main LoopBridge, four prefill loops instead of one raise the 11-benchmark average from 47.0 to 58.2 with the same
+weights ($+10.7\pm0.5$ over three training seeds), so the gain comes from the prefill loops, not just from training.
 
-The gain levels off after a few loops. To find where, we use one half of each benchmark to select the depth (the first depth that none of
+The gain stops after a few loops. To find where, we use one half of each benchmark to select the depth (the first depth that none of
 the next three beats by more than 0.5 points) and report accuracy on the other half (Appendix~\ref{app:plateau}). For the adapter trained up to 16 loops, this depth is two to five in 16 of the 18
 benchmark and decode settings, and two or three in 11 of them. Over three training seeds, it stays in this range in 13 of the 14 settings that stop in every seed, and it also
 stays there when the prefill loops are trained too (Appendix~\ref{app:plateau}). On Ouro-1.4B, the adapter is trained up to four loops. Here, the
-best of one to four prefill loops is three or four in 14 of 18 settings (Appendix~\ref{app:depth14}). On a new task,
+best of one to four prefill loops is three or four in 15 of 18 settings (Appendix~\ref{app:depth14}). On a new task,
 the same rule on a few hundred held-out requests picks the depth.
 Without held-out requests, $m=4$, the depth the original model was trained with, is a good default (Table~\ref{tab:main}).
 
@@ -339,7 +338,7 @@ Figure~\ref{fig:budgetfull}.}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{../figs/fig_tbatched.pdf}
-\caption{\textbf{The Thinking model: four-loop accuracy at two-loop cost.} Ouro-2.6B-Thinking on the 1,319 GSM8K problems
+\caption{\textbf{On GSM8K, the Thinking model gets four-loop accuracy at two-loop cost.} Ouro-2.6B-Thinking on the 1,319 GSM8K problems
 served with continuous batching (one B300; chat template, 4,096-token budget): accuracy of the served answers against
 wall seconds per request. Ours: LoopBridge with per-loop caches and the maps folded in, prefill 4 / decode 2; dotted:
 Original 4/4. Numbers: Table~\ref{tab:tbatched}.}
@@ -379,9 +378,8 @@ learning rate & $\times0.3$ & $\times1$ & $\times3$ \\
 \end{minipage}
 \caption{\textbf{Ablations}, Ouro-2.6B, 11-benchmark average (\%) unless noted; default shaded. (a) ``all $(m,n)$'': one
 set of weights serves every prefill and decode depth. The key and value maps restore the RULER-16K retrieval that an
-all-pairs LoRA loses, also at rank 80 (the rank-80 LoRA and LoopBridge both train 63M parameters). (b) The one-cache
-LoopBridge
-trained on fewer answer tokens. (c) The whole learning-rate schedule scaled, for the distilled model and for
+all-pairs LoRA loses, also at rank 80 (the rank-80 LoRA and LoopBridge both train 63M parameters). (b) The one-cache LoopBridge trained on fewer answer tokens; at 12M tokens, LoRA rank 4 and 64 instead of 16 give 56.6
+and 56.9 at 4/1 and 67.8 and 68.1 at 4/2. (c) The whole learning-rate schedule scaled, for the distilled model and for
 LoopBridge.}
 \label{tab:ablate}
 \end{table*}
@@ -399,13 +397,13 @@ Lev-3B: $m=2$), decided with $n<m$ loops; one fixed $m$, no selection. All pairs
 
 Models with the same number of decode loops do not always take the same time, so we time the same 800 requests (Figure~\ref{fig:budget}; per task in Appendix~\ref{app:time}). With the maps folded into the prompt cache, LoopBridge takes about as long per new token as the original model (35.5 against 35.0 ms at one decode loop). But on MMLU-Pro more of our outputs run on to the 2,048-token limit without giving an answer (29 of 200 for LoopBridge 4/1, against 15 for Distilled 1/1 and 4 for Original 1/1;
 Appendix~\ref{app:time}). So at one decode loop the fixed-depth adapter and LoopBridge take 12.03 and 12.82 seconds per request, against 10.58 for Original 1/1 and 11.69 for Distilled 1/1. On the four
-chain-of-thought tasks, the fixed-depth adapter scores 46.4 and LoopBridge 45.0, against 27.8 for Original 1/1 and 34.2 for Distilled 1/1. Paired over the 800 requests, LoopBridge is $+17.2$\ci{13.6}{20.9} points above Original 1/1 and $+10.8$\ci{7.0}{14.5} above Distilled 1/1 (for the fixed-depth adapter, $+18.6$\ci{15.1}{22.3} and $+12.2$\ci{8.4}{15.9}). One decode loop is the setting to use when each new token must come out fast, as in chat.
+chain-of-thought tasks, the fixed-depth adapter scores 46.4 and LoopBridge 45.0, against 27.8 for Original 1/1 and 34.2 for Distilled 1/1. Paired over the 800 requests, LoopBridge is $+17.2$\ci{13.6}{20.9} points above Original 1/1 and $+10.8$\ci{7.0}{14.5} above Distilled 1/1 (for the fixed-depth adapter, $+18.6$\ci{15.1}{22.3} and $+12.2$\ci{8.4}{15.9}). One decode loop gives the lowest time per new token.
 
-The original model could spend the same extra time by serving some of its requests with two loops. At the mean time
-of LoopBridge 4/1, such a mix of Original 1/1 and 2/2 scores 34.5, and LoopBridge is $+10.5$\ci{5.7}{15.4} points above it (the arrow in Figure~\ref{fig:budget}). Against the same mix of Distilled 1/1 and 2/2, LoopBridge is $+7.8$\ci{3.0}{12.7} points above (for the fixed-depth adapter, $+14.3$\ci{9.7}{18.9} and $+11.3$\ci{6.6}{15.3}). With two decode loops, both adapters take 0.93--0.99 of the time of Original 2/2 and Distilled 2/2 and score 3 to 7 points higher.
+Our adapters are also better when the baselines spend the same extra time, serving some of their requests with two
+loops. At the mean time of LoopBridge 4/1, such a mix of Original 1/1 and 2/2 scores 34.5, and LoopBridge is $+10.5$\ci{5.7}{15.4} points above it (the arrow in Figure~\ref{fig:budget}). Against the same mix of Distilled 1/1 and 2/2, LoopBridge is $+7.8$\ci{3.0}{12.7} points above (for the fixed-depth adapter, $+14.3$\ci{9.7}{18.9} and $+11.3$\ci{6.6}{15.3}). With two decode loops, both adapters take 0.93--0.99 of the time of Original 2/2 and Distilled 2/2 and score 3 to 7 points higher.
 
 The gain also holds when many requests are served together. In continuous batching, each prompt is prefilled alone
-while the batch waits (Figure~\ref{fig:batched} in Appendix~\ref{app:serve}). At batch 32, LoopBridge 4/1 stays
+while the batch waits (Figure~\ref{fig:batched} and Table~\ref{tab:batched} in Appendix~\ref{app:serve}). At batch 32, LoopBridge 4/1 stays
 $+18.5$\ci{14.9}{22.1} and $+11.3$\ci{7.8}{14.9} points above Original 1/1 and Distilled 1/1. It takes $1.18\times$ the time per request of Original 1/1 and $1.19\times$
 that of Distilled 1/1.
 
@@ -435,7 +433,7 @@ cache saves memory and costs 0.4 points.
 \paragraph{Data and learning rate.} LoopBridge needs little data. With 6M answer tokens (an eighth of the default), the
 one-cache LoopBridge already averages 54.8 at 4/1 (Table~\ref{tab:ablate}b), above the distilled model trained
 on 48M (49.5; Table~\ref{tab:main}). With 12M tokens, using LoRA rank 4 or 64 instead of 16 changes its averages by at most 0.7
-points.
+points (Table~\ref{tab:ablate}b).
 Scaling the learning-rate schedule by 0.3 or 3 moves the distilled model by at most 0.8 points and LoopBridge by at
 most 1.4 (Appendix~\ref{app:method}). The worst LoopBridge setting (56.8) is still above the best distilled one (49.5; Table~\ref{tab:ablate}c).
 
@@ -444,17 +442,18 @@ most 1.4 (Appendix~\ref{app:method}). The worst LoopBridge setting (56.8) is sti
 
 
 
-\paragraph{Ouro-1.4B.} With its own LoopBridge, four prefill loops and one decode loop, Ouro-1.4B averages 44.5 over
+\paragraph{Ouro-1.4B.} Untying also works on Ouro-1.4B. With its own LoopBridge, four prefill loops and one decode loop, it averages 44.5 over
 the 11 benchmarks (with smaller MMLU and GSM8K subsets), and 44.3 with the fixed-depth adapter. Original 1/1 scores 34.7,
 and Distilled 1/1 scores 40.5 (40.7 at rank 80; Table~\ref{tab:main14}). Over three training seeds, LoopBridge 4/1, the fixed-depth adapter and Distilled 1/1 average $44.2\pm0.2$, $44.6\pm0.3$
 and $40.5\pm0.0$.
 
-\paragraph{Thinking models.} LoopBridge at prefill 4 / decode 2 on Ouro-2.6B-Thinking scores higher than Original
+\paragraph{Thinking models.} LoopBridge 4/2 on Ouro-2.6B-Thinking scores higher than Original
 2/2 on six of the eight benchmarks in Figure~\ref{fig:equal} (Appendix~\ref{app:extended}) and is within 0.5 points
-on the other two. It leads by up
-to 15 points on HELMET and 8 on MMLU-Pro and BBH, and it comes within 0.8 points of Original 4/4 on average
-(Table~\ref{tab:t14} in Appendix~\ref{app:t14}). Over three training seeds, the gap to Original 4/4 is $1.1\pm0.3$
-points, and LoopBridge scores higher than Original 2/2 on six or seven of the eight benchmarks. With the one-cache variant, four prefill loops instead of one raise
+on the other two. It is up
+to 15 points higher on HELMET and 8 on MMLU-Pro and BBH, and it comes within 0.8 points of Original 4/4 on average
+(Table~\ref{tab:t14} in Appendix~\ref{app:t14}). Against Distilled 2/2, trained on the same data, it is 3.1 points higher
+on average. Over three training seeds, the gap to Original 4/4 is $1.1\pm0.3$
+points, and LoopBridge scores higher than Original 2/2 on six or seven of the eight benchmarks. With the one-cache LoopBridge, four prefill loops instead of one raise
 MMLU-Pro by 18.6 points on Ouro-2.6B-Thinking and by 17.1 on Ouro-1.4B-Thinking (Table~\ref{tab:models}).
 
 \paragraph{Looped decision models.} Lev~\citep{lev} turns looped language models into decision models that read a
@@ -469,8 +468,8 @@ on Lev-1.4B, $+7.5$\ci{5.7}{9.5} on Lev-2.6B and $+4.4$\ci{2.8}{6.1} on Lev-3B (
 When a model writes a chain of thought, it spends almost all its time decoding. A looped model can therefore read the
 prompt with more loops than it uses for each answer token. We make this work with a small distilled adapter. With four
 prefill loops and one decode loop, the average over 11 benchmarks rises by about 14 points over the original model with
-one loop. On the four chain-of-thought tasks we time, our models take 14--21\% more time per request and are 17--19
-points more accurate. At the same mean time, they are 10--14 points more accurate. LoopBridge lets
+one loop. On the four chain-of-thought tasks we time, our models take 14--21\% more time per request than the original model and are 17--19
+points more accurate (10--14 points at the same mean time). LoopBridge lets
 one adapter serve every trained pair of loop counts
 and keeps retrieval over 16K-token prompts working. Reading the prompt with many loops and decoding with few loops
 gives looped models a cheap way to spend more compute at test time.
@@ -480,7 +479,7 @@ gives looped models a cheap way to spend more compute at test time.
 
 We measure run time on one GPU type, at batch sizes from 1 to 32. With larger batches, the extra prefill loops take a
 larger share of the time. Folding the maps into the prompt cache keeps one prompt cache per decode loop, as the
-original model does at $n$ loops. Applying them at every decode step keeps one cache, but costs decode time. We fix
+original model does at $n$ loops. Applying the maps at every decode step keeps one cache, but costs decode time. We fix
 the prefill depth for each setting, rather than choosing it per prompt. The models we test have at most 3B parameters
 and four
 loops, and all benchmarks are in English.
@@ -491,10 +490,13 @@ loops, and all benchmarks are in English.
 
 \appendix
 
-\paragraph{Guide to the appendix.} Appendices~\ref{app:time}--\ref{app:depth14} give the full data behind
-Figures~\ref{fig:time}--\ref{fig:depth} and Section~\ref{sec:budget}. Appendix~\ref{app:extended} adds results on the
-Thinking models and decision models. Appendices~\ref{app:method}--\ref{app:eval} give method, training, and
-evaluation details. The remaining appendices give further checks, and Appendix~\ref{app:repro} lists what is released.
+\paragraph{Guide to the appendix.} Appendix~\ref{app:time} gives the per-request times behind Figures~\ref{fig:time}
+and~\ref{fig:budget}, Appendices~\ref{app:plateau} and~\ref{app:depth14} the depth sweeps behind Figure~\ref{fig:depth},
+and Appendix~\ref{app:extended} every cell of Figure~\ref{fig:grid} and more results on the Thinking and decision models.
+Appendices~\ref{app:method}, \ref{app:training} and~\ref{app:eval} give method, training and evaluation details, and
+Appendix~\ref{app:related} more related work. Appendices~\ref{app:models}--\ref{app:lev} cover the other checkpoints,
+the Thinking model in numbers, batched serving, design variants and the decision models, and Appendix~\ref{app:repro}
+lists what is released.
 The label ``one cache'' refers to the lighter LoopBridge variant, in which every decode loop reads the last prefill loop. In every
 figure that compares them, Ours is orange and the original model is grey. Table~\ref{tab:impl} lists which implementation and which
 measurement each result uses.
@@ -506,17 +508,15 @@ measurement each result uses.
 \toprule
 result & LoopBridge form & measurement \\
 \midrule
-Tables~\ref{tab:main}, \ref{tab:ablate}, \ref{tab:t14}; Figures~\ref{fig:grid}, \ref{fig:depth}, \ref{fig:equal} & per-loop
-caches, per-step maps & accuracy, full evaluation sets \\
-Figures~\ref{fig:budget}, \ref{fig:budgetfull} & per-loop caches, maps folded in & batch 1, replayed requests \\
-Figures~\ref{fig:tbatched}, \ref{fig:batched} & per-loop caches, maps folded in & continuous batching, wall time \\
-Table~\ref{tab:models}; Figure~\ref{fig:frontier} & one shared cache & accuracy; decode
+Figures~\ref{fig:budget}, \ref{fig:budgetfull}; Table~\ref{tab:time} & per-loop caches, maps folded in & batch 1, replayed requests \\
+Figures~\ref{fig:tbatched}, \ref{fig:batched}; Tables~\ref{tab:batched}, \ref{tab:tbatched} & per-loop caches, maps folded in & continuous batching, wall time \\
+Tables~\ref{tab:ablate}b, \ref{tab:models}; Figure~\ref{fig:frontier}; last row of Table~\ref{tab:ablate}a & one shared cache & accuracy; decode
 microbenchmark \\
+all other results & per-loop caches, per-step maps & accuracy \\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Implementation behind each result.} In exact arithmetic, the per-loop forms compute the same function
-(Section~\ref{sec:method}). The one-cache LoopBridge is a separately trained variant; it is also used in the rows of
-Table~\ref{tab:ablate} marked one-cache.}
+(Section~\ref{sec:method}). The one-cache LoopBridge is a separately trained variant.}
 \label{tab:impl}
 \end{table}
 
@@ -636,8 +636,8 @@ benchmark & $n$ & $m{=}1$ & 2 & 3 & 4 & 5 & 6 & 8 & 12 & 16 \\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Prefill depth for the adapter trained up to 16 loops} (Figure~\ref{fig:depth}). Ouro-2.6B, accuracy (\%)
-against prefill loops $m$ at decode $n$, the same weights for every $m$, full evaluation sets; best $m$ of each row in
-bold; --: not evaluated.}
+against prefill loops $m$ at decode $n$, the same weights for every $m$, on the evaluation sets of Table~\ref{tab:main} (nine of its 11 benchmarks; HellaSwag and
+Winogrande not run); best $m$ of each row in bold; --: not evaluated.}
 \label{tab:depthwide}
 \end{table*}
 
@@ -645,7 +645,7 @@ bold; --: not evaluated.}
 \label{app:depth14}
 
 Table~\ref{tab:depth14} repeats the sweep of Section~\ref{sec:depth} on Ouro-1.4B with LoopBridge (trained on
-$m,n\le4$), using the same benchmarks and protocol.
+$m,n\le4$), using the same benchmarks and protocol (full MMLU and GSM8K; Table~\ref{tab:main14} uses subsets).
 
 \begin{table}[h]
 \centering\small
@@ -670,7 +670,8 @@ Table~\ref{tab:main14}.}
 \includegraphics[width=0.94\textwidth]{../figs/fig_equal.pdf}
 \caption{\textbf{On a Thinking model, four prefill loops bring two decode loops close to four.}
 Ouro-2.6B-Thinking, score against the number of decode loops. Grey: Original 2/2 and 4/4. Orange: LoopBridge with
-prefill 4 / decode 2. Same items for all three in each panel; HELMET is averaged over its categories. Over three training
+prefill 4 / decode 2; blue: Distilled 2/2 (drawn just left of $n=2$). Same items for all four in each panel; HELMET is
+averaged over its categories. Over three training
 seeds, LoopBridge averages $1.1\pm0.3$ points below Original 4/4.
 Table~\ref{tab:t14} gives every score, the paired intervals, and scores for the same adapter at prefill 2 / decode 2.}
 \label{fig:equal}
@@ -701,7 +702,9 @@ model already uses all four loops.}
 Figure~\ref{fig:equal} shows the Thinking model on each benchmark: Ouro-2.6B-Thinking at prefill 4 / decode 2. With the
 same number of decode loops as \nat{2}, \rw{4}{2} scores higher on six of the eight benchmarks, by up to 15 points on
 HELMET and 8 on MMLU-Pro and BBH, and is within 0.5 points on MATH-500 and MBPP+. Against \nat{4}, which decodes with
-twice the loops, it is within two points or better on six of the eight. The gain comes from the prefill loops:
+twice the loops, it is within two points or better on six of the eight. Against Distilled 2/2, trained on the same data,
+it is higher on six of the eight and within 0.2 points on MATH-500 and MBPP+ (Table~\ref{tab:t14}). The gain comes
+from the prefill loops:
 at \rw{2}{2}, the same adapter scores lower than at \rw{4}{2} on all eight benchmarks, by up to 9.6 points on MMLU-Pro.
 
 
@@ -783,7 +786,7 @@ loss = kl[answer].sum() / (answer.sum() - len(x))
 \end{minipage}
 \caption{\textbf{LoopBridge in PyTorch-style pseudocode.} The fixed-depth adapter is the same code with $c=1$, $W=I$
 and $m$ fixed. Decode loop $k$ reads prefill loop $\max(m-n+k,0)$ (loops
-counted from zero here; the one-cache variant keeps only the last prefill loop) through its own key scale (applied to
+counted from zero here; the one-cache LoopBridge keeps only the last prefill loop) through its own key scale (applied to
 the query) and value map
 (applied to the attention output), and the prompt and answer attention are combined exactly through their log-sum-exp.}
 \label{alg:adapter}
@@ -799,8 +802,10 @@ fixed at the identity and $m$ fixed.
 \paragraph{Prefill and decode.} ``\rw{m}{n}'' prefills the prompt with $m$ loops and decodes every answer token with
 $n$ loops. Here, \nat{n} is the unmodified model. The frozen model prefills the prompt with $m$ loops and keeps the
 prompt keys and values its decode loops read. With per-loop caches (Ours), decode loop $k$ reads prefill loop
-$\max(m-n+k,1)$. In the one-cache variant, every decode loop reads the last prefill loop. The decoder is the same
-frozen model with rank-16 LoRA~\citep{lora} on its attention projections, running $n$ loops per token.
+$\max(m-n+k,1)$. In the one-cache LoopBridge, every decode loop reads the last prefill loop. The decoder is the same
+frozen model with rank-16 LoRA~\citep{lora} on its attention projections, running $n$ loops per token. As in standard
+serving, prefill covers the prompt up to its last token, and the last prompt token runs through the $n$ decode loops to
+give the first answer token (Figure~\ref{alg:adapter}).
 
 \paragraph{RoPE-commuting maps.} Decode loop $k$ reads the prompt KV cache through a map per (loop, layer, KV head).
 The key map is one complex scale $c_j$ per rotary frequency pair $j$~\citep{rope}. Viewing the pair of key coordinates
@@ -815,13 +820,14 @@ share one
 softmax. The two parts are computed by two attention calls with outputs $o_P, o_A$ and log-sum-exps $\lambda_P,
 \lambda_A$ of their attention logits. They are merged as $g\,o_P+(1-g)\,o_A$ with $g=\sigma(\lambda_P-\lambda_A)$,
 which equals attention with one softmax over both (the blockwise softmax of FlashAttention~\citep{flashattn,flashattn2}). In the one-cache
-variant, the prompt KV is stored once for any $n$, so total KV is $b(\ell+n\,t)$ instead of $b\,n(\ell+t)$. Applying
+LoopBridge, the prompt KV is stored once for any $n$, so with $b$ bytes of KV per token and loop, an $\ell$-token prompt
+and $t$ answer tokens, total KV is $b(\ell+n\,t)$ instead of $b\,n(\ell+t)$. Applying
 the maps per step is equivalent in exact arithmetic to materialising a mapped prompt cache per loop. In bfloat16 all 512
 checked greedy tokens agree.
 
 \paragraph{Per-loop caches (Ours).} We keep one prompt cache per decode loop, and decode loop $k$ reads prefill loop $\max(m-n+k,1)$ through its own
-map. Thus, at $m=n$, every decode loop reads exactly the KV the original
-model would. We store the prompt $n$ times, as \nat{n} does, whereas the one-cache variant, trained identically, stores it
+map. Thus, at $m=n$, decode loop $k$ reads prefill loop $k$, as in the original
+model. We store the prompt $n$ times, as \nat{n} does, whereas the one-cache LoopBridge, trained identically, stores it
 once and is slightly less accurate, most of all on long-context retrieval.
 
 \paragraph{What the maps do.} The maps matter for long prompts. For LoopBridge, the same training with the maps frozen at the identity
@@ -910,7 +916,9 @@ and LatentPort~\citep{latentport} study the two kinds of state.
 projections, active only when decoding. For each (decode loop, layer, KV head), we apply a complex scale to each
 rotary frequency pair on
 keys and a full
-$D\times D$ value map. Both are initialised to the identity. With a frozen backbone, this adds 63,307,776 trainable parameters for Ouro-2.6B.
+$D\times D$ value map ($D=128$, the head dimension). Both are initialised to the identity. With a frozen backbone, this
+adds 63,307,776 trainable parameters for Ouro-2.6B, 12,582,912 of them in the LoRA (all that the fixed-depth adapter
+trains).
 
 \paragraph{Objective and data.} The training loss is $\mathrm{KL}(\text{teacher}\,\|\,\text{student})$ summed over
 answer positions. We normalise it by $\sum_i(|a_i|-1)$ over the answers $a_i$ of the global batch (one less than the
@@ -932,12 +940,12 @@ other audited benchmark (GSM8K, ARC-Challenge, HellaSwag, Winogrande). Items who
 unavailable or
 shorter than 13 tokens cannot be assessed (2,696 MMLU, 296 HellaSwag, 254 BBH, 247 ARC-Challenge, 194 MMLU-Pro, at
 most 4 elsewhere) and are kept. RULER and HELMET are synthetic or long-document and not audited. Without the
-overlapping items, Ours at prefill 4 /
+overlapping items, LoopBridge at prefill 4 /
 decode 1 stays significantly above Distilled 1/1 (Table~\ref{tab:main}) on MMLU ($+14.3$), MMLU-Pro ($+18.2$), BBH
 ($+12.4$), GSM8K ($+4.6$), MATH-500 ($+8.0$), HumanEval+ ($+10.0$ on the 70 remaining problems) and MBPP+ ($+5.3$).
-At decode 2, Ours stays significantly above Distilled 2/2 on MMLU ($+6.3$), MMLU-Pro ($+7.7$), BBH ($+2.6$) and
-MATH-500 ($+9.0$). Ours and the distilled controls are trained on the
-same data, so an overlap cannot favour either.
+At decode 2, it stays significantly above Distilled 2/2 on MMLU ($+6.3$), MMLU-Pro ($+7.7$), BBH ($+2.6$) and
+MATH-500 ($+9.0$). LoopBridge and the distilled controls are trained on the
+same data.
 
 \paragraph{Optimisation.} We train using AdamW ($\beta=(0.9,0.95)$, no weight decay). Peak learning rate is $10^{-4}$
 with 2\% linear
@@ -976,7 +984,8 @@ benchmark & ours & reported & items \\
 \bottomrule
 \end{tabular}
 \caption{\textbf{Reproducing the original model.} Ouro-2.6B 4/4 under our evaluation and as reported by
-\citet[Table~8]{ouro}; MMLU-Pro and BBH here on the full runs of the original model.}
+\citet[Table~8]{ouro}; here on all items, with MMLU-Pro and BBH on the full runs of the original model
+(Table~\ref{tab:main} uses the items all its rows share).}
 \label{tab:repro}
 \end{table} We prepare and score RULER (13 tasks $\times$ 40 rows per length) and HELMET (RAG, synthetic recall,
 re-ranking and ICL; 1,108 rows) with our own scripts. Thinking models answer GSM8K and
@@ -1057,19 +1066,19 @@ a 0--100 scale; brackets are paired 95\% bootstrap intervals.}
 \begin{table*}[t]
 \centering\footnotesize
 \setlength\tabcolsep{3pt}
-\begin{tabular}{@{}lrccccc@{}}
+\begin{tabular}{@{}lrccccccc@{}}
 \toprule
- & & \multicolumn{4}{c}{score} & \\
-\cmidrule(lr){3-6}
-benchmark & $N$ & Original 2/2 & Ours 2/2 & Ours 4/2 & Original 4/4 & Ours 4/2 minus Original 2/2 \\
+ & & \multicolumn{5}{c}{score} & \multicolumn{2}{c}{Ours 4/2 minus} \\
+\cmidrule(lr){3-7}\cmidrule(l){8-9}
+benchmark & $N$ & Original 2/2 & Distilled 2/2 & Ours 2/2 & Ours 4/2 & Original 4/4 & Original 2/2 & Distilled 2/2 \\
 \midrule
 \csname @@input\endcsname ../figs/tab_equal_26B-T.tex
 \bottomrule
 \end{tabular}
 \caption{\textbf{Figure~\ref{fig:equal} in numbers.} Ouro-2.6B-Thinking; Ours: LoopBridge, the same weights at prefill 2
-or 4 and decode 2; $N$: items all configurations share. Differences are score points on a
-0--100 scale;
-brackets are paired 95\% bootstrap intervals.}
+or 4 and decode 2; Distilled 2/2: LoRA on Original 2/2 distilled from Original 4/4 with our data, teacher and tokens; $N$:
+items all configurations share; average: the eight benchmarks weighted equally. Differences are score points on a
+0--100 scale; brackets are paired 95\% bootstrap intervals.}
 \label{tab:t14}
 \end{table*}
 
@@ -1083,15 +1092,18 @@ Table~\ref{tab:t14} lists the scores and paired intervals behind Figure~\ref{fig
 (Figure~\ref{fig:batched}, Table~\ref{tab:batched}). With continuous batching, up to $B$ requests decode in lockstep.
 When a request finishes, it leaves the batch at once, and the server prefills the next request alone at batch 1 while
 the other requests wait.
-We do not use chunked prefill, which works against configurations with a long prefill, such as ours.
+We do not use chunked prefill, so each prefill stalls the whole batch; this works against configurations with a long
+prefill, such as ours.
 Each request keeps its cache in its own region of one buffer per loop and layer.
 Decode attention reads only that request's tokens using flash attention with variable lengths.
 Decoding is the same for every configuration.
 Each setup runs the $n$-loop model on per-loop prompt caches with LoRA merged into the weights.
-For LoopBridge, we fold the maps into the caches.
+For LoopBridge, we fold the maps into the caches. Merged LoRA weights and batched kernels change floating-point rounding,
+so a few greedy answers differ from those at batch 1.
 Time per request is the total wall time divided by the 800 requests, averaged over three timing passes.
-The run time of one task varies by 10--30\% between passes, although the generated tokens are identical.
-The cause is host-side work on a shared machine, which limits eager decoding.
+The run time of one task varies by 10--30\% between passes, although the generated tokens are identical, because of
+host-side work on a shared machine. Summed over the 800 requests, the time per request varies by less than 10\% between
+passes, and at batch 32 LoopBridge 4/1 takes 1.14--1.23 times as long as Original 1/1 and Distilled 1/1 in every pass.
 Batch 1 results are in Figure~\ref{fig:budget}.
 
 \begin{figure*}[t]
@@ -1157,8 +1169,7 @@ $3.3\times$ at 15K tokens, where \rw{4}{2} also outpaces \nat{2} ($1.12\times$).
 \includegraphics[width=\columnwidth]{../figs/fig2_frontier.pdf}
 \caption{\textbf{With one prompt cache, two decode loops come within 1.3 points of four decode loops on average at $3.2\times$
 the decode throughput.} Ouro-2.6B-Thinking with the one-cache LoopBridge: average accuracy over eight benchmarks (each on the items all
-configurations share) against a separate decode microbenchmark (best \mbox{tokens/s} over batch sizes at an 8K-token prompt,
-Appendix~\ref{app:serve}). Labels: prefill/decode loops; the four
+configurations share) against a separate decode microbenchmark (best \mbox{tokens/s} at an 8K-token prompt; Appendix~\ref{app:serve}). Labels: prefill/decode loops; the four
 prefill loops add 3.1 points over 2/2 at the same decode cost.}
 \label{fig:frontier}
 \end{figure}
@@ -1166,17 +1177,6 @@ prefill loops add 3.1 points over 2/2 at the same decode cost.}
 
 \section{Design Variants}
 \label{sec:ablation}
-
-The key map is a scale on each rotary pair.
-Because a scale commutes with RoPE, one stored prompt KV cache can serve every decode loop.
-We also trained the adapter with unrestricted key maps and one prompt cache per decode loop.
-On RULER-16K, the difference to our adapter is $+0.1$, $+0.6$, $-0.9$, $+1.2$ and $-1.0$ points at 1/1, 2/2, 3/1, 3/2
-and 4/2.
-No paired 95\% interval excludes zero, so the restriction costs nothing measurable.
-We ablate the maps themselves in Section~\ref{sec:ablate}.
-
-\section{Looped Decision Models}
-\label{app:lev}
 
 \begin{table*}[t]
 \centering\small
@@ -1197,16 +1197,25 @@ backbone has two loops. Above the diagonal ($m<n$) every difference is negative.
 \label{tab:lev}
 \end{table*}
 
+The key map is a scale on each rotary pair, and a scale commutes with RoPE, so one stored prompt KV cache can serve
+every decode loop.
+We also trained the adapter with unrestricted key maps and one prompt cache per decode loop.
+On RULER-16K, the difference to our adapter is $+0.1$, $+0.6$, $-0.9$, $+1.2$ and $-1.0$ points at 1/1, 2/2, 3/1, 3/2
+and 4/2.
+No paired 95\% interval excludes zero, so the restriction costs nothing measurable.
+
+\section{Looped Decision Models}
+\label{app:lev}
+
 We evaluate on the 3,270 answerable questions of LevBench's public development set (never its locked test set), and we compute intervals over record groups as Lev does.
-Each prefill count $m$ uses one continued training run with seed 0 (Table~\ref{tab:lev}).
-For the main comparison, where $m$ equals the backbone's loops, we test three more seeds.
+Each prefill count $m$ uses one continued training run (seed 0; Table~\ref{tab:lev}), and the main comparison, where $m$
+equals the backbone's loops, three more seeds.
 
 \paragraph{Setup and checks.}
 Both arms start from the same weights, and each trains every released Lev model for 140 updates on the 8,925-record public S31 training subset using Lev's
 hyperparameters.
 Our reference forward runs the full sequence through both the prefill and decision loops, so its training
 computation is about twice the control's.
-Without training, more prefill loops do not help ($-3.0$ on Lev-1.4B at one decision loop).
 The control itself changes little against the released models at one loop ($+0.5$ on Lev-1.4B, $+1.3$ on Lev-2.6B).
 Across the four seeds, the one-loop gain ranges from $+3.9$ to $+5.3$ on Lev-1.4B and from $+5.1$ to $+7.5$ on Lev-2.6B,
 and every interval excludes zero.
@@ -1218,13 +1227,13 @@ $+4.0$\ci{2.3}{5.7} on Lev-3B.
 \section{Reproducibility}
 \label{app:repro}
 
-We recompute the paired differences, intervals, means, timing ratios, and decode throughput of this paper from the
-accompanying per-item records with \path{ouro/scripts/paper_numbers.py} (command \texttt{compute}). The script then
-compares them with hard-coded expected values that mirror the numbers printed here. For every run, we store the
-command, configuration, checkpoint hash, log, and outputs in \path{ouro/results/provenance}. When we re-run the main-table
-cells from scratch, we reproduce GSM8K and MMLU with at least 99.6\% of item scores identical. On RULER-16K, 94--100\%
-of item scores are identical, and averages are within 0.9 points (\path{ouro/results/verify_rerun.txt}).
-\texttt{REPRODUCE.md} maps every result to the scripts and commands that regenerate its per-item records.
+We recompute the paired differences, intervals, means, timing ratios and decode throughput of this paper from the
+released per-item records with \path{ouro/scripts/paper_numbers.py} (command \texttt{compute}), which checks each
+against the printed value. Each run's command, configuration, checkpoint hash, log and outputs are in
+\path{ouro/results/provenance}. Re-running the main-table cells from scratch gives at least 99.6\% identical item
+scores on GSM8K and MMLU and 94--100\% on RULER-16K, with averages within 0.9 points
+(\path{ouro/results/verify_rerun.txt}). \texttt{REPRODUCE.md} maps every result to the scripts and commands that
+regenerate its records.
 
 \end{document}
 
