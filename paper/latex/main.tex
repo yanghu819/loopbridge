@@ -50,7 +50,7 @@ Looped language models run the same block of layers several times for every toke
 to read the prompt (prefill) and to write each new token (decode). Yet when a model writes a chain of thought, almost
 all of the time goes into decoding: on Ouro-2.6B at batch 1, prefill takes only 0.3--2.6\% of the time. Extra prefill
 loops therefore cost little at small batch sizes. We untie the two loop counts, reading the prompt with more loops and
-decoding with fewer. The original model cannot use a prompt read with more loops, so we distill a small adapter (at most 2.4\%
+decoding with fewer. The original model cannot use a prompt read with more loops, so we distil a small adapter (at most 2.4\%
 of the parameters). For a fixed prefill depth, LoRA on the decoder is enough. LoopBridge adds key and value maps,
 so that one adapter serves every trained pair of loop counts and keeps retrieval over 16K-token prompts working. On
 Ouro-2.6B with one decode loop, four prefill loops lift the average over 11 benchmarks from 44.2 to 58.6 with the
@@ -179,7 +179,7 @@ prefill, which keeps one mapped copy per decode loop (as many copies as the orig
 runs the original attention at its normal cost per token (the form we time). A lighter variant, the one-cache LoopBridge, keeps only the last
 prefill loop's cache for all decode loops and saves memory (Table~\ref{tab:ablate}a).
 
-\paragraph{Training.} We distill~\citep{kd} the adapter from Original 4/4 with a KL loss on 48M answer tokens of
+\paragraph{Training.} We distil~\citep{kd} the adapter from Original 4/4 with a KL loss on 48M answer tokens of
 reasoning traces, instruction data, long-context data and web text. Each micro-batch uses one random
 $(m,n)$ pair. LoopBridge has 63M parameters (2.4\% of Ouro-2.6B), and the fixed-depth adapter 12.6M. We train the main LoopBridge on $m,n\le4$, and a second
 one on $m\in\{1,2,3,4,6,8,12,16\}$ and $n\le4$ for the depth sweep (Appendix~\ref{app:training}).
@@ -189,7 +189,7 @@ one on $m\in\{1,2,3,4,6,8,12,16\}$ and $n\le4$ for the depth sweep (Appendix~\re
 \includegraphics[width=0.8\textwidth]{../figs/fig0_method.pdf}
 \caption{\textbf{LoopBridge, as timed.} The frozen model prefills the prompt once with $m$ loops. Once per prompt,
 LoopBridge maps the keys and values of prefill loop $\max(m-n+k,1)$ into a cache for decode loop $k$. It applies a scale
-$c_k$ on each rotary pair of the keys and a linear map $W_k$ of the values. Every answer token then runs $n$ loops of
+$c_k$ to each rotary pair of the keys and a linear map $W_k$ to the values. Every answer token then runs $n$ loops of
 the
 frozen model with LoRA. Loop $k$ attends to cache $k$ and to the answer's own keys and values with the original
 attention.
@@ -419,8 +419,8 @@ time, because its answers are shorter (Table~\ref{tab:tbatched}).
 and
 14.9 points below on RULER-16K (Table~\ref{tab:ablate}a). A bigger LoRA does not fix this: at rank 80, with as many
 parameters as LoopBridge, the all-pairs LoRA is still 8.9\ci{6.1}{11.7} points below LoopBridge on RULER-16K. Over
-three training seeds each, LoopBridge reaches 63.9$\pm$1.0 on RULER-16K, against 57.6$\pm$1.6 at rank 80 and
-44.7$\pm$4.4 at rank 16. So it is the key and value maps that keep retrieval over 16K-token prompts working when one
+three training seeds each, LoopBridge reaches $63.9\pm1.0$ on RULER-16K, against $57.6\pm1.6$ at rank 80 and
+$44.7\pm4.4$ at rank 16. So it is the key and value maps that keep retrieval over 16K-token prompts working when one
 adapter serves every depth. On average, one LoopBridge is as good as the fixed-depth adapter, and a server can change the depth of each request
 without loading other weights. With per-loop caches it stores as much prompt KV as Original $n/n$. Keeping a single shared
 prompt
@@ -464,7 +464,7 @@ on Lev-1.4B, $+7.5$\ci{5.7}{9.5} on Lev-2.6B and $+4.4$\ci{2.8}{6.1} on Lev-3B (
 When a model writes a chain of thought, it spends almost all its time decoding. A looped model can therefore read the
 prompt with more loops than it uses for each answer token. We make this work with a small distilled adapter. With four
 prefill loops and one decode loop, the average over 11 benchmarks rises by about 14 points over the original model with
-one loop. On the four chain-of-thought tasks we time, our models take 14--21\% more time per request than the original model and are 17--19
+one loop. On the four chain-of-thought tasks we time, our models take 14--21\% more time per request than the original model with one loop and are 17--19
 points more accurate (10--14 points at the same mean time). LoopBridge lets
 one adapter serve every trained pair of loop counts
 and keeps retrieval over 16K-token prompts working. Reading the prompt with many loops and decoding with few loops
@@ -682,7 +682,7 @@ Table~\ref{tab:t14} gives every score, the paired intervals, and scores for the 
 \csname @@input\endcsname ../figs/tab_aligned.tex
 \bottomrule
 \end{tabular}
-\caption{\textbf{Every prefill / decode cell of LoopBridge.} Ouro-2.6B, accuracy (\%) of Original $n/n$ and of
+\caption{\textbf{Every prefill/decode cell of LoopBridge.} Ouro-2.6B, accuracy (\%) of Original $n/n$ and of
 LoopBridge at prefill $m$ / decode $n$ for $n\le3$ on the benchmarks of Table~\ref{tab:main}. Each column uses the items all available configurations share
 (Figure~\ref{fig:grid}); bold: the best $m$ at each $n$. At $n=4$ the original
 model already uses all four loops.}
@@ -724,7 +724,7 @@ loop, where prefilling with all of the backbone's loops gains $+5.3$\ci{3.4}{7.2
 Lev-2.6B, and $+4.4$\ci{2.8}{6.1} on Lev-3B. In contrast, with fewer prefill than decision loops, the model is below the control on all 13 pairs (significantly
 on 11). It falls up to 13.0 points below the control ($-13.0$\ci{-14.7}{-11.3}; Lev-2.6B, prefill 1, four
 decision loops). The fewer-prefill direction replicates over four training seeds. Every seed is below the control on all
-13 pairs, and on 10 of them significantly in every seed. The more-prefill comparison at the backbone's full loop count
+13 pairs, and 10 of the pairs are significant in every seed. The more-prefill comparison at the backbone's full loop count
 also replicates over four seeds and against a control trained twice as long (Appendix~\ref{app:lev}). As with the
 language models (Figure~\ref{fig:grid}), the context gains from many loops, and the decision can then use few.
 
@@ -837,7 +837,7 @@ and 2/2 reach 48.5 and 65.4 (49.3 and 65.5 at the default). None comes close to 
 3 times its learning rate averages 56.8 and 59.0 at 4/1 and 68.4 and 69.3 at 4/2. At each number of decode loops, its weakest
 setting is still above the best distilled baseline. We report both methods at the default rate.
 
-\paragraph{Training.} We distill the adapter~\citep{kd} by minimising $\mathrm{KL}(\text{teacher}\,\|\,\text{student})$
+\paragraph{Training.} We distil the adapter~\citep{kd} by minimising $\mathrm{KL}(\text{teacher}\,\|\,\text{student})$
 over answer positions, with the Original 4/4 model as teacher. Training uses 48M answer tokens of reasoning traces,
 instruction data, long-context data and web text. One $(m,n)$ pair is sampled per micro-batch, so one set of
 parameters (63M, 2.4\% of Ouro-2.6B) serves all 16 pairs. Details are in Appendix~\ref{app:training}.
@@ -895,7 +895,7 @@ looped model after pretraining and choose the prefill loops $m$ and decode loops
 is also evicted or compressed per token~\citep{streamingllm,h2o,snapkv,pyramidkv}. Both approaches are orthogonal to
 our per-loop reads and can be combined with them. MELT~\citep{melt} post-trains Ouro to keep one gated KV cache per
 layer shared by all loops, plus a sliding window over the last generated tokens. This decouples memory from depth, but it does not separate prefill from decode loops or measure which depths a task needs. Looped Latent Attention~\citep{lla}
-compresses KV across loops, while BeNice!~\citep{benice} and LSTM-style looped transformers~\citep{lstmloop} share the
+compresses KV across loops, while BeNice!\@~\citep{benice} and LSTM-style looped transformers~\citep{lstmloop} share the
 KV cache.
 PLatour~\citep{platour} injects a larger model's prefill states into a smaller decoder. Cache-to-Cache~\citep{c2c},
 HeteroFold~\citep{heterofold}, Swarm Telepathy~\citep{swat}, and CacheLink~\citep{cachelink} transfer KV between
@@ -962,7 +962,7 @@ also use lm-evaluation-harness for ARC-Challenge (25-shot, 1,172), HellaSwag (10
 last \verb|\boxed{}|) with math-verify. The Ouro models' own 5-shot prompt and scorer are not released. The public
 4-shot Minerva exemplars bring Original 4/4 down to 53.6 against 72.2 zero-shot. We run HumanEval+ and MBPP+ using
 evalplus~\citep{evalplus} with its chat-template configuration. We put the problem in evalplus's chat prompt, decode
-greedily for up to 768 new tokens, and run the plus tests on the sanitized code. With this protocol, original
+greedily for up to 768 new tokens, and run the plus tests on the sanitised code. With this protocol, the original
 Ouro-2.6B 4/4 scores within one point of the published numbers on MMLU, MMLU-Pro, BBH, ARC-Challenge, and HellaSwag.
 It scores 1.8 above on Winogrande, and within 1.2 to 3.1 points on HumanEval, HumanEval+, MBPP and MBPP+ (Table~\ref{tab:repro}).
 Two scores differ for a known reason. On GSM8K, strict matching requires the exemplars' ``The answer is'' sentence and gives 69.4, whereas flexible extraction of the last number gives 86.7 (around the published 81.6). MATH-500 needs Ouro's
@@ -996,7 +996,7 @@ bootstrap over items with 5,000 resamples. One script recomputes these intervals
 \paragraph{Scoring and prompts.} We score MATH-500 on the final answer. Math-verify compares the last \verb|\boxed{}|
 of each answer with the reference. The strict Minerva match in lm-evaluation-harness also asks for the exemplars' closing sentence, which zero-shot answers do not write.
 
-\paragraph{Throughput baselines.} For the original model's decode throughput, static per-loop caches with the same two-call flash attention run
+\paragraph{Throughput baselines.} For the original model's decode throughput, static per-loop caches with the same two-call FlashAttention run
 fastest. The standard
 dynamic cache reaches 500 / 245 / 105 \mbox{tokens/s} at $n=1/2/4$. A preallocated contiguous cache with one attention call
 reaches 267 / 130 / 57. All cache configurations produce identical greedy tokens.
@@ -1091,7 +1091,7 @@ the other requests wait.
 We do not use chunked prefill, so each prefill stalls the whole batch; this works against configurations with a long
 prefill, such as ours.
 Each request keeps its cache in its own region of one buffer per loop and layer.
-Decode attention reads only that request's tokens using flash attention with variable lengths.
+Decode attention reads only that request's tokens using FlashAttention with variable lengths.
 Decoding is the same for every configuration.
 Each setup runs the $n$-loop model on per-loop prompt caches with LoRA merged into the weights.
 For LoopBridge, we fold the maps into the caches. Merged LoRA weights and batched kernels change floating-point rounding,
@@ -1155,7 +1155,7 @@ The one-cache LoopBridge at 4/$n$ decodes 406, 271 and 203 \mbox{tokens/s} at $n
 The fastest implementation of the original model we measured reaches 342, 200 and 125 \mbox{tokens/s}.
 The one-cache model is $1.19$--$1.62\times$ as fast because it fits larger batches. The original model keeps $n$
 prompt caches, so the gap grows with $n$.
-This baseline uses the same flash attention and is faster than the standard dynamic cache (Appendix~\ref{app:eval}).
+This baseline uses the same FlashAttention and is faster than the standard dynamic cache (Appendix~\ref{app:eval}).
 The gain of the one-cache LoopBridge at 4/2 over \nat{4} grows with prompt length, from $2.4\times$ at a 2K-token prompt
 to $3.3\times$ at 15K tokens, where it is also $1.12\times$ as fast as \nat{2}.
 
@@ -1196,7 +1196,7 @@ backbone has two loops. Above the diagonal ($m<n$) every difference is negative.
 The key map is a scale on each rotary pair, and a scale commutes with RoPE, so one stored prompt KV cache can serve
 every decode loop.
 We also trained the adapter with unrestricted key maps and one prompt cache per decode loop.
-On RULER-16K, the difference to our adapter is $+0.1$, $+0.6$, $-0.9$, $+1.2$ and $-1.0$ points at 1/1, 2/2, 3/1, 3/2
+On RULER-16K, the difference from our adapter is $+0.1$, $+0.6$, $-0.9$, $+1.2$ and $-1.0$ points at 1/1, 2/2, 3/1, 3/2
 and 4/2.
 No paired 95\% interval excludes zero, so the restriction costs nothing measurable.
 

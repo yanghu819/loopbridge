@@ -502,7 +502,7 @@ def tab_lr():
         return (OUT / "tab_lr.tex").unlink(missing_ok=True)
     f = lambda d, k: "--" if d.get(k) is None else f"{d[k]:.1f}"
     lines = [f"Distilled 1/1 & {f(L['1'], 'lr0.3')} & {f(L['1'], 'lr1')} & {f(L['1'], 'lr3')} \\\\",
-             f"\\rowcolor{{oursbg}} LoopBridge 4/1 & {f(L['ours a41'], 'lr0.3')} & {f(L['ours a41'], 'lr1')} & "
+             f"LoopBridge 4/1 & {f(L['ours a41'], 'lr0.3')} & \\cellcolor{{oursbg}}{f(L['ours a41'], 'lr1')} & "   # default shaded
              f"{f(L['ours a41'], 'lr3')} \\\\"]
     (OUT / "tab_lr.tex").write_text("\n".join(lines) + "\n")
 
