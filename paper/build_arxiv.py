@@ -29,6 +29,11 @@ def main():
     for a, b in SUBS:
         assert a in tex, f"pattern not found in latex/main.tex: {a[:60]}"
         tex = tex.replace(a, b)
+    # PDF metadata (title, author) for the public build only; the review build stays without it
+    title = re.search(r"\\title\{([^}]*)\}", tex).group(1)
+    assert tex.count("\\begin{document}") == 1
+    tex = tex.replace("\\begin{document}",
+                      f"\\hypersetup{{pdftitle={{{title}}},pdfauthor={{Yang Hu}}}}\n\\begin{{document}}")
     # generated table rows (paper_figs.py tab_equal) are inlined so the arXiv source is one file
     tex = re.sub(r"\\csname @@input\\endcsname \.\./figs/(\S+\.tex)",
                  lambda m: (P / "figs" / m.group(1)).read_text().strip(), tex)
