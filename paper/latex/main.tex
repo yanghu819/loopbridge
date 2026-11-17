@@ -923,7 +923,7 @@ responses~\citep{tulu3} 40\%, LongAlpaca-12k long-context answers~\citep{longlor
 windows~\citep{fineweb} 10\% (fractions of answer tokens). Prompts reach up to 7,680 tokens, and answers up to
 1,024. The token budget counts $|a|-1$ positions per answer $a$ for our
 adapters and the distilled controls alike. Base models see
-a plain ``User: \ldots\ Assistant:'' format; thinking models see the same samples in their chat template. We did not
+a plain ``User: \ldots\ Assistant:'' format; Thinking models see the same samples in their chat template. We did not
 deliberately include benchmark
 data, and we did not decontaminate the training corpora. An audit afterwards
 (\texttt{overlap\_audit.py}) finds a 13-token span shared with the training data in 187 of 542 code prompts
@@ -984,7 +984,7 @@ re-ranking and ICL; 1,108 rows) with our own scripts. Thinking models answer GSM
 MATH-500 zero-shot in their chat template. We score answers in \verb|\boxed{}| using math-verify. We generate outputs
 greedily with budgets of 4,096 and 8,192 tokens, rather than using the sampling and model-judged scoring of their
 original evaluation. For Thinking models, MMLU-Pro and BBH follow the base-model protocol, and code tasks follow the setup
-above. On raw HELMET prompts, thinking checkpoints can emit a newline and stop. For thinking models across every
+above. On raw HELMET prompts, Thinking checkpoints can emit a newline and stop. For Thinking models across every
 configuration, we mask the stop tokens until an answer has a non-whitespace token. For intervals, we run a paired
 bootstrap over items with 5,000 resamples. One script recomputes these intervals from released per-item scores
 (Appendix~\ref{app:repro}).

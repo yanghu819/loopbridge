@@ -1,4 +1,4 @@
-# Handoff (2026-11-16)
+# Handoff (2026-11-17)
 
 For the next agent taking over *Untying Prefill and Decode Loops in Looped Language Models*.
 Read this file, then `NOTES.md` (lab log), `REPRODUCE.md` (result -> script map) and `DEPRECATED.md`. Cluster addresses
@@ -6,6 +6,10 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 
 ## 1. Where things stand
 
+- **Status (2026-11-17 10:30): ACL fact-check round done, including the Google Scholar pass.** All 100 bib entries
+  were searched on Google Scholar through Kimi WebBridge and checked against a venue record (DBLP, OpenReview,
+  proceedings pages, Crossref); OpenThoughts is now ICLR 2026 and Tulu 3 COLM 2025, and braced surnames fix the
+  SkipDecode citation ("Del Corro et al.", was "Corro et al."). See `paper/latex/BIB_VERIFICATION.md` and NOTES 11-17.
 - **Status (2026-11-16 19:30): ACL fact-check round done except the Google Scholar pass** (user, 11-16: "screenshots
   and comparison, fact-check every citation source and number, with Gemini, Kaiming He style throughout; the paper goes
   to ACL"). Done: every benchmark, tool and training set cited; bib venues/titles/authors checked against the arXiv API;
@@ -13,10 +17,9 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
   audited (fixes: 9.6, 1.8, 31.0, +4.6, 0.3-2.6%, decimals in Section 5.5 and Table 14; HELMET Table 17 now shows all
   four categories); three agy fact-check rounds (the third found nothing real), agy review 6 (Soundness 4, Excitement 4,
   Overall 3.5), ~80 vetted style edits (Kaiming style: see memory `b300-kaiming-style`); every page rendered and
-  checked, figures pixel-identical to before. Open: Google Scholar check via Kimi WebBridge, 39 of 100 entries done;
-  Scholar shows "Please show you're not a robot" every ~20 queries and the user must click it. Resume with
-  `cd <scratchpad>/bib && python3 ~/.b300-handoff/bibcheck/scholar_run.py KEYS scholar.jsonl` (skips done keys; copy
-  the jsonl if the scratchpad is gone), then `analyze_scholar.py` and `mk_bibver.py`.
+  checked, figures pixel-identical to before. The Google Scholar pass (finished 11-17, above) used
+  `~/.b300-handoff/bibcheck/scholar_run.py KEYS scholar.jsonl` (resumable; Scholar shows "Please show you're not a
+  robot" every ~20 queries and the user must click it), then `analyze_scholar.py` and `mk_bibver.py`.
 - **Status (2026-11-16 14:30): ready for the user to submit to arXiv.** Every experiment is in the paper and nothing is
   running on a1 or a2. The user submits personally: upload `paper/arxiv/arxiv.tar.gz` (rebuilt by `pn_sync.sh
   pipeline`; 13 figure files, own `main.bbl`), copy the metadata from `paper/arxiv/ARXIV_SUBMISSION.md` (27 pages, 14
@@ -24,7 +27,7 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
   and its shipped `main.bbl`, and the source is pure ASCII). For ARR (deadline 2027-01-04) the **TODO** items in
   `paper/ARR_CHECKLIST.md` (licenses, total GPU hours, AI-assistance wording, anonymous code link) need the author.
 - **Paper**: `paper/latex/main.tex`, a full paper since 2026-11-12: **main text 8-9 pages** (user decision; supersedes
-  the 4-page limit of 11-07). Order: Introduction (Figure 1 concept, findings list) - Related Work - Method (fixed-depth
+  the 4-page limit of 11-07). Order: Introduction (Figure 1 concept, result paragraphs) - Related Work - Method (fixed-depth
   LoRA; LoopBridge; Figures 2-3 diagram and pseudocode) - Setup - Results (5.1 time, 5.2 main table, 5.3 fewer decode
   / more prefill loops, 5.4 depth sweep, 5.5 same measured time, 5.6 ablations, 5.7 Ouro-1.4B, Thinking, Lev) -
   Conclusion - Limitations. The user submits to arXiv personally (never submit or post in their name).

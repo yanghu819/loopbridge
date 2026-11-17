@@ -564,3 +564,16 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   not significant; all eight values guarded. Style: 25 main-text and 29 appendix edits vetted and applied (agy pushes
   toward formal wording and participle chains; those were reworded). Scholar resumed after the captcha cleared;
   FlashAttention-2 is ICLR 2024 (bib updated).
+- 2026-11-17 10:30: Google Scholar check finished, all 100 entries (Kimi WebBridge, exact-title search, 90-150 s apart;
+  five captchas, each clicked by the user). All 19 differences from the bib are explained: Scholar lists the arXiv version
+  first (11 venue papers), dates NeurIPS 2025 as 2026, prints titles without math (H$_2$O, $D^3$), or parses names
+  differently (Tandem, FineWeb). Changes from this pass and the venue records (DBLP, OpenReview, proceedings pages,
+  usenix.org, PMLR, Crossref): OpenThoughts -> ICLR 2026 (51 authors; arXiv lists 50), Tulu 3 -> COLM 2025, Mooncake
+  -> FAST'25 author list (9), RoFormer -> Neurocomputing author list, Tandem -> PMLR author names and pages, HELMET ->
+  its ICLR title. Surnames with a capitalized particle are now braced (Le Bras, Del Corro, Del Giorno, Van Keirsbilck):
+  BibTeX had read "Del Corro" as first name "Luciano Del", so the paper cited SkipDecode as "Corro et al., 2023" and
+  sorted it under C. The page screenshots then showed two more: "Neill and Reid, 2026" (arXiv spells the author
+  "James O' Neill"; now braced) and "Jy yong Sohn" (lowercase "yong" read as a surname particle; PMLR spells it
+  "Jy-Yong"). Also: "Krishna C." with its period in both entries, no stray NeurIPS volume on three entries, an en dash
+  in the LatentPort title, "Thinking models" capitalized in Appendix H. Record: `paper/latex/BIB_VERIFICATION.md` (Scholar line, arXiv id, venue record, claim check per
+  entry); scripts and raw Scholar results in `~/.b300-handoff/bibcheck/`.
