@@ -128,7 +128,7 @@ models
 run the same number of loops for the prompt and for every answer token. In contrast, we give the two phases different
 loop counts within one model, and we train a small adapter that makes this work after pretraining.
 
-\paragraph{Depth per phase and per token.} Early exit~\citep{calm,layerskip} and Continuous Depth Batching~\citep{cdb}
+\paragraph{Depth per phase and per token.} Continuous Depth Batching~\citep{cdb} and early exit~\citep{calm,layerskip}
 vary the depth per token. CALM must also fill the skipped layers' KV for later tokens. Our maps solve a similar
 problem by mapping the prompt KV of one loop to what another loop expects. LoopDuet~\citep[concurrent;][]{loopduet} sets separate prefill
 and decode loop counts for Huginn and recurrent OLMo-2 without training, with prefill no deeper than decode. Huginn was
@@ -203,7 +203,7 @@ Figure~\ref{alg:adapter} in Appendix~\ref{app:method} provides pseudocode.}
 \label{sec:setup}
 
 \paragraph{Models and benchmarks.} We use Ouro-2.6B, Ouro-1.4B and their Thinking versions~\citep{ouro}, all with four
-loops. We also test the Lev decision models~\citep{lev} in Section~\ref{sec:others}. We test base models on 11 benchmarks with the Ouro protocol (Appendix~\ref{app:eval}): MMLU~\citep{mmlu}, MMLU-Pro~\citep{mmlupro}, BBH~\citep{bbh}, ARC-Challenge~\citep{arc},
+loops, and test the Lev decision models~\citep{lev} in Section~\ref{sec:others}. We test base models on 11 benchmarks with the Ouro protocol (Appendix~\ref{app:eval}): MMLU~\citep{mmlu}, MMLU-Pro~\citep{mmlupro}, BBH~\citep{bbh}, ARC-Challenge~\citep{arc},
 HellaSwag~\citep{hellaswag}, Winogrande~\citep{winogrande}, GSM8K~\citep{gsm8k}, MATH-500~\citep{math,lightman2023lets},
 HumanEval+ and MBPP+~\citep{humaneval,mbpp,evalplus}, and RULER-16K~\citep{ruler}. We test Thinking models on eight benchmarks, including HELMET~\citep{helmet}.
 
@@ -450,7 +450,7 @@ and Distilled 1/1 scores 40.5 (40.7 at rank 80; Table~\ref{tab:main14}). Over th
 and $40.5\pm0.0$. Our adapters score low on BBH because many of their answers end at a blank line, which the evaluation
 treats as the end of the answer (Table~\ref{tab:main14}).
 
-\paragraph{Thinking models.} On Ouro-2.6B-Thinking, LoopBridge at prefill 4 / decode 2 scores higher than Original
+\paragraph{Thinking models.} LoopBridge at prefill 4 / decode 2 on Ouro-2.6B-Thinking scores higher than Original
 2/2 on six of the eight benchmarks in Figure~\ref{fig:equal} (Appendix~\ref{app:extended}) and is within 0.5 points
 on the other two. It leads by up
 to 15 points on HELMET and 8 on MMLU-Pro and BBH, and it comes within 0.8 points of Original 4/4 on average
@@ -503,7 +503,7 @@ measurement each result uses.
 \begin{table}[h]
 \centering\footnotesize
 \setlength\tabcolsep{2.5pt}
-\begin{tabular}{@{}p{0.32\columnwidth}p{0.29\columnwidth}p{0.32\columnwidth}@{}}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.32\columnwidth}>{\raggedright\arraybackslash}p{0.29\columnwidth}>{\raggedright\arraybackslash}p{0.32\columnwidth}@{}}
 \toprule
 result & LoopBridge form & measurement \\
 \midrule
@@ -862,7 +862,7 @@ points. Our adapter is trained to read prompt KV across
 loops. FlashLoop~\citep{flashloop} speeds up looped models without training. It uses token-sparse loop updates, sparse
 attention, and KV-residual quantisation.
 
-\paragraph{Adaptive and phase-specific computation.} Halting~\citep{act,pondernet}, token-level early
+\paragraph{Depth per phase and per token.} Halting~\citep{act,pondernet}, token-level early
 exit~\citep{deebert,depthadaptive,calm,layerskip,skipdecode}, and token routing~\citep{mod} spend depth per token.
 CALM must also fill the skipped layers' KV for later tokens. Our maps solve this problem per loop. Speculative
 decoding~\citep{specdecoding,specsampling} pairs a cheap drafter with a deep verifier. Pause tokens add compute at
@@ -1250,13 +1250,12 @@ not gain.}
 \section{Reproducibility}
 \label{app:repro}
 
-The script \texttt{ouro/scripts/paper\_numbers.py} (command \texttt{compute}) recomputes the paired differences,
-intervals, means, timing ratios, and decode throughput of this paper from the accompanying per-item records. It
-compares them with
-expected values hard-coded in the script, which mirror the numbers printed here. We store every run's command,
-configuration, checkpoint hash, log, and outputs in \texttt{ouro/results/provenance}. When we re-run the main-table
+We recompute the paired differences, intervals, means, timing ratios, and decode throughput of this paper from the
+accompanying per-item records with \path{ouro/scripts/paper_numbers.py} (command \texttt{compute}). The script then
+compares them with hard-coded expected values that mirror the numbers printed here. For every run, we store the
+command, configuration, checkpoint hash, log, and outputs in \path{ouro/results/provenance}. When we re-run the main-table
 cells from scratch, we reproduce GSM8K and MMLU with at least 99.6\% of item scores identical. On RULER-16K, 94--100\%
-of item scores are identical, and averages are within 0.9 points (\texttt{ouro/results/verify\_rerun.txt}).
+of item scores are identical, and averages are within 0.9 points (\path{ouro/results/verify_rerun.txt}).
 \texttt{REPRODUCE.md} maps every result to its scripts and gives the training and evaluation commands that regenerate
 the per-item records.
 

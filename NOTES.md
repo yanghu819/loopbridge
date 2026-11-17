@@ -575,5 +575,9 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   sorted it under C. The page screenshots then showed two more: "Neill and Reid, 2026" (arXiv spells the author
   "James O' Neill"; now braced) and "Jy yong Sohn" (lowercase "yong" read as a surname particle; PMLR spells it
   "Jy-Yong"). Also: "Krishna C." with its period in both entries, no stray NeurIPS volume on three entries, an en dash
-  in the LatentPort title, "Thinking models" capitalized in Appendix H. Record: `paper/latex/BIB_VERIFICATION.md` (Scholar line, arXiv id, venue record, claim check per
+  in the LatentPort title, "Thinking models" capitalized in Appendix H. Typography (from the tex log's Underfull list
+  and crops of each spot): the two loosest main-text lines (badness 10000, Related Work and the Thinking paragraph of
+  Section 5.7) are gone after reordering a phrase; Table 3 columns ragged-right; Appendix O paths set with \path so
+  they can break; Appendix F's heading is now the main text's "Depth per phase and per token."; Section 4 merges the
+  Lev sentence. Main text still ends on page 8. Record: `paper/latex/BIB_VERIFICATION.md` (Scholar line, arXiv id, venue record, claim check per
   entry); scripts and raw Scholar results in `~/.b300-handoff/bibcheck/`.
