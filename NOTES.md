@@ -646,4 +646,12 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   Script, raw outputs and the transformers-4.54 cache patch: a2:/root/pn/huginn.
   README and llms.txt synced with the paper (at most 2.4%; every trained (m, n); batch 1; Distilled 2/2 on the
   Thinking model; the one-cache LoopBridge sentence; no HELMET item-average claim).
+- 2026-11-18 01:00: last pre-arXiv rounds (user /loop: "继续和agy carbon high 迭代改进, 进入收尾环节, 做好投稿arxiv前的详细工作").
+  Proofread by Gemini 4 Carbon high (22 findings; rejected: switching the review source to [preprint], renaming W_k
+  to W (k is the decode loop), a minipage spacing change that would move the page-8 text). Summary-consistency check
+  (15 findings, 9 taken; the rest were already exact or would lengthen the main text). README and llms.txt synced.
+  arXiv PDF metadata (title, author) set in build_arxiv.py only. Checks: 0 printed values differ, no "!!", 26 pages,
+  Conclusion on page 8 with Limitations starting there in both builds, standalone package compiles with identical
+  text, review PDF anonymous. The Huginn weights were deleted from a2's /dev/shm (script and outputs kept in
+  /root/pn/huginn).
 

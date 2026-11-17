@@ -6,6 +6,14 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 
 ## 1. Where things stand
 
+- **Status (2026-11-18 01:00): ready for the user to submit to arXiv.** Final rounds with Gemini 4 Carbon (agy CLI):
+  a whole-paper proofread (19 of 22 fixes taken: grammar, British spelling throughout, FlashAttention, math-mode
+  +-), and a check that the Abstract, Introduction, Conclusion and Limitations agree with the body (9 fixes: n = 1 or
+  2, Ouro-2.6B named, 4/1 vs Original 1/1, Distilled 2/2 named, "untying fails without training"). The arXiv build now
+  sets the PDF title and author; the review build has no identifying string or metadata. Final package: 26 pages,
+  compiles on its own from main.bbl with text identical to `paper/untying-prefill-decode-loops.pdf`; abstract 1,380
+  characters, ASCII. Huginn was tried quickly (training-free, no reliable gain) and is not in the paper (NOTES 11-17
+  23:30). The user submits: upload `paper/arxiv/arxiv.tar.gz` and copy `paper/ARXIV_SUBMISSION.md`.
 - **Status (2026-11-17 19:30): wrap-up, no new experiments** (user: run as few experiments as possible and finish
   quickly). Gemini rounds 7-8 applied (NOTES 11-17 16:30 and 19:30). Nothing runs on a1 or a2 and nothing is queued.
   The arXiv package compiles standalone from its main.bbl (26 pages; to check it with tectonic, replace
