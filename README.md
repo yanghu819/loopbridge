@@ -14,6 +14,17 @@ the prompt cache), which serves every trained (m, n) with one set of weights ("O
 **Every number in the paper is recomputed from released per-item scores and timing records by one script** and checked
 against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [`REPRODUCE.md`](REPRODUCE.md).
 
+The per-item scores make this a 1.1 GB checkout. To read the code alone:
+
+```bash
+git clone --filter=blob:none --no-checkout https://github.com/yanghu819/untying-prefill-decode
+cd untying-prefill-decode && git sparse-checkout set --no-cone '/*' '!ouro/results' && git checkout paper-arxiv
+```
+
+The tag `paper-arxiv` is the commit the arXiv version was built from; the code is frozen there. The project finished
+on 2026-11-19: [`ARCHIVE.md`](ARCHIVE.md) says where the training checkpoints, raw evaluation outputs and prepared
+data went, and [`DEPRECATED.md`](DEPRECATED.md) which modules and training arms the paper does not use.
+
 ## Key findings (Ouro-2.6B unless stated)
 
 1. **Generation is almost all decoding.** At batch 1, prefill is 0.3-2.6% of the time of a chain-of-thought answer.
@@ -67,7 +78,10 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
 | `ouro/scripts/` | paper numbers, figures, end-to-end latency |
 | `ouro/runs_scripts/` | the launchers used for every run |
 | `third_party/ouro/` | Ouro modeling code (Apache-2.0, see its LICENSE) |
-| `paper/` | PDF, LaTeX source, figures, arXiv build script; `HANDOFF.md` / `NOTES.md` are the working log |
+| `environments/ouro/` | the pinned environment every run used (`pyproject.toml`, `uv.lock`) |
+| `paper/` | PDF, LaTeX source, figures, arXiv build script |
+| `ARCHIVE.md`, `DEPRECATED.md` | where the heavy artifacts are kept; which code the paper does not use |
+| `HANDOFF.md`, `NOTES.md` | the working log: what was run, what was dropped and why, in date order |
 
 ## Citation
 

@@ -655,3 +655,23 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   text, review PDF anonymous. The Huginn weights were deleted from a2's /dev/shm (script and outputs kept in
   /root/pn/huginn).
 
+- 2026-11-19: project closed (user: tidy the source, back the data up to ModelScope, free the cluster for a new
+  direction). Close-out plan reviewed with Gemini 4 Neon xhigh (agy CLI, `--model gemini-4-neon-xhigh`; GitHub at
+  commit 4efd3d9 as the source of truth). It argued against deleting the deprecated code: `sensenova_runner.py` is
+  imported by `lmeval_ouro.py` and `evaluate_bench.py`, the early evaluators by `evaluate_adapter.py`, and the dead
+  training arms live inside the modules that trained the paper's adapters, so cutting them would mean shipping an
+  edited, GPU-untested HEAD whose provenance no longer matches `provenance/` and `setup.json`. Taken: tag
+  `paper-arxiv` at 4efd3d9, freeze the code, and sharpen the documentation instead (ARCHIVE.md, DEPRECATED.md rows for
+  SenseNova / Nanbeige / Huginn, a sparse-clone recipe and an honest repository map in README.md, llms.txt).
+  Also taken, from its list of archive gaps: the Lev work (`backup_lev.py`: 56 training runs with their adapters,
+  LevBench outputs, rows, logs, 5.1 GB), and `backup_extra.py` for the 200M-token distillation corpus, the Thinking
+  and older mixtures, the local benchmark copies (`hf-lmeval`, GPQA, IFEval, which rot upstream), the exported
+  per-item scores, `/root/pn` (paper-number logs and the Huginn check), `pip freeze` with Python and driver versions,
+  each base model's config, tokenizer and `modeling_*.py` with the SHA256 of its weight files, and the on-box source
+  tree (the public repo is a pruned copy: 296 old dev scripts on a1 are not in it, and 11 files differ). Archive now
+  115.8 GB in 10,679 files; its README is the manifest. Not kept, on purpose: base model weights (public upstream,
+  hashes recorded), third-party data with its own licence, intermediate checkpoints, package caches, the SenseNova
+  and Nanbeige mixtures. Verified by downloading random files from each folder and extracting them; a Lev run's
+  checkpoint matched the box byte for byte. Then: backup loops stopped, `/dev/shm/big-small-ouro`, `levwork`,
+  `msbak`, `fwcache`, `items-export-new`, the staging folders and `/root/pn` deleted on both boxes, GPUs idle at
+  0 MiB. The other project's `/dev/shm/nt-data`, `nt-runs` and `nt-runtime` on a2 were not touched.

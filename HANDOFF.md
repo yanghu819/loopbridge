@@ -6,6 +6,15 @@ and login are **not** in this public repo: they are in `~/.b300-handoff/CLUSTER.
 
 ## 1. Where things stand
 
+- **Status (2026-11-19): the project is closed and the cluster is handed back.** The paper is final (the user submits
+  it to arXiv). The source is frozen at the tag `paper-arxiv`; no code was deleted at close-out, because the modules
+  the paper does not use are imported by modules it does (Gemini 4 Neon xhigh argued this, and that editing them after
+  the GPUs are gone cannot be tested). `ARCHIVE.md` is the new map: 115.8 GB in the private ModelScope repo
+  `torushy/untying-prefill-decode-backup`, now also covering the Lev runs (`backup_lev.py`), the prepared data,
+  benchmark copies, `pip freeze`, the base models' SHA256, the on-box source tree and `/root/pn` (`backup_extra.py`).
+  Spot-checked by downloading and extracting; the files match the boxes byte for byte. Both boxes' `/dev/shm` working
+  directories and the two-hourly backup loops were then removed; the other project's `nt-*` directories were left
+  alone. Left for the author: the arXiv upload and the TODO items of `paper/ARR_CHECKLIST.md`.
 - **Status (2026-11-18 01:00): ready for the user to submit to arXiv.** Final rounds with Gemini 4 Carbon (agy CLI):
   a whole-paper proofread (19 of 22 fixes taken: grammar, British spelling throughout, FlashAttention, math-mode
   +-), and a check that the Abstract, Introduction, Conclusion and Limitations agree with the body (9 fixes: n = 1 or
