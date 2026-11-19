@@ -675,3 +675,13 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   checkpoint matched the box byte for byte. Then: backup loops stopped, `/dev/shm/big-small-ouro`, `levwork`,
   `msbak`, `fwcache`, `items-export-new`, the staging folders and `/root/pn` deleted on both boxes, GPUs idle at
   0 MiB. The other project's `/dev/shm/nt-data`, `nt-runs` and `nt-runtime` on a2 were not touched.
+  Acceptance round with the same model (`--conversation`, the close-out state quoted back to it): it caught three
+  real faults in a first ARCHIVE.md, all fixed in 6584eb6's follow-up — the archived GPQA copy read as a
+  contradiction of "never redistributed" (it is archived so the evaluations survive upstream drift, and the archive
+  is private and never shared), "the published modules are the ones that produced the results" hid that 11 files
+  differ between a1's tree and the repository, and the verification sentence claimed more than the spot checks
+  covered. The 11 files were then pulled out of `a1/extra/code-on-box.tar.gz` and diffed: every difference is the
+  repository's later work (docstrings, DEPRECATED headers, HELMET support in `e2e_latency.py`, `paper_numbers.py`
+  687 -> 2,831 lines, `OURO_TIME_START` and two opt-in environment flags that default to what ran), so no edit
+  changed a result. Left to the author: a second copy of the compact core (~15 GB) outside ModelScope, whether
+  HANDOFF.md and NOTES.md stay public, and whether to publish the headline checkpoints on Hugging Face.
