@@ -16,11 +16,11 @@ The paper's numbers come from these places, all in this commit:
 
 | Paper item | `paper_numbers.py` function | Runs (launcher in `ouro/runs_scripts/`) |
 |---|---|---|
-| Figure 1 (`fig_concept`, schematic) | none | `paper_figs.fig_concept` |
+| Figure 1 (`fig_tps_teaser`, accuracy vs. end-to-end tokens/s) | `time_breakdown`, `thinking_batched` | `paper_figs.fig_tps_teaser` |
 | Figure 2, Section 5.1 (time split, `fig_time`) | `time_breakdown` | `time_controls.sh`, `time_sweep.sh` (passes `clean`, `clean3`) |
-| Figures 3-4 (method diagram `fig0_method`, pseudocode) | none | `ouro/adapter_model.py`, `ouro/batched.py` |
+| Figure 3 (method diagram `fig0_method`, pseudocode in Appendix E) | none | `ouro/adapter_model.py`, `ouro/batched.py` |
 | Table 1, Section 5.2 (`tab_main`; both adapters are Ours) and its seeds | `main_table`, `main_gains` | `launch_aligned.sh` (LoopBridge), `launch_variant.sh fixed4` (Ours, fixed m), `seed_main.sh`, `launch_x26_distill.sh` (`RANK`, `SEED`) |
-| Figure 5, Section 5.3 (`fig_taskmap`: 4/n vs n/n) | `aligned_cells` | `launch_aligned.sh` grid evaluations |
+| Figure 4, Section 5.3 (`fig_taskmap`: all 16 pairs m, n in 1..4) | `aligned_cells` | `launch_aligned.sh` grid evaluations |
 | Figure 6, Section 5.4 (`fig_depth_main`; full: `fig_depth`) | `depth_sweep`, `depth_gains`, `same_weights`, `same_weights_seeds`, `plateau`, `plateau_seeds` | `sweep_depth.sh`, `launch_variant.sh wide`, `seed_main.sh ARM=a CELLS="11 12"` |
 | Figure 7, Section 5.5 (`fig_sametime`; full: `fig_budget`) | `time_breakdown`, `budget_pairs`, `batch_time` | `time_controls.sh` (folded maps `a<m>x<n>pm`, `f4x<n>pm`), `tput_batch.sh` |
 | Figure 8 (`fig2_frontier`, Thinking) and Figure 14 (`fig_pareto`) | `think_frontier`, `throughput` | Thinking evaluations, `tput_*.sh` microbenchmarks |

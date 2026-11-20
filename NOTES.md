@@ -1,6 +1,6 @@
 # Lab notes
 
-Running log of experiments behind *Untying Prefill and Decode Loops in Looped Language Models* (method: LoopBridge;
+Running log of experiments behind *LoopBridge: Should Prefill and Decode Loop Equally?* (formerly *Untying Prefill and Decode Loops in Looped Language Models*; method: LoopBridge;
 between 11-07 and 11-11 the paper was titled *Deep Prompt, Shallow Decoder*, reverted because the user's terminology
 rules forbid deep/shallow). Every number quoted in
 the paper is recomputed by `ouro/scripts/paper_numbers.py` from `ouro/results/items/`; these notes record what was run,
@@ -685,3 +685,9 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
   687 -> 2,831 lines, `OURO_TIME_START` and two opt-in environment flags that default to what ran), so no edit
   changed a result. Left to the author: a second copy of the compact core (~15 GB) outside ModelScope, whether
   HANDOFF.md and NOTES.md stay public, and whether to publish the headline checkpoints on Hugging Face.
+
+- 2026-11-20: paper presentation revision (user request, zero new GPU runs; all numbers from released `paper_numbers.json` / `items/` / `e2e/`):
+  * Retitled to *LoopBridge: Should Prefill and Decode Loop Equally?* across `paper/latex/main.tex`, `paper/build_arxiv.py`, `README.md`, `CITATION.cff`, `llms.txt`.
+  * Replaced Figure 1 (`fig_concept` pipeline schematic) with `fig_tps_teaser` showing accuracy against measured end-to-end output throughput (tokens/s): (a) Ouro-2.6B base 4 CoT tasks at batch 1 (`4/1` +17.2/+18.6 over Original 1/1 at ~28 tok/s; `4/2` at 2.1x TPS of Original 4/4) and (b) Ouro-2.6B-Thinking on all 1,319 GSM8K problems at batch 16 (`4/2` 94.6% at 247 tok/s vs Original 4/4 94.3% at 122 tok/s, 2.0x TPS). Added matching TPS guards in `paper_numbers.py` (`time_breakdown`, `thinking_batched`).
+  * Table 1 (and Table 11 on Ouro-1.4B) now explicitly marks baselines (`Original (Ouro)`, `Training-free (baseline)`, `Distilled (KD baseline)`, `Distilled r80 (KD baseline)`) vs shaded `Ours`, with `\citep{kd,lora}` in the caption and Section 4 so `Distilled` is unmistakably a competing tied-loop baseline.
+  * Replaced Figure 4 (`fig_taskmap`, previously $4/n$ for $n\le3$) with a full $m,n\in\{1..4\}$ grouped 2D bar chart (11-benchmark average + MMLU, BBH, GSM8K, RULER-16K), including LoopBridge `4/4` (70.7 vs Original 4/4 71.9, noting deployment can bypass the adapter when $m=n=4$) and extended Appendix Table `tab:alignedcells` to all 16 $(m,n)$ pairs plus the `Avg.` column. Guarded in `paper_numbers.py` (`aligned_cells`).

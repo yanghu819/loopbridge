@@ -1423,6 +1423,12 @@ def thinking_batched(reps=5000):
         toks = tuple(round(out[f"gsmthink {c}@16"]["tokens"]) for c in ("a4x2pm", "native2st", "D2st"))   # Table 15 caption
         print(f"Think batch  answer tokens at batch 16, Ours 4/2 / Original 2/2 / Distilled 2/2: {toks}"
               + ("" if toks == (788, 937, 893) else "  !! paper: (788, 937, 893)"))
+        tps = tuple(round(out[f"gsmthink {c}@16"]["tokens"] / out[f"gsmthink {c}@16"]["s_per_request"])
+                    for c in ("a4x2pm", "native4st"))   # Figure 1b (end-to-end tokens/s)
+        tps_r = round((out["gsmthink a4x2pm@16"]["tokens"] / out["gsmthink a4x2pm@16"]["s_per_request"]) /
+                      (out["gsmthink native4st@16"]["tokens"] / out["gsmthink native4st@16"]["s_per_request"]), 1)
+        print(f"Think batch  end-to-end tokens/s at batch 16, Ours 4/2 / Original 4/4: {tps} ({tps_r:.1f}x)"
+              + ("" if (tps, tps_r) == ((247, 122), 2.0) else "  !! paper (Figure 1b): ((247, 122), 2.0)"))
     return out
 
 
@@ -1690,6 +1696,17 @@ def time_breakdown():
         print(f"Time         {r['model'][-8:]:8s} {r['task']:9s} {r['cond']:11s} n={r['n']:4d} q={r['quality']:5.1f} "
               f"prefill {r['prefill_s']:7.3f}s decode {r['decode_s']:7.2f}s share {r['prefill_share']:6.2f}% "
               f"in {r['in_tokens']:6.0f} out {r['out_tokens']:6.0f}")
+    # Figure 1a / Section 5.5: batch-1 end-to-end output tokens/s over the four timed tasks
+    def _e2e_tps(c):
+        rs = [r for r in out if r["model"] == "Ouro-2.6B" and r["task"] in TIME_TASKS.values() and r["cond"] == c]
+        return None if len(rs) != 4 else sum(r["out_tokens"] for r in rs) / sum(r["total_s"] for r in rs)
+    tps_got = {c: (None if _e2e_tps(c) is None else round(_e2e_tps(c), 1))
+               for c in ("f4x1pm", "a4x1pm", "native1st", "f4x2pm", "a4x2pm", "native4st")}
+    if None not in tps_got.values():
+        tps_want = dict(f4x1pm=27.6, a4x1pm=27.7, native1st=28.3, f4x2pm=14.2, a4x2pm=14.3, native4st=6.7)
+        r42 = round(_e2e_tps("a4x2pm") / _e2e_tps("native4st"), 1)
+        print(f"Time         batch-1 end-to-end tokens/s (Figure 1a / Section 5.5): {tps_got} (4/2 vs 4/4: {r42:.1f}x)"
+              + ("" if (tps_got, r42) == (tps_want, 2.1) else f"  !! paper: ({tps_want}, 2.1)"))
     return out
 
 
@@ -2589,6 +2606,11 @@ def aligned_cells():
         got = tuple(round(float(np.mean([r[c] for r in out])), 1) for c in ("a43", "native3"))
         print(f"Aligned map  11-benchmark average LoopBridge 4/3 vs Original 3/3: {got}"
               + ("" if got == (70.8, 70.8) else "  !! paper (Section 5.3): (70.8, 70.8)"))
+        grid_got = {c: round(float(np.mean([r[c] for r in out])), 1)
+                    for c in ("a11", "a41", "a12", "a32", "a42", "a13", "a23", "a14", "a24", "a44", "native4")}
+        grid_want = dict(a11=47.0, a41=58.2, a12=57.2, a32=68.9, a42=69.1, a13=59.7, a23=66.0, a14=60.4, a24=66.3, a44=70.7, native4=71.9)
+        print(f"Aligned map  11-benchmark 4x4 checks (Section 5.3 / Figure 4): {grid_got}"
+              + ("" if grid_got == grid_want else f"  !! paper: {grid_want}"))
     return out
 
 

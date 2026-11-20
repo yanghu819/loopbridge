@@ -81,6 +81,103 @@ def legend(fig, ours, labels, y=1.1, native="Original n/n", ncol=3):
                handlelength=1.6, frameon=False)
 
 
+def fig_tps_teaser():
+    """Figure 1 (teaser): accuracy against measured end-to-end throughput (output tokens/s) on the exact same scored
+    requests. Top (a): Ouro-2.6B base, 4 chain-of-thought tasks (800 requests, batch 1, mean of two passes). Bottom (b):
+    Ouro-2.6B-Thinking, all 1,319 GSM8K problems served with continuous batching (batch 16, mean of three passes)."""
+    tasks = [t for t in TIMED if _time(t, "native1st")]
+    T = PN.get("thinking_batched", {})
+    if not tasks or "gsmthink a4x2pm@16" not in T:
+        return drop("fig_tps_teaser")
+
+    def base_pt(cond):
+        rs = [_time(t, cond) for t in tasks]
+        if None in rs:
+            return None
+        tps = sum(r["out_tokens"] for r in rs) / sum(r["total_s"] for r in rs)
+        acc = float(np.mean([r["quality"] for r in rs]))
+        return tps, acc
+
+    def think_pt(cond):
+        r = T[f"gsmthink {cond}@16"]
+        return r["tokens"] / r["s_per_request"], r["acc"]
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(3.3, 3.48), gridspec_kw=dict(height_ratios=[1.16, 0.90]))
+
+    # --- Panel (a): Ouro-2.6B Base, 4 CoT tasks, batch 1 ---
+    nat_b = [(base_pt(f"native{d}st"), f"{d}/{d}") for d in (4, 3, 2, 1)]
+    ax1.plot([p[0][0] for p in nat_b], [p[0][1] for p in nat_b], "-", color=NAT_LIGHT, marker="o", ms=4.0, lw=1.4, zorder=2)
+    nat_offs = {"4/4": (0, -10), "3/3": (6, 4), "2/2": (-10, -9), "1/1": (0, -10)}
+    for (x, y), lab in nat_b:
+        ox, oy = nat_offs[lab]
+        ax1.annotate(lab, (x, y), xytext=(ox, oy), textcoords="offset points", fontsize=6.8, color=NAT, ha="center")
+
+    d1, d2 = base_pt("D1st"), base_pt("D2st")
+    for (x, y) in (d1, d2):
+        ax1.scatter(x, y, marker="^", s=26, color=DIST, zorder=3)
+
+    lb2, lb1 = base_pt("a4x2pm"), base_pt("a4x1pm")
+    fx2, fx1 = base_pt("f4x2pm"), base_pt("f4x1pm")
+    ax1.plot([lb2[0], lb1[0]], [lb2[1], lb1[1]], "-", color=OURS, lw=1.5, zorder=3)
+    for (x, y) in (lb2, lb1):
+        ax1.scatter(x, y, marker="s", s=28, color=OURS, zorder=4)
+    for (x, y) in (fx2, fx1):
+        ax1.scatter(x, y, marker="D", s=24, facecolors="white", edgecolors=OURS, lw=1.1, zorder=5)
+    ax1.annotate("4/2", lb2, xytext=(12, -2), textcoords="offset points", fontsize=6.8, color=OURS, fontweight="bold", ha="center")
+    ax1.annotate("4/1", fx1, xytext=(0, 6), textcoords="offset points", fontsize=6.8, color=OURS, fontweight="bold", ha="center")
+
+    # Gain callouts (printed-value differences: 46.4 - 27.8 = +18.6; TPS ratio: 14.3 / 6.7 = 2.1x)
+    g1 = round(fx1[1], 1) - round(nat_b[3][0][1], 1)
+    ax1.annotate("", xy=(nat_b[3][0][0], fx1[1] - 0.3), xytext=(nat_b[3][0][0], nat_b[3][0][1] + 2.2),
+                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.0, mutation_scale=8), zorder=4)
+    ax1.text(nat_b[3][0][0] + 0.65, (fx1[1] + nat_b[3][0][1]) / 2, f"+{g1:.1f}", fontsize=7.0, color=OURS,
+             fontweight="bold", ha="left", va="center")
+    ax1.text(14.5, 69.5, rf"4/2: {lb2[0] / nat_b[0][0][0]:.1f}$\times$ TPS of 4/4", fontsize=6.8, color=OURS,
+             fontweight="bold", ha="left", va="center")
+
+    ax1.set_title("(a) Ouro-2.6B, 4 CoT tasks (batch 1)", fontsize=8.0, color=INK, fontweight="bold", loc="left", pad=3)
+    ax1.set_ylabel("mean accuracy (%)", fontsize=7.8)
+    ax1.set_xlim(4.5, 33.2); ax1.set_ylim(21.0, 76.5)
+    ax1.set_xticks([5, 10, 15, 20, 25, 30])
+    ax1.grid(color="#EDEDED", lw=0.5); ax1.set_axisbelow(True)
+    ax1.tick_params(labelsize=7.2)
+
+    # --- Panel (b): Ouro-2.6B-Thinking, GSM8K (all 1,319), batch 16 ---
+    n4, n2, dt2, o42 = think_pt("native4st"), think_pt("native2st"), think_pt("D2st"), think_pt("a4x2pm")
+    ax2.plot([n4[0], n2[0]], [n4[1], n2[1]], "-", color=NAT_LIGHT, marker="o", ms=4.0, lw=1.4, zorder=2)
+    ax2.axhline(n4[1], color=NAT_LIGHT, lw=0.7, ls=":", zorder=1)
+    ax2.annotate("Original 4/4", n4, xytext=(0, -11), textcoords="offset points", fontsize=6.7, color=NAT, ha="left")
+    ax2.annotate("2/2", n2, xytext=(-4, 5), textcoords="offset points", fontsize=6.8, color=NAT, ha="right")
+    ax2.scatter(*dt2, marker="^", s=26, color=DIST, zorder=3)
+    ax2.annotate("Distilled 2/2", dt2, xytext=(-6, -3), textcoords="offset points", fontsize=6.6, color=DIST, ha="right", va="center")
+    ax2.scatter(*o42, marker="s", s=32, color=OURS, zorder=4)
+    ax2.annotate("Ours 4/2", o42, xytext=(0, 6), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="center")
+
+    # Horizontal speedup arrow at Original 4/4 accuracy level
+    ax2.annotate("", xy=(o42[0] - 5, n4[1] + 0.15), xytext=(n4[0] + 5, n4[1] + 0.15),
+                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.1, mutation_scale=8), zorder=4)
+    ax2.text((n4[0] + o42[0]) / 2 - 4, n4[1] + 0.45, rf"{o42[0] / n4[0]:.1f}$\times$ TPS, +{o42[1] - n4[1]:.1f} acc",
+             fontsize=6.9, color=OURS, fontweight="bold", ha="center", va="bottom")
+
+    ax2.set_title("(b) Ouro-2.6B-Thinking, GSM8K (batch 16)", fontsize=8.0, color=INK, fontweight="bold", loc="left", pad=3)
+    ax2.set_xlabel("end-to-end throughput (output tokens/s)", fontsize=7.8)
+    ax2.set_ylabel("accuracy (%)", fontsize=7.8)
+    ax2.set_xlim(105, 272); ax2.set_ylim(90.6, 96.3)
+    ax2.grid(color="#EDEDED", lw=0.5); ax2.set_axisbelow(True)
+    ax2.tick_params(labelsize=7.2)
+
+    L = plt.Line2D
+    h = [L([], [], color=OURS, marker="s", ms=4.5, lw=1.4),
+         L([], [], color=OURS, marker="D", ms=4.2, mfc="white", ls="none"),
+         L([], [], color=DIST, marker="^", ms=4.5, ls="none"),
+         L([], [], color=NAT_LIGHT, marker="o", ms=4.2, lw=1.4)]
+    l = ["Ours, LoopBridge (4/n)", "Ours, fixed m=4 (4/n)", "Distilled n/n (baseline)", "Original n/n"]
+    fig.legend(h, l, loc="upper center", ncol=2, fontsize=6.7, bbox_to_anchor=(0.51, 1.01),
+               handlelength=1.4, columnspacing=0.9, frameon=False)
+    fig.subplots_adjust(left=0.16, right=0.98, top=0.86, bottom=0.11, hspace=0.44)
+    save(fig, "fig_tps_teaser")
+
+
 def fig_concept():
     """Figure 1 (concept): (a) the original looped model runs every token, prompt and answer, through the same n loops;
     (b) untied, the prompt is read with m loops once and in parallel, and each answer token is decoded with n < m
@@ -218,7 +315,7 @@ def fig_equal():
     fig.supxlabel("decode loops n", fontsize=8.5, y=0.01); fig.supylabel("score (%)", fontsize=8.5, x=0.005)
     h = [plt.Line2D([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4), plt.Line2D([], [], color=OURS, marker="s", ms=4, lw=1.4),
          plt.Line2D([], [], color=DIST, marker="^", ms=4.5, ls="none")]
-    fig.legend(h, ["Original n/n", "Ours, prefill 4 / decode 2", "Distilled 2/2"], loc="upper center", ncol=3, fontsize=8,
+    fig.legend(h, ["Original n/n", "Ours, prefill 4 / decode 2", "Distilled 2/2 (baseline)"], loc="upper center", ncol=3, fontsize=8,
                bbox_to_anchor=(0.5, 1.02), handlelength=1.6, frameon=False)
     fig.subplots_adjust(wspace=0.35, hspace=0.45, left=0.07, right=0.99, bottom=0.1, top=0.9)
     save(fig, "fig_equal")
@@ -360,28 +457,87 @@ def fig_taskmap(only=None, name="fig_taskmap_full", ncols=4):
     save(fig, name)
 
 
-def fig_aligned(panels, name="fig_taskmap", ncols=4):
-    """Figure 1: Ouro-2.6B, native n/n (grey) against the aligned loop adapter at prefill 4 / decode n (red), n = 1..4,
-    each panel on the items all configurations share (paper_numbers.json, aligned_cells)."""
-    T = {r["bench"]: r for r in PN.get("aligned_cells", [])}
-    title = {"BBH 3-shot": "BBH", "MATH-500": "MATH-500"}
-    panels = [b for b in panels if b in T and all(T[b].get(f"a4{n}") is not None for n in range(1, 5))]
-    if not panels:
-        return
-    nrows = -(-len(panels) // ncols)
-    H = 1.6 * nrows + 0.3
-    fig, axes = plt.subplots(nrows, ncols, figsize=(6.9, H), squeeze=False)
-    for ax in axes.flat[len(panels):]:
-        ax.axis("off")
-    for ax, b in zip(axes.flat, panels):
-        r = T[b]
-        # Ours only where the loops are untied (n < m = 4); at n = 4 the released model runs unchanged
-        frontier(ax, [(n, r[f"native{n}"], "") for n in range(1, 5)], [(n, r[f"a4{n}"], "") for n in range(1, 4)],
-                 title.get(b, b))
-        ax.set_xticks([1, 2, 3, 4]); ax.set_xlim(0.6, 4.4)
-    fig.supxlabel("decode loops n", fontsize=8.5, y=0.005); fig.supylabel("score (%)", fontsize=8.5, x=0.005)
-    legend(fig, "Ours (LoopBridge), prefill 4 / decode n", "", y=1.0, ncol=2)
-    fig.subplots_adjust(wspace=0.32, hspace=0.5, left=0.07, right=0.99, top=1 - 0.38 / H, bottom=0.32 / H)
+def fig_aligned(panels=None, name="fig_taskmap", ncols=4):
+    """Figure 4: full 4x4 (m, n) grouped 2D bar chart of LoopBridge across m in {1..4} and n in {1..4}, against
+    Original n/n (dashed horizontal marker per decode group). Left: 11-benchmark average; right 2x2: four representative
+    domains (MMLU, BBH, GSM8K, RULER-16K). Every cell of all 11 benchmarks is in Appendix Table tab:alignedcells."""
+    rows = PN.get("aligned_cells", [])
+    if not rows:
+        return drop(name)
+    T = {r["bench"]: r for r in rows}
+    avg_cell = {f"native{n}": float(np.mean([r[f"native{n}"] for r in rows])) for n in range(1, 5)}
+    for m in range(1, 5):
+        for n in range(1, 5):
+            avg_cell[f"a{m}{n}"] = float(np.mean([r[f"a{m}{n}"] for r in rows]))
+
+    M_COLS = ["#FBD8C8", "#F7AC88", "#F1824F", OURS]
+    M_EDGE = ["#D49A7E", "#D67E56", "#C85C2D", "#B54417"]
+
+    fig = plt.figure(figsize=(6.9, 3.0))
+    gs = fig.add_gridspec(2, 3, width_ratios=[1.48, 1.0, 1.0], wspace=0.26, hspace=0.48,
+                          left=0.065, right=0.99, top=0.84, bottom=0.14)
+    ax_avg = fig.add_subplot(gs[:, 0])
+    dom_specs = [("MMLU", "MMLU", gs[0, 1]), ("BBH 3-shot", "BBH", gs[0, 2]),
+                 ("GSM8K", "GSM8K", gs[1, 1]), ("RULER-16K", "RULER-16K", gs[1, 2])]
+
+    xs = np.arange(1, 5)
+    bw = 0.185
+    offs = np.array([-1.5, -0.5, 0.5, 1.5]) * bw
+
+    def draw_bars(ax, cell, title, big=False):
+        for m in range(1, 5):
+            vals = [cell[f"a{m}{n}"] for n in range(1, 5)]
+            ax.bar(xs + offs[m - 1], vals, width=bw * 0.92, color=M_COLS[m - 1], edgecolor=M_EDGE[m - 1],
+                   linewidth=0.45 if m < 4 else 0.6, zorder=3)
+        for idx, n in enumerate(range(1, 5)):
+            nv = cell[f"native{n}"]
+            ax.hlines(nv, xs[idx] - 0.40, xs[idx] + 0.40, color="#262626", lw=1.35 if big else 1.15,
+                      ls="--", zorder=5)
+            if big:
+                a4 = cell[f"a4{n}"]
+                y_lab = max(a4, nv) + 1.4 if n >= 3 else a4 + 1.4
+                ax.text(xs[idx] + offs[3], y_lab, f"{a4:.1f}", ha="center", va="bottom",
+                        fontsize=6.8, color=OURS, fontweight="bold", zorder=6)
+                if n == 1:
+                    ax.text(xs[idx], nv - 2.0, f"Orig {nv:.1f}", ha="center", va="top",
+                            fontsize=6.1, color="#262626", zorder=6)
+                elif n == 2:
+                    ax.text(xs[idx] - 0.39, nv - 1.3, f"{nv:.1f}", ha="left", va="top",
+                            fontsize=6.1, color="#262626", zorder=6)
+                elif n == 3:
+                    ax.text(xs[idx] - 0.39, nv - 1.3, f"{nv:.1f}", ha="left", va="top",
+                            fontsize=6.1, color="#262626", zorder=6)
+                elif n == 4:
+                    ax.text(xs[idx] - 0.39, nv - 1.3, f"{nv:.1f}", ha="left", va="top",
+                            fontsize=6.1, color="#262626", zorder=6)
+        ax.set_title(title, fontsize=8.5 if big else 8.0, color=INK, fontweight="bold" if big else "normal", pad=4)
+        ax.set_xticks(xs); ax.set_xticklabels([f"n={n}" for n in range(1, 5)], fontsize=7.5 if big else 7.2)
+        ax.set_xlim(0.45, 4.55)
+        ymax = max([cell[f"native{n}"] for n in range(1, 5)] + [cell[f"a{m}{n}"] for m in range(1, 5) for n in range(1, 5)])
+        ax.set_ylim(0, ymax * (1.20 if big else 1.15))
+        ax.grid(axis="y", color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
+        ax.tick_params(axis="y", labelsize=7.2)
+
+    draw_bars(ax_avg, avg_cell, "11-Benchmark Average", big=True)
+    ax_avg.set_ylabel("accuracy (%)", fontsize=8.5)
+    ax_avg.set_xlabel("decode loops n", fontsize=8.2)
+    # Highlight the asymmetry directly on the 11-benchmark average panel
+    ax_avg.annotate("+14.0", xy=(1 + offs[3], avg_cell["a41"] + 6.4), ha="center", va="bottom",
+                    fontsize=7.2, color=OURS, fontweight="bold")
+    ax_avg.annotate("+5.4", xy=(2 + offs[3], avg_cell["a42"] + 6.4), ha="center", va="bottom",
+                    fontsize=7.2, color=OURS, fontweight="bold")
+
+    for key, title, slot in dom_specs:
+        ax = fig.add_subplot(slot)
+        draw_bars(ax, T[key], title, big=False)
+        if slot in (gs[1, 1], gs[1, 2]):
+            ax.set_xlabel("decode loops n", fontsize=7.5)
+
+    handles = [plt.Rectangle((0, 0), 1, 1, fc=M_COLS[i], ec=M_EDGE[i], lw=0.5) for i in range(4)]
+    handles.append(plt.Line2D([], [], color="#262626", lw=1.35, ls="--"))
+    labels = ["LoopBridge: m=1", "m=2", "m=3", "m=4 (prefill loops)", "Original n/n"]
+    fig.legend(handles, labels, loc="upper center", ncol=5, fontsize=7.5, bbox_to_anchor=(0.52, 0.99),
+               handlelength=1.4, columnspacing=1.0, frameon=False)
     save(fig, name)
 
 
@@ -469,10 +625,10 @@ def tab_main(key="main_table", name="tab_main"):
               (4, ["native 4/4"])]   # maps-frozen and one-cache rows: ablation table (tab_build)
     if name == "tab_main14":   # Ouro-1.4B: the one-decode-loop comparison of Section 5.7
         groups = [g for g in groups if g[0] != 2]
-    show = {"native 1/1": ("Original", "1/1"), "native 2/2": ("Original", "2/2"), "native 4/4": ("Original", "4/4"),
-            "training-free 4/1": ("Training-free", "4/1"), "training-free 4/2": ("Training-free", "4/2"),
-            "LoRA-distilled 1/1": ("Distilled", "1/1"), "LoRA-distilled 2/2": ("Distilled", "2/2"),
-            "distilled r80 1/1": ("Distilled, rank 80", "1/1"), "distilled r80 2/2": ("Distilled, rank 80", "2/2"),
+    show = {"native 1/1": (r"Original {\scriptsize(Ouro)}", "1/1"), "native 2/2": (r"Original {\scriptsize(Ouro)}", "2/2"), "native 4/4": (r"Original {\scriptsize(Ouro)}", "4/4"),
+            "training-free 4/1": (r"Training-free {\scriptsize(baseline)}", "4/1"), "training-free 4/2": (r"Training-free {\scriptsize(baseline)}", "4/2"),
+            "LoRA-distilled 1/1": (r"Distilled {\scriptsize(KD baseline)}", "1/1"), "LoRA-distilled 2/2": (r"Distilled {\scriptsize(KD baseline)}", "2/2"),
+            "distilled r80 1/1": (r"Distilled r80 {\scriptsize(KD base.)}", "1/1"), "distilled r80 2/2": (r"Distilled r80 {\scriptsize(KD base.)}", "2/2"),
             "fixed-4 LoRA 4/1": (r"Ours, fixed $m$", "4/1"), "fixed-4 LoRA 4/2": (r"Ours, fixed $m$", "4/2"),
             "aligned LoRA-only 4/1": ("LoRA all pairs, maps frozen", "4/1"), "aligned LoRA-only 4/2": ("LoRA all pairs, maps frozen", "4/2"),
             "loop adapter 4/1": ("LoopBridge, one cache", "4/1"), "loop adapter 4/2": ("LoopBridge, one cache", "4/2"),
@@ -566,21 +722,26 @@ def tab_repro():
 
 def tab_aligned():
     """Appendix: the aligned loop adapter's full map on the main-table benchmarks, every prefill m / decode n cell and
-    native n/n (each column on the items all available configurations share); bold: the best m at each n
-    (paper_numbers.json, aligned_cells)."""
+    native n/n (each column on the items all available configurations share), plus the 11-benchmark average; bold: the
+    best m at each n (paper_numbers.json, aligned_cells)."""
     rows = PN.get("aligned_cells", [])
     short = {"MATH-500": "MATH", "BBH 3-shot": "BBH", "HumanEval+": "HE+",   # the column names of Table 1
              "HellaSwag": "HellaSw.", "Winogrande": "Winogr.", "RULER-16K": "RULER"}
-    lines = [" & " + " & ".join(short.get(r["bench"], r["bench"]) for r in rows) + r" \\", r"\midrule"]
+    lines = [" & " + " & ".join(short.get(r["bench"], r["bench"]) for r in rows) + r" & Avg. \\", r"\midrule"]
     f = lambda x, b: "--" if x is None else (rf"\textbf{{{x:.1f}}}" if b else f"{x:.1f}")
-    for n in range(1, 4):   # n = 4 = m is the released model's own setting: nothing is untied there
+    avg_of = lambda vals: None if any(v is None for v in vals) else sum(float(f"{v:.1f}") for v in vals) / len(vals)
+    for n in range(1, 5):   # all 16 (m, n) cells for m, n in 1..4
         best = {r["bench"]: max((r[f"a{m}{n}"] for m in range(1, 5) if r[f"a{m}{n}"] is not None), default=None)
                 for r in rows}
-        lines.append(rf"Original {n}/{n} & " + " & ".join(f(r[f"native{n}"], False) for r in rows) + r" \\")
+        avgs = {m: avg_of([r[f"a{m}{n}"] for r in rows]) for m in range(1, 5)}
+        best_avg = max((v for v in avgs.values() if v is not None), default=None)
+        nat_vals = [r[f"native{n}"] for r in rows]
+        lines.append(rf"Original {n}/{n} & " + " & ".join(f(v, False) for v in nat_vals) + f" & {f(avg_of(nat_vals), False)}" + r" \\")
         for m in range(1, 5):
-            cells = [f(r[f"a{m}{n}"], r[f"a{m}{n}"] is not None and r[f"a{m}{n}"] == best[r["bench"]]) for r in rows]
-            lines.append(rf"{m}\,/\,{n} & " + " & ".join(cells) + r" \\")
-        if n < 3:
+            cells = [f(r[f"a{m}{n}"], r[f"a{m}{n}"] is not None and f"{r[f'a{m}{n}']:.1f}" == f"{best[r['bench']]:.1f}") for r in rows]
+            acell = f(avgs[m], avgs[m] is not None and f"{avgs[m]:.1f}" == f"{best_avg:.1f}")
+            lines.append(rf"{m}\,/\,{n} & " + " & ".join(cells) + f" & {acell}" + r" \\")
+        if n < 4:
             lines.append(r"\midrule")
     (OUT / "tab_aligned.tex").write_text("\n".join(lines) + "\n")
 
@@ -792,7 +953,7 @@ def fig_budget(name="fig_budget"):
     h = [L([], [], color=OURS, marker="s", ms=4.5, ls="none"), L([], [], color=OURS, marker="D", ms=4, ls="none"),
          L([], [], color=DIST, marker="^", ms=5, ls="none"), L([], [], color=DIST, marker="v", ms=5, ls="none"),
          L([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4)]
-    l = ["Ours, LoopBridge, 4/n", "Ours, fixed m=4, 4/n", "Distilled n/n", "Distilled n/n, rank 80", "Original n/n"]
+    l = ["Ours, LoopBridge, 4/n", "Ours, fixed m=4, 4/n", "Distilled n/n (baseline)", "Distilled r80 (baseline)", "Original n/n"]
     fig.legend(h, l, fontsize=6.5, loc="lower center", frameon=False, handlelength=1.6, ncol=2, columnspacing=1.0)
     fig.subplots_adjust(left=0.15, right=0.97, top=0.97, bottom=0.36)
     save(fig, name)
@@ -885,7 +1046,7 @@ def fig_tbatched(name="fig_tbatched"):
     L = plt.Line2D
     h = [L([], [], color=OURS, marker="s", ms=4, ls="none"), L([], [], color=DIST, marker="^", ms=4.5, ls="none", mfc="white"),
          L([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.3)]
-    fig.legend(h, ["Ours (LoopBridge 4/2)", "Distilled 2/2", "Original n/n"], fontsize=6.5, loc="lower center",
+    fig.legend(h, ["Ours (LoopBridge 4/2)", "Distilled 2/2 (baseline)", "Original n/n"], fontsize=6.5, loc="lower center",
                frameon=False, handlelength=1.5, ncol=3, columnspacing=1.0)
     fig.subplots_adjust(left=0.12, right=0.98, top=0.9, bottom=0.3, wspace=0.3)
     save(fig, name)
@@ -1033,7 +1194,7 @@ def tab_build():
     (OUT / "tab_build.tex").write_text("\n".join(lines) + "\n")
 
 if __name__ == "__main__":
-    fig_concept(); fig_time(); tab_time(); tab_plateau(); tab_depthwide(); tab_depth14(); tab_prefilltrn(); tab_build(); tab_lr(); fig_depth_main(); fig_depth(); fig_sametime(); fig_budget(); fig_batched(); tab_batched(); fig_tbatched(); tab_tbatched(); fig0(); fig2(); fig_equal(); fig_lev(); fig_aligned(["MMLU", "BBH 3-shot", "ARC-C", "Winogrande", "GSM8K", "HumanEval+", "MBPP+", "RULER-16K"]); tab_equal("2.6B-T"); tab_lev(); tab_main(); tab_main("main_table_14", "tab_main14"); tab_ablation(); tab_tokens(); tab_e2e(); tab_repro(); tab_aligned()
+    fig_tps_teaser(); fig_concept(); fig_time(); tab_time(); tab_plateau(); tab_depthwide(); tab_depth14(); tab_prefilltrn(); tab_build(); tab_lr(); fig_depth_main(); fig_depth(); fig_sametime(); fig_budget(); fig_batched(); tab_batched(); fig_tbatched(); tab_tbatched(); fig0(); fig2(); fig_equal(); fig_lev(); fig_aligned(); tab_equal("2.6B-T"); tab_lev(); tab_main(); tab_main("main_table_14", "tab_main14"); tab_ablation(); tab_tokens(); tab_e2e(); tab_repro(); tab_aligned()
     for f in OUT.glob("tab_*.tex"):   # one name per benchmark in every table: BBH is 3-shot throughout (Appendix H)
         f.write_text(f.read_text().replace("BBH 3-shot", "BBH"))
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

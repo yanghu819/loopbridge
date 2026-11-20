@@ -1,4 +1,4 @@
-# Untying Prefill and Decode Loops in Looped Language Models
+# LoopBridge: Should Prefill and Decode Loop Equally?
 
 **Paper:** [`paper/untying-prefill-decode-loops.pdf`](paper/untying-prefill-decode-loops.pdf) (arXiv link coming) ·
 **Author:** Yang Hu · **Code license:** MIT · **Keywords:** looped language model, recurrent depth, Ouro, test-time
@@ -50,7 +50,9 @@ data went, and [`DEPRECATED.md`](DEPRECATED.md) which modules and training arms 
 7. **The baselines are not under-tuned:** the distilled controls move by at most 0.8 points over a 0.3x-3x
    learning-rate range and at rank 80; LoopBridge's weakest learning rate still beats the best distilled control.
 
-![Untying prefill and decode loops](paper/figs/fig_concept.png)
+![Higher accuracy at higher throughput (tokens/s)](paper/figs/fig_tps_teaser.png)
+
+![All prefill and decode pairs (m, n in 1..4)](paper/figs/fig_taskmap.png)
 
 ![Prefill is a sliver of the time](paper/figs/fig_time.png)
 
@@ -87,7 +89,7 @@ data went, and [`DEPRECATED.md`](DEPRECATED.md) which modules and training arms 
 
 ```bibtex
 @misc{hu2026untying,
-  title  = {Untying Prefill and Decode Loops in Looped Language Models},
+  title  = {LoopBridge: Should Prefill and Decode Loop Equally?},
   author = {Hu, Yang},
   year   = {2026},
   note   = {https://github.com/yanghu819/untying-prefill-decode}

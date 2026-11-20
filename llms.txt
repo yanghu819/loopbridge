@@ -1,4 +1,4 @@
-# Untying Prefill and Decode Loops in Looped Language Models
+# LoopBridge: Should Prefill and Decode Loop Equally?
 
 > Looped (recurrent-depth) language models use the same number of loops to read the prompt (prefill) and to generate
 > each answer token (decode), although generation is almost all decoding. We untie the two loop counts (prefill m

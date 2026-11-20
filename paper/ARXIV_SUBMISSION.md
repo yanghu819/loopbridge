@@ -4,7 +4,7 @@ Upload: paper/arxiv/arxiv.tar.gz (main.tex + main.bbl + acl.sty + acl_natbib.bst
 tectonic; arXiv compiles it with pdflatex from the included main.bbl (check its preview PDF after upload).
 
 Title:
-Untying Prefill and Decode Loops in Looped Language Models
+LoopBridge: Should Prefill and Decode Loop Equally?
 
 Authors:
 Yang Hu

@@ -60,7 +60,7 @@ def main():
     pages = re.search(r"Pages:\s+(\d+)", subprocess.run(["pdfinfo", str(OUT / "main.pdf")], capture_output=True,
                                                           text=True).stdout).group(1)
     abstract = tex[tex.index("\\begin{abstract}") + 16:tex.index("\\end{abstract}")]
-    (OUT / "ARXIV_SUBMISSION.md").write_text(SUBMISSION.format(pages=pages, figs=n_figs, url=URL, abstract=plain(abstract)))
+    (OUT / "ARXIV_SUBMISSION.md").write_text(SUBMISSION.format(title=title, pages=pages, figs=n_figs, url=URL, abstract=plain(abstract)))
     print("wrote", OUT / "arxiv.tar.gz", (OUT / "arxiv.tar.gz").stat().st_size, "bytes;", pages, "pages")
 
 
@@ -85,7 +85,7 @@ Upload: paper/arxiv/arxiv.tar.gz (main.tex + main.bbl + acl.sty + acl_natbib.bst
 tectonic; arXiv compiles it with pdflatex from the included main.bbl (check its preview PDF after upload).
 
 Title:
-Untying Prefill and Decode Loops in Looped Language Models
+{title}
 
 Authors:
 Yang Hu

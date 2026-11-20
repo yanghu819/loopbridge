@@ -1719,11 +1719,7 @@
    "label": "2.6B-T prefill 4 vs 1 (decode 1) rag",
    "key_a": "B:T26ne-S41-helmet:helmet#rag",
    "key_b": "B:T26ne-S11-helmet:helmet#rag",
-   "printed": [
-    15.4,
-    11.9,
-    18.8
-   ],
+   "printed": null,
    "n": 700,
    "a": 49.0,
    "b": 33.625,
@@ -1736,11 +1732,7 @@
    "label": "2.6B-T prefill 4 vs 1 (decode 1) rerank",
    "key_a": "B:T26ne-S41-helmet:helmet#rerank",
    "key_b": "B:T26ne-S11-helmet:helmet#rerank",
-   "printed": [
-    13.4,
-    7.2,
-    20.0
-   ],
+   "printed": null,
    "n": 41,
    "a": 28.737,
    "b": 15.334,
@@ -1753,11 +1745,7 @@
    "label": "2.6B-T prefill 4 vs 1 (decode 1) icl",
    "key_a": "B:T26ne-S41-helmet:helmet#icl",
    "key_b": "B:T26ne-S11-helmet:helmet#icl",
-   "printed": [
-    5.1,
-    -0.4,
-    10.5
-   ],
+   "printed": null,
    "n": 333,
    "a": 62.393,
    "b": 57.304,
@@ -1770,11 +1758,7 @@
    "label": "2.6B-T prefill 4 vs 1 (decode 1) recall",
    "key_a": "B:T26ne-S41-helmet:helmet#recall",
    "key_b": "B:T26ne-S11-helmet:helmet#recall",
-   "printed": [
-    -2.9,
-    -23.5,
-    17.6
-   ],
+   "printed": null,
    "n": 34,
    "a": 17.647,
    "b": 20.588,
@@ -1787,11 +1771,7 @@
    "label": "1.4B-T prefill 4 vs 1 (decode 1) rag",
    "key_a": "B:T14ne-S41-helmet:helmet#rag",
    "key_b": "B:T14ne-S11-helmet:helmet#rag",
-   "printed": [
-    14.5,
-    11.0,
-    18.0
-   ],
+   "printed": null,
    "n": 700,
    "a": 47.25,
    "b": 32.75,
@@ -1804,11 +1784,7 @@
    "label": "1.4B-T prefill 4 vs 1 (decode 1) rerank",
    "key_a": "B:T14ne-S41-helmet:helmet#rerank",
    "key_b": "B:T14ne-S11-helmet:helmet#rerank",
-   "printed": [
-    18.0,
-    11.8,
-    24.1
-   ],
+   "printed": null,
    "n": 41,
    "a": 28.258,
    "b": 10.294,
@@ -1821,11 +1797,7 @@
    "label": "1.4B-T prefill 4 vs 1 (decode 1) icl",
    "key_a": "B:T14ne-S41-helmet:helmet#icl",
    "key_b": "B:T14ne-S11-helmet:helmet#icl",
-   "printed": [
-    9.3,
-    3.6,
-    15.0
-   ],
+   "printed": null,
    "n": 333,
    "a": 64.184,
    "b": 54.916,
@@ -1838,11 +1810,7 @@
    "label": "1.4B-T prefill 4 vs 1 (decode 1) recall",
    "key_a": "B:T14ne-S41-helmet:helmet#recall",
    "key_b": "B:T14ne-S11-helmet:helmet#recall",
-   "printed": [
-    -23.5,
-    -38.2,
-    -8.8
-   ],
+   "printed": null,
    "n": 34,
    "a": 2.941,
    "b": 26.471,
@@ -4549,6 +4517,13 @@
   },
   {
    "section": "Task map 1.4B",
+   "label": "S11 MATH-500",
+   "key": "L:O14x-S11-math0shot:boxed",
+   "n": 500,
+   "mean": 26.0
+  },
+  {
+   "section": "Task map 1.4B",
    "label": "S12 MATH-500",
    "key": "L:O14x-S12-math0shot:boxed",
    "n": 500,
@@ -4623,6 +4598,13 @@
    "key": "L:O14x-S34-math0shot:boxed",
    "n": 500,
    "mean": 68.6
+  },
+  {
+   "section": "Task map 1.4B",
+   "label": "S41 MATH-500",
+   "key": "L:O14x-S41-math0shot:boxed",
+   "n": 500,
+   "mean": 30.8
   },
   {
    "section": "Task map 1.4B",
@@ -11899,6 +11881,12 @@
     -1.137,
     1.365
    ],
+   "dist2": 93.0,
+   "vsd": [
+    1.061,
+    -0.152,
+    2.274
+   ],
    "n4_vs2": [
     2.047,
     0.834,
@@ -11932,6 +11920,12 @@
     -1.8,
     -5.2,
     1.4
+   ],
+   "dist2": 84.6,
+   "vsd": [
+    0.0,
+    -3.0,
+    2.8
    ],
    "n4_vs2": [
     5.0,
@@ -11967,6 +11961,12 @@
     -5.0,
     1.667
    ],
+   "dist2": 44.0,
+   "vsd": [
+    6.905,
+    2.619,
+    11.19
+   ],
    "n4_vs2": [
     5.952,
     2.143,
@@ -12000,6 +12000,12 @@
     0.341,
     -0.597,
     1.365
+   ],
+   "dist2": 63.0,
+   "vsd": [
+    3.498,
+    1.962,
+    5.119
    ],
    "n4_vs2": [
     4.949,
@@ -12035,6 +12041,12 @@
     3.333,
     7.222
    ],
+   "dist2": 71.4,
+   "vsd": [
+    3.519,
+    1.358,
+    5.617
+   ],
    "n4_vs2": [
     5.062,
     2.593,
@@ -12068,6 +12080,12 @@
     0.61,
     -2.439,
     3.659
+   ],
+   "dist2": 69.5,
+   "vsd": [
+    4.878,
+    0.0,
+    10.366
    ],
    "n4_vs2": [
     4.878,
@@ -12103,6 +12121,12 @@
     -3.975,
     -0.265
    ],
+   "dist2": 61.6,
+   "vsd": [
+    -0.265,
+    -3.704,
+    3.175
+   ],
    "n4_vs2": [
     -1.323,
     -4.233,
@@ -12136,6 +12160,12 @@
     7.175,
     4.82,
     9.853
+   ],
+   "dist2": 53.8,
+   "vsd": [
+    5.177,
+    -0.44,
+    10.717
    ],
    "n4_vs2": [
     21.685,
@@ -12555,11 +12585,6 @@
   ],
   "T14x-S42-bbh early stops": 734,
   "T14x-native2-bbh early stops": 28,
-  "1.4B-T HELMET recall prefill 4 - 1 (decode 1)": -23.53,
-  "2.6B-T HELMET recall 4/2": 58.82,
-  "2.6B-T HELMET recall native 4/4": 100.0,
-  "2.6B-T HELMET recall aligned 4/2": 67.65,
-  "2.6B-T HELMET recall native 2/2": 67.65,
   "1.4B native 4/4 MATH-500 final answer": 70.6,
   "1.4B native 4/4 MATH-500 strict match": 4.4
  },
@@ -12673,49 +12698,49 @@
  "repro": [
   {
    "bench": "MMLU",
-   "ours": 74.55,
+   "ours": 74.5549,
    "reported": 74.6,
    "items": 14042
   },
   {
    "bench": "MMLU-Pro",
-   "ours": 56.07,
+   "ours": 56.0714,
    "reported": 55.73,
    "items": 1400
   },
   {
    "bench": "BBH",
-   "ours": 80.71,
+   "ours": 80.7096,
    "reported": 80.46,
    "items": 6511
   },
   {
    "bench": "ARC-C",
-   "ours": 66.47,
+   "ours": 66.4676,
    "reported": 66.4,
    "items": 1172
   },
   {
    "bench": "HellaSwag",
-   "ours": 79.45,
+   "ours": 79.4463,
    "reported": 79.69,
    "items": 10042
   },
   {
    "bench": "Winogrande",
-   "ours": 77.66,
+   "ours": 77.6638,
    "reported": 75.85,
    "items": 1267
   },
   {
    "bench": "GSM8K",
-   "ours": 69.37,
+   "ours": 69.3707,
    "reported": 81.58,
    "items": 1319
   },
   {
    "bench": "GSM8K (flexible extraction)",
-   "ours": 86.66,
+   "ours": 86.6566,
    "reported": null,
    "items": 1319
   },
@@ -12727,25 +12752,25 @@
   },
   {
    "bench": "HumanEval",
-   "ours": 75.61,
+   "ours": 75.6098,
    "reported": 78.7,
    "items": 164
   },
   {
    "bench": "HumanEval+",
-   "ours": 69.51,
+   "ours": 69.5122,
    "reported": 70.7,
    "items": 164
   },
   {
    "bench": "MBPP",
-   "ours": 77.51,
+   "ours": 77.5132,
    "reported": 80.4,
    "items": 378
   },
   {
    "bench": "MBPP+",
-   "ours": 64.55,
+   "ours": 64.5503,
    "reported": 66.6,
    "items": 378
   }
@@ -15953,6 +15978,51 @@
   {
    "model": "Ouro-1.4B",
    "bench": "MATH-500",
+   "n": 1,
+   "m_chosen": [
+    2,
+    4
+   ],
+   "items": 500,
+   "selected": 30.2,
+   "native": 26.4,
+   "diff": [
+    3.8,
+    0.0,
+    7.8
+   ],
+   "diff_select_aware": [
+    3.8,
+    0.2,
+    9.0
+   ],
+   "adapter_nn": 26.0,
+   "diff_adapter": [
+    4.2,
+    0.795,
+    7.8
+   ],
+   "diff_adapter_select_aware": [
+    4.2,
+    0.8,
+    9.4
+   ],
+   "distilled": 28.6,
+   "distilled_items": 500,
+   "diff_distilled": [
+    1.6,
+    -2.2,
+    5.4
+   ],
+   "diff_distilled_select_aware": [
+    1.6,
+    -2.0,
+    6.8
+   ]
+  },
+  {
+   "model": "Ouro-1.4B",
+   "bench": "MATH-500",
    "n": 2,
    "m_chosen": [
     4,
@@ -18617,6 +18687,37 @@
    "native2": 49.75,
    "native3": 61.5,
    "native4": 62.25
+  },
+  {
+   "model": "Ouro-1.4B",
+   "bench": "MATH-500",
+   "items": 500,
+   "best": {
+    "1": 2,
+    "2": 4,
+    "3": 3,
+    "4": 3
+   },
+   "S11": 26.0,
+   "S21": 31.4,
+   "S31": 31.4,
+   "S41": 30.8,
+   "S12": 56.2,
+   "S22": 56.4,
+   "S32": 60.2,
+   "S42": 61.0,
+   "S13": 60.6,
+   "S23": 60.2,
+   "S33": 67.4,
+   "S43": 66.0,
+   "S14": 63.0,
+   "S24": 62.0,
+   "S34": 68.6,
+   "S44": 67.4,
+   "native1": 26.4,
+   "native2": 59.4,
+   "native3": 66.2,
+   "native4": 67.4
   },
   {
    "model": "Ouro-1.4B",
@@ -28136,6 +28237,17 @@
    "ratio": 1.03
   }
  },
+ "batched_passes": {
+  "max_spread": 9.1,
+  "ratios": [
+   1.14,
+   1.23,
+   1.17,
+   1.19,
+   1.22,
+   1.14
+  ]
+ },
  "thinking_batched": {
   "gsmthink native2st@16": {
    "n": 1319,
@@ -30206,7 +30318,7 @@
    "fixed-4 LoRA 4/2": null,
    "aligned LoRA-only 4/1": null,
    "aligned LoRA-only 4/2": null,
-   "loop adapter 4/1": null,
+   "loop adapter 4/1": 30.8,
    "loop adapter 4/2": 61.0,
    "aligned adapter 4/1": 31.0,
    "aligned adapter 4/2": 59.6
