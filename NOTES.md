@@ -24,6 +24,12 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
 
 ## Log
 
+### 2026-11-20 (title update, Figure 1 & Figure 4 redesign, raw-file fact-check, writing & figure polish)
+- Retitled paper to *LoopBridge: Should Prefill and Decode Loop Equally?*.
+- Replaced Figure 1 with an accuracy-vs-throughput (tokens/s) teaser (`fig_tps_teaser`: Ouro-2.6B 4 CoT tasks at batch 1 and Ouro-2.6B-Thinking GSM8K at batch 16); explicitly tagged `Distilled` rows in Table 1 / Table 11 and figure legends as competing KD baselines; redesigned Figure 4 (`fig_taskmap`) as an asymmetric 2D grouped bar chart covering all 16 `(m, n) in {1..4}^2` cells against Original `n/n` and extended Appendix Table 9 (`tab_aligned`) to all four decode depths plus `Avg.`.
+- Independent raw-file audit directly reading `ouro/results/items/*.json.gz`, `ouro/results/e2e/*.jsonl`, `ouro/results/e2e/*.summary.json`, and `ouro/results/throughput-sb4/*.json` verified 565 cells/averages/throughput numbers with 0 errors and caught one mismatched sample count on Figure 1a (`native3st` had `n=100` per task vs `n=200` for all other timed conditions), removing `Original 3/3` from Figure 1a so every point uses the exact same 800 requests.
+- Compressed the Abstract to ~130 words and tightened prose and float layout so Sections 1--6 end cleanly at the bottom of Page 8 (Limitations + References start on Page 9) with zero overfull hboxes; visually verified all 13 figures and fixed label/line collisions across `fig_tps_teaser`, `fig0_method`, `fig_taskmap`, `fig_budget`, `fig_tbatched`, `fig_lev`, `fig_sametime`, `fig_equal`, `fig_batched`, and `fig2_frontier`.
+
 ### 2026-11-14 (answers to the 11-13 acceptance review)
 - Batched serving, measured (`batch_requests.py`, `time_batch.sh`): continuous batching of the 400 timed requests,
   every prompt prefilled alone at batch 1 (stalls the batch, no chunked prefill), decode attention = flash varlen over
