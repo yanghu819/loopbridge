@@ -14,7 +14,7 @@ from pathlib import Path
 
 P = Path(__file__).resolve().parent
 SRC, OUT = P / "latex", P / "arxiv"
-URL = "https://github.com/yanghu819/untying-prefill-decode"
+URL = "https://github.com/yanghu819/loopbridge"
 
 SUBS = [
     (r"\usepackage[review]{acl}", r"\usepackage[preprint]{acl}"),
@@ -106,6 +106,6 @@ Abstract (plain text):
 
 if __name__ == "__main__":
     main()
-    # the published copies: paper/untying-prefill-decode-loops.pdf and paper/ARXIV_SUBMISSION.md
-    shutil.copy(OUT / "main.pdf", P / "untying-prefill-decode-loops.pdf")
+    # the published copies: paper/loopbridge.pdf and paper/ARXIV_SUBMISSION.md
+    shutil.copy(OUT / "main.pdf", P / "loopbridge.pdf")
     shutil.copy(OUT / "ARXIV_SUBMISSION.md", P / "ARXIV_SUBMISSION.md")

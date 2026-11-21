@@ -12,8 +12,8 @@ source tree snapshots from the training boxes are archived as they stood when th
 
 Everything the paper's numbers are made of: the source, the launcher for every run the paper uses, the per-item scores
 (`ouro/results/items/`), the per-request timings (`ouro/results/e2e/`), the Lev outputs (`ouro/results/lev/`), the
-provenance records (`ouro/results/provenance/`: command, configuration, checkpoint hash, log and outputs of every
-run), the figures and the LaTeX source. `python ouro/scripts/paper_numbers.py compute` recomputes every printed value
+provenance records (`ouro/results/provenance/`: run manifests, logs, and per-item outputs, plus training configs and
+checkpoint hashes for the main and ablation models), the figures and the LaTeX source. `python ouro/scripts/paper_numbers.py compute` recomputes every printed value
 from them on a CPU, and `ouro/scripts/paper_figs.py` redraws every figure. The environment is pinned in
 `environments/ouro/` (`pyproject.toml`, `uv.lock`).
 

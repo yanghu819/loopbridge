@@ -34,7 +34,7 @@ The paper's numbers come from these places, all in this commit:
 
 Every number quoted in the text has a check in `paper_numbers.py`; `compute` prints `!!` next to any that disagrees.
 
-To regenerate the per-item scores themselves you need GPUs: train the loop adapters, run the evaluations, then
+To regenerate the per-item scores themselves you need GPUs: train the LoopBridge adapters, run the evaluations, then
 `python ouro/scripts/paper_numbers.py export RUNS_DIR` collects exactly the items the paper uses.
 
 ## Environment, models, data
@@ -66,9 +66,9 @@ from a local CSV (`$M/gpqa-data/`, not redistributed) and IFEval from `$M/ifeval
 
 ## Provenance
 
-`ouro/results/provenance/` traces every result to its run: the launching command, evaluation configuration and
-software versions, times, checkpoint sha256 and training log, the cleaned evaluation log and the model's outputs
-(see [`ouro/results/provenance/README.md`](ouro/results/provenance/README.md)). Regenerate with
+`ouro/results/provenance/` traces paper results to their runs: run manifests, evaluation configurations and software
+versions, times, cleaned evaluation logs, and model outputs, together with training configurations, logs, and
+checkpoint hashes for the main and ablation models (see [`ouro/results/provenance/README.md`](ouro/results/provenance/README.md)). Regenerate with
 `python ouro/scripts/provenance.py RUNS_DIR OUT_DIR` on each evaluation machine.
 
 ## Training (one B300 node, 1–8 GPUs per run)
@@ -87,7 +87,7 @@ software versions, times, checkpoint sha256 and training log, the cleaned evalua
 
 ## Evaluation
 
-A configuration is a *condition* string: `native<n>` (unmodified model, `n` loops for prefill and decode), `a<m><n>`
+A configuration is a *condition* string: `native<n>` (Original `n/n`: unmodified model, `n` loops for prefill and decode), `a<m><n>`
 (or `a<m>x<n>pm` with folded maps for timing: LoopBridge, prefill `m`, decode `n`), or `S<m><n>` (one-cache LoopBridge);
 `E`/`D`/`H` are the tied-loop distillation baselines (`1/1`, `2/2`, `3/3`) and `V` is the Appendix L unrestricted key-map variant.
 

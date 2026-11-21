@@ -31,9 +31,9 @@ family (Ouro, up to 3B and four loops, greedy Thinking evaluation); English benc
 ## Docs
 - README.md: findings, when to use, repository map
 - REPRODUCE.md: every table and figure -> script -> result file; training and evaluation commands
-- paper/untying-prefill-decode-loops.pdf: the paper
+- paper/loopbridge.pdf: the paper
 - ouro/results/items/: per-item scores of every run the paper uses; ouro/results/paper_numbers.json: the recomputed statistics
-- ouro/results/provenance/: command, configuration, checkpoint hash, log and outputs of every run
+- ouro/results/provenance/: run manifests, logs, and per-item outputs, plus training configs and checkpoint hashes for the main and ablation models
 - ARCHIVE.md: where the training checkpoints, raw evaluation outputs and prepared data are kept (private archive)
 - DEPRECATED.md: the modules and training arms the paper does not use
 - The tag paper-arxiv points to the exact commit the arXiv PDF and all figures/tables were built from.

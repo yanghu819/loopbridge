@@ -1,8 +1,8 @@
 # LoopBridge: Should Prefill and Decode Loop Equally?
 
-**Paper:** [`paper/untying-prefill-decode-loops.pdf`](paper/untying-prefill-decode-loops.pdf) (arXiv link coming) ·
-**Author:** Yang Hu · **Code license:** MIT · **Keywords:** looped language model, recurrent depth, Ouro, test-time
-compute, prefill vs decode, loop adapter, KV cache
+**Paper:** [`paper/loopbridge.pdf`](paper/loopbridge.pdf) (arXiv link coming) ·
+**Author:** Yang Hu · **Code license:** MIT · **Keywords:** LoopBridge, looped language model, recurrent depth, Ouro,
+test-time compute, prefill vs decode, KV cache
 
 Looped (recurrent-depth) language models apply the same block of layers for the same number of loops during prefill and
 decode. Yet generation is heavily asymmetric: prefill reads the prompt once in parallel and takes under 3% of the wall
@@ -19,8 +19,8 @@ against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [
 The per-item scores make this a 1.0 GB checkout. To read the code alone:
 
 ```bash
-git clone --filter=blob:none --no-checkout https://github.com/yanghu819/untying-prefill-decode
-cd untying-prefill-decode && git sparse-checkout set --no-cone '/*' '!ouro/results' && git checkout paper-arxiv
+git clone --filter=blob:none --no-checkout https://github.com/yanghu819/loopbridge
+cd loopbridge && git sparse-checkout set --no-cone '/*' '!ouro/results' && git checkout paper-arxiv
 ```
 
 The tag `paper-arxiv` points to the exact commit the arXiv version and all figures/tables were built from. [`ARCHIVE.md`](ARCHIVE.md) says where the training checkpoints, raw evaluation outputs and prepared
@@ -77,8 +77,8 @@ data went, and [`DEPRECATED.md`](DEPRECATED.md) which modules and training arms 
 |---|---|
 | `REPRODUCE.md` | every table and figure → script → result file; training and evaluation commands |
 | `ouro/scripts/paper_numbers.py`, `ouro/results/items/` | per-item scores of every run the paper uses; recomputes every number |
-| `ouro/model.py`, `ouro/adapter_model.py`, `ouro/batched.py`, `ouro/train_batched.py` | frozen Ouro backbone, loop adapter, batched KL distillation from the native model |
-| `ouro/single_bank.py`, `ouro/bench_throughput.py` | exact single-bank decoding (two flash-attention calls merged by log-sum-exp), native baselines, throughput |
+| `ouro/model.py`, `ouro/adapter_model.py`, `ouro/batched.py`, `ouro/train_batched.py` | frozen Ouro backbone, LoopBridge adapter, batched KL distillation from Original 4/4 |
+| `ouro/single_bank.py`, `ouro/bench_throughput.py` | exact single-bank decoding (two flash-attention calls merged by log-sum-exp), Original baselines, throughput |
 | `ouro/evaluate_bench.py`, `ouro/lmeval_ouro.py`, `ouro/run_lmeval.py`, `ouro/lmeval_tasks/` | evaluation (RULER, HELMET; lm-evaluation-harness wrapper and zero-shot thinking tasks) |
 | `ouro/lev/` | Lev looped decision-model scripts (`lev_rdws_eval.py`, `levbench_compare.py`, training/eval wrappers) |
 | `ouro/scripts/` | paper numbers, figures, batched serving, end-to-end latency, provenance |
@@ -91,10 +91,10 @@ data went, and [`DEPRECATED.md`](DEPRECATED.md) which modules and training arms 
 ## Citation
 
 ```bibtex
-@misc{hu2026untying,
+@misc{hu2026loopbridge,
   title  = {LoopBridge: Should Prefill and Decode Loop Equally?},
   author = {Hu, Yang},
   year   = {2026},
-  note   = {https://github.com/yanghu819/untying-prefill-decode}
+  note   = {https://github.com/yanghu819/loopbridge}
 }
 ```
