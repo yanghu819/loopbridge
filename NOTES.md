@@ -24,9 +24,11 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
 
 ## Log
 
-### 2026-11-21 (unify paper & repo around LoopBridge as sole main method; move fixed-m=4 LoRA to Appendix L)
+### 2026-11-21 (unify paper & repo around LoopBridge as sole main method; clean main figures; sync REPRODUCE.md & paper-arxiv tag)
 - Streamlined the paper, figures, tables, `README.md`, and `llms.txt` to present **LoopBridge** as our single unified method across all tasks and models (eliminating the redundant `Ours, fixed m=4` main-method series from Figures 1, 6, 9, 13, Tables 1, 2a, 11, 14, and main prose).
 - Updated Table 2a (`tab_build`) to a clean 4-row all-`(m,n)` LoopBridge component ablation (`KV maps` column), and consolidated all verified fixed-depth `m=4` decoder-only LoRA numbers cleanly into Appendix L (`Design Variants`).
+- Removed tied-distillation points from main Figures 1, 6, and 7 so all 8 main figures share a clean two-tone `Original n/n` (grey) vs. `LoopBridge` (orange) visual language while keeping all Distilled KD controls in Table 1, Table 2c, prose, and Appendix Figures 9, 11, 13, 14 & Tables 11, 13, 14, 15.
+- Updated `REPRODUCE.md` so every Figure 1--14 and Table 1--16 maps 1-to-1 to the final paper and moved the `paper-arxiv` tag to the final commit.
 
 ### 2026-11-20 (title update, Figure 1 & Figure 4 redesign, raw-file fact-check, writing & figure polish)
 - Retitled paper to *LoopBridge: Should Prefill and Decode Loop Equally?*.

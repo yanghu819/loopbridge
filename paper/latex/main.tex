@@ -68,13 +68,13 @@ and looped decision models.
 \centering
 \includegraphics[width=\columnwidth]{../figs/fig_tps_teaser.pdf}
 \caption{\textbf{Higher accuracy at higher throughput (\mbox{tokens/s}).} Accuracy against measured end-to-end output throughput
-(generated tokens / total wall time, including prefill; one B300).
+(generated tokens / total wall time, including prefill; one B300) for untied LoopBridge ($4/n$) vs.\ tied Original $n/n$.
 (a)~Ouro-2.6B on 800 requests of four chain-of-thought tasks (batch~1; Section~\ref{sec:budget}):
 at ${\sim}28$ \mbox{tokens/s} ($n{=}1$), LoopBridge~4/1 adds $+17.2$ points over Original~1/1;
 4/2 runs at $2.1\times$ the throughput of Original~4/4.
 (b)~Ouro-2.6B-Thinking on all 1,319 GSM8K problems (batch~16): LoopBridge~4/2 reaches 94.6\% at
-247 \mbox{tokens/s}, ahead of Original~4/4 (94.3\%, 122 \mbox{tokens/s}; $2.0\times$ throughput) and ahead of Original~2/2 and
-the Distilled~2/2 baseline on both axes.}
+247 \mbox{tokens/s}, matching Original~4/4 (94.3\%, 122 \mbox{tokens/s}) at $2.0\times$ throughput. Tied-loop
+distillation controls are in Table~\ref{tab:main}, Figure~\ref{fig:budgetfull}, and Table~\ref{tab:tbatched}.}
 \label{fig:teaser}
 \end{figure}
 
@@ -330,10 +330,9 @@ pretrained depth $m=4$ is a reliable default (Table~\ref{tab:main}).
 \centering
 \includegraphics[width=0.95\columnwidth]{../figs/fig_budget.pdf}
 \caption{\textbf{More accuracy for the time.} Ouro-2.6B: mean accuracy and mean time per request over the same 200 requests of each of GSM8K, MATH-500, BBH and MMLU-Pro (batch 1, one B300, mean of two passes). Filled: one decode
-loop; hollow: two. LoopBridge lies well above the original and distilled
-models, and at two decode loops also takes slightly less time. Arrow: at the mean time of
-LoopBridge 4/1, a mix of Original 1/1 and 2/2 requests (grey line) scores 10.5 points less. Paired gains:
-Figure~\ref{fig:budgetfull}.}
+loop; hollow: two. LoopBridge lies well above Original $n/n$, and at two decode loops also takes slightly less time.
+Arrow: at the mean time of LoopBridge 4/1, a mix of Original 1/1 and 2/2 requests (grey line) scores 10.5 points less.
+Comparison with Distilled 1/1: Figure~\ref{fig:budgetfull}.}
 \label{fig:budget}
 \end{figure}
 
@@ -343,7 +342,7 @@ Figure~\ref{fig:budgetfull}.}
 \caption{\textbf{On GSM8K, the Thinking model gets four-loop accuracy at two-loop cost.} Ouro-2.6B-Thinking on the 1,319 GSM8K problems
 served with continuous batching (one B300; chat template, 4,096-token budget): accuracy of the served answers against
 wall seconds per request. Ours: LoopBridge with per-loop caches and the maps folded in, prefill 4 / decode 2; dotted:
-Original 4/4. Numbers: Table~\ref{tab:tbatched}.}
+Original 4/4. Full numbers (including Distilled 2/2): Table~\ref{tab:tbatched}.}
 \label{fig:tbatched}
 \end{figure}
 
@@ -482,10 +481,10 @@ pretraining and during pretraining itself, is a natural step for future looped m
 \label{sec:limits}
 
 Runtime is measured on one GPU architecture at batch sizes up to 32; at much larger batches, extra prefill loops occupy a
-greater fraction of wall time. Folding LoopBridge's maps into the prompt cache preserves Original $n/n$'s KV footprint
-(one cache per decode loop), whereas the single-cache variant saves memory at the cost of applying maps during decoding.
-We keep prefill depth fixed per setting rather than predicting it per prompt, test English benchmarks on models up to 3B
-parameters pretrained with at most four loops, and leave adaptive routing and larger scales to future work.
+greater fraction of wall time. Folding LoopBridge's maps into the prompt cache preserves Original $n/n$'s KV footprint,
+whereas the one-cache variant saves memory at the cost of applying maps during decoding. We fix prefill depth per setting
+rather than per prompt, evaluate English benchmarks on models up to 3B parameters (up to four pretrained loops), and
+leave adaptive routing and larger scales to future work.
 
 
 \FloatBarrier

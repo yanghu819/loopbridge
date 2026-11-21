@@ -23,8 +23,7 @@ git clone --filter=blob:none --no-checkout https://github.com/yanghu819/untying-
 cd untying-prefill-decode && git sparse-checkout set --no-cone '/*' '!ouro/results' && git checkout paper-arxiv
 ```
 
-The tag `paper-arxiv` is the commit the arXiv version was built from; the code is frozen there. The project finished
-on 2026-11-19: [`ARCHIVE.md`](ARCHIVE.md) says where the training checkpoints, raw evaluation outputs and prepared
+The tag `paper-arxiv` points to the exact commit the arXiv version and all figures/tables were built from. [`ARCHIVE.md`](ARCHIVE.md) says where the training checkpoints, raw evaluation outputs and prepared
 data went, and [`DEPRECATED.md`](DEPRECATED.md) which modules and training arms the paper does not use.
 
 ## Key findings (Ouro-2.6B unless stated)

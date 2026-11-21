@@ -16,19 +16,21 @@ The paper's numbers come from these places, all in this commit:
 
 | Paper item | `paper_numbers.py` function | Runs (launcher in `ouro/runs_scripts/`) |
 |---|---|---|
-| Figure 1 (`fig_tps_teaser`, accuracy vs. end-to-end tokens/s) | `time_breakdown`, `thinking_batched` | `paper_figs.fig_tps_teaser` |
+| Figure 1 (`fig_tps_teaser`, accuracy vs. end-to-end tokens/s) | `time_breakdown`, `thinking_batched` | `time_controls.sh`, `time_sweep.sh`, Thinking batched serving (`paper_figs.fig_tps_teaser`) |
 | Figure 2, Section 5.1 (time split, `fig_time`) | `time_breakdown` | `time_controls.sh`, `time_sweep.sh` (passes `clean`, `clean3`) |
-| Figure 3 (method diagram `fig0_method`, pseudocode in Appendix E) | none | `ouro/adapter_model.py`, `ouro/batched.py` |
-| Table 1, Section 5.2 (`tab_main`; both adapters are Ours) and its seeds | `main_table`, `main_gains` | `launch_aligned.sh` (LoopBridge), `launch_variant.sh fixed4` (Ours, fixed m), `seed_main.sh`, `launch_x26_distill.sh` (`RANK`, `SEED`) |
-| Figure 4, Section 5.3 (`fig_taskmap`: all 16 pairs m, n in 1..4) | `aligned_cells` | `launch_aligned.sh` grid evaluations |
-| Figure 6, Section 5.4 (`fig_depth_main`; full: `fig_depth`) | `depth_sweep`, `depth_gains`, `same_weights`, `same_weights_seeds`, `plateau`, `plateau_seeds` | `sweep_depth.sh`, `launch_variant.sh wide`, `seed_main.sh ARM=a CELLS="11 12"` |
-| Figure 7, Section 5.5 (`fig_sametime`; full: `fig_budget`) | `time_breakdown`, `budget_pairs`, `batch_time` | `time_controls.sh` (folded maps `a<m>x<n>pm`, `f4x<n>pm`), `tput_batch.sh` |
-| Figure 8 (`fig2_frontier`, Thinking) and Figure 14 (`fig_pareto`) | `think_frontier`, `throughput` | Thinking evaluations, `tput_*.sh` microbenchmarks |
+| Figure 3 (method diagram `fig0_method`, pseudocode in Figure 12 / Appendix E) | none | `ouro/adapter_model.py`, `ouro/batched.py` |
+| Table 1, Section 5.2 (`tab_main`, LoopBridge vs. Original & Distilled baselines) and its seeds | `main_table`, `main_gains` | `launch_aligned.sh` (LoopBridge), `seed_main.sh`, `launch_x26_distill.sh` (`RANK`, `SEED`) |
+| Figure 4, Section 5.3 (`fig_taskmap`: all 16 pairs m, n in 1..4; full table: Table 9) | `aligned_cells` | `launch_aligned.sh` grid evaluations |
+| Figure 5, Section 5.4 (`fig_depth_main`; full: Figure 10 / Tables 5–8) | `depth_sweep`, `depth_gains`, `same_weights`, `same_weights_seeds`, `plateau`, `plateau_seeds` | `sweep_depth.sh`, `launch_variant.sh wide`, `seed_main.sh ARM=a CELLS="11 12"` |
+| Figure 6, Section 5.5 (`fig_budget`; paired bar chart: Figure 9; batch 8/32: Figure 13 / Table 14) | `time_breakdown`, `budget_pairs`, `time_matched`, `batched_serving` | `time_controls.sh` (folded maps `a<m>x<n>pm`), `time_batch.sh` |
+| Figure 7, Section 5.5 (`fig_tbatched`, Thinking GSM8K batch 16/32; Table 15) | `thinking_batched` | Thinking continuous-batching runs |
 | Table 2, Section 5.6 (a: `tab_build`, b: `tab_tokens`, c: `tab_lr`) | `main_table`, `ablations`, `lr_check`, `lora80` | `launch_variant.sh lora` (`RANK=80`: parameter-matched control), `ablate_tokens.sh`, `LRS=0.3/3 launch_x26_distill.sh`, `LRS=... launch_variant.sh lr` |
-| Figure 9, Section 5.7 (`fig_lev`, fixed m = all loops) | `lev` | Lev scripts (Appendix M) |
-| Ouro-2.6B-Thinking and Ouro-1.4B sweeps | `think_sweep`, `depth_sweep_14` | `sweep_think.sh`, `sweep_depth.sh MP=model-1.4b` |
-| Trainable prefill (Appendix B, Table 4) | `prefill_trainable` | `launch_variant.sh prefill / w8` (`SEED=2,3`) |
-| MATH-500 exemplar check (Appendix N) | `CMP` rows "Aligned MATH" | `math0_q.sh ARM=a` |
+| Figure 8, Section 5.7 (`fig_lev`, fixed m = all loops; all pairs: Table 16) | `lev` | Lev scripts (Appendix M) |
+| Appendix Tables 11–13 & Figure 11 (Ouro-1.4B & Thinking models) | `main_table_14`, `equal_aligned`, `same_weights` | `launch_aligned_more.sh`, `eval_think_aligned.sh`, `launch_t26df.sh` |
+| Appendix Figure 14 (`fig2_frontier`, one-cache 8K decode microbenchmark) | `think_frontier`, `throughput` | Thinking evaluations, `tput_*.sh` microbenchmarks |
+| Appendix Table 5 (Trainable prefill, Appendix B) | `prefill_trainable` | `launch_variant.sh prefill / w8` (`SEED=2,3`) |
+| Appendix L (Design variants: unrestricted key maps & fixed-depth `m=4` LoRA) | `main_table`, `time_breakdown`, `batched_serving` | `launch_variant.sh fixed4`, `launch_o.sh` |
+| Appendix H (MATH-500 exemplar check & Table 10 reproduction) | `repro`, `CMP` rows "Aligned MATH" | `math0_q.sh ARM=a` |
 
 Every number quoted in the text has a check in `paper_numbers.py`; `compute` prints `!!` next to any that disagrees.
 
