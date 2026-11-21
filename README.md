@@ -80,8 +80,8 @@ data went, and [`DEPRECATED.md`](DEPRECATED.md) which modules and training arms 
 | `ouro/model.py`, `ouro/adapter_model.py`, `ouro/batched.py`, `ouro/train_batched.py` | frozen Ouro backbone, loop adapter, batched KL distillation from the native model |
 | `ouro/single_bank.py`, `ouro/bench_throughput.py` | exact single-bank decoding (two flash-attention calls merged by log-sum-exp), native baselines, throughput |
 | `ouro/evaluate_bench.py`, `ouro/lmeval_ouro.py`, `ouro/run_lmeval.py`, `ouro/lmeval_tasks/` | evaluation (RULER, HELMET; lm-evaluation-harness wrapper and zero-shot thinking tasks) |
-| `ouro/sensenova_runner.py`, `ouro/sensenova_bridge.py` | SenseNova-Loop-9B (hybrid Gated-DeltaNet) runner, state splicing and loop adapter |
-| `ouro/scripts/` | paper numbers, figures, end-to-end latency |
+| `ouro/lev/` | Lev looped decision-model scripts (`lev_rdws_eval.py`, `levbench_compare.py`, training/eval wrappers) |
+| `ouro/scripts/` | paper numbers, figures, batched serving, end-to-end latency, provenance |
 | `ouro/runs_scripts/` | the launchers used for every run |
 | `third_party/ouro/` | Ouro modeling code (Apache-2.0, see its LICENSE) |
 | `environments/ouro/` | the pinned environment every run used (`pyproject.toml`, `uv.lock`) |

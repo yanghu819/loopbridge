@@ -1,4 +1,6 @@
-"""Depth-split connector for SenseNova-Loop-9B-Preview (hybrid Gated-DeltaNet / full attention; physical layers
+"""DEPRECATED (not used by the paper; see DEPRECATED.md).
+
+Depth-split connector for SenseNova-Loop-9B-Preview (hybrid Gated-DeltaNet / full attention; physical layers
 [start, end) are visited twice). Needs transformers 5.18 (PYTHONPATH=/dev/shm/big-small-ouro/tf518:...).
 
 - Teacher: the native model (2 visits) over prompt + target.

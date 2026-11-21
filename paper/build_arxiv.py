@@ -34,7 +34,7 @@ def main():
     assert tex.count("\\begin{document}") == 1
     tex = tex.replace("\\begin{document}",
                       f"\\hypersetup{{pdftitle={{{title}}},pdfauthor={{Yang Hu}}}}\n\\begin{{document}}")
-    # generated table rows (paper_figs.py tab_equal) are inlined so the arXiv source is one file
+    # generated table rows (paper_figs.py tab_*.tex) are inlined so the arXiv source is one file
     tex = re.sub(r"\\csname @@input\\endcsname \.\./figs/(\S+\.tex)",
                  lambda m: (P / "figs" / m.group(1)).read_text().strip(), tex)
     # the arXiv source is public: no trailing LaTeX comments, and only the figures the paper uses (old figure files in

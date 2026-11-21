@@ -1,4 +1,6 @@
-"""Delta-KV bridge for HF looped LMs whose attention hands RoPE cos/sin to Cache.update
+"""DEPRECATED (not used by the paper; see DEPRECATED.md).
+
+Delta-KV bridge for HF looped LMs whose attention hands RoPE cos/sin to Cache.update
 (Nanbeige4.2 `num_loops`, IQuest-Loop `loop_num`); family-agnostic port of the Ouro arms E/F.
 
 One frozen backbone serves as teacher, prefill model and (with LoRA switched on) decode model:

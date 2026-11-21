@@ -1,10 +1,8 @@
 #!/bin/bash
-# usage: launch_m.sh [NUM_GPUS=4]
+# usage: launch_o.sh [NUM_GPUS=4]
 # Arm O: single-bank universal loop adapter (S) + self-live shared answer history (one bank for the prompt AND one
-# for the answer at any (p, d): KV of a one-loop model). Was arm M's header: a gated attention branch over the prefill's FIRST-loop prompt KV (the bank
-# PLT / shared-memory looped transformers share), gate init 0 => starts exactly as S. Tests whether shallow-loop KV fixes
-# S's verbatim-recall losses (RULER 4K, MATH-500 at decode 1, retrieval at write >= 3). 48M tokens on GPUS (reserved), then
-# RULER 4K/8K/16K (520) for M41 M11 M42 M22 M43 M33, MATH-500 + GSM8K full + MMLU full for M41 M11 M42 on the dispatcher.
+# for the answer at any (p, d): KV of a one-loop model). Trains 48M tokens on GPUS (reserved), then queues
+# RULER 4K/8K/16K (O42/O22/O43/O33/O44) and MATH-500 + GSM8K + MMLU (O42/O43) on the dispatcher.
 # NEED GPUs are claimed one by one as they become idle (each is reserved from the dispatcher the moment it is claimed).
 NEED=${1:-4}; M=/dev/shm/big-small-ouro; R=$M/runs; cd $R; N=X26-O-universal
 until [ -f $M/adapter-distill-200m/data/fineweb_train.bin ]; do sleep 60; done

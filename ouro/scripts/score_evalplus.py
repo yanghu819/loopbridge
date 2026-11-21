@@ -22,10 +22,11 @@ def main():
     runs, names = sys.argv[1], sys.argv[2:]
     for name in names:
         for task, dataset in DATASETS.items():
-            files = glob.glob(f"{runs}/lmeval/out/{name}/*/samples_{task}_*.jsonl")
+            files = sorted(glob.glob(f"{runs}/lmeval/out/{name}/*/samples_{task}_*.jsonl"))
             if not files:
                 continue
-            rows = [json.loads(line) for line in open(files[0])]
+            with open(files[-1]) as fh:
+                rows = [json.loads(line) for line in fh]
             with tempfile.TemporaryDirectory() as tmp:
                 samples = os.path.join(tmp, "samples.jsonl")
                 with open(samples, "w") as f:

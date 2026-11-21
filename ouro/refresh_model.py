@@ -2,7 +2,7 @@
 
 Refresh-aware training for the 4/1 adapter+LoRA path (same params as arm B).
 
-Inference (ouro/evaluate_refresh.py): generated tokens are grouped into blocks
+Inference (removed evaluator): generated tokens are grouped into blocks
 of N. Inside a block the 1-loop reader decodes; when the block closes, the
 writer re-runs 4 loops on it and the adapter-mapped last-loop KV replaces the
 reader KV for those positions; the writer predicts the next token.

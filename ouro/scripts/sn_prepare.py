@@ -1,4 +1,6 @@
-"""Re-tokenise the thinking mix (Ouro token ids, ChatML) for SenseNova-Loop (Qwen3.5 tokenizer, ChatML with <think>).
+"""DEPRECATED (not used by the paper; see DEPRECATED.md).
+
+Re-tokenise the thinking mix (Ouro token ids, ChatML) for SenseNova-Loop (Qwen3.5 tokenizer, ChatML with <think>).
 
 Each pool row is decoded with the Ouro tokenizer, split back into chat messages, re-rendered with SenseNova's chat
 template (generation prompt ends in "<think>\\n"), and the target is mapped to SenseNova's format:

@@ -465,13 +465,22 @@ def export(runs, out_dir):
         print("  missing", k)
 
 
+_LOAD_CACHE = {}
+
+
 def load(key):
     """Item scores of `key`; `key#category` keeps one HELMET category (rag, recall, rerank, icl)."""
-    key, _, cat = key.partition("#")
-    p = ITEMS / fname(key)
-    if not p.exists():
+    base, _, cat = key.partition("#")
+    if base not in _LOAD_CACHE:
+        p = ITEMS / fname(base)
+        if not p.exists():
+            _LOAD_CACHE[base] = None
+        else:
+            with gzip.open(p) as f:
+                _LOAD_CACHE[base] = json.load(f)["scores"]
+    scores = _LOAD_CACHE[base]
+    if scores is None:
         return None
-    scores = json.load(gzip.open(p))["scores"]
     return {i: v for i, v in scores.items() if i.split("/")[1].split("_")[0] == cat} if cat else scores
 
 
@@ -784,12 +793,13 @@ def lev():
     """Section on decision models: per-depth accuracy (argmax of the depth's logits == label) on LevBench's answerable
     questions (as Lev: unanswerable and report-only rows have uniform targets and a placeholder label), paired bootstrap
     over record groups (as Lev's analysis/adaptive_depth.py)."""
+    _rows_cache = {}
     def rows(d):
-        f = sorted((LEV / d).glob("*.json"))
-        if not f:
-            return None
-        return {(r["id"], r.get("question")): r for r in json.loads(f[0].read_text())["rows"]
-                if not r.get("unanswerable") and not r.get("report_only")}
+        if d not in _rows_cache:
+            f = sorted((LEV / d).glob("*.json"))
+            _rows_cache[d] = None if not f else {(r["id"], r.get("question")): r for r in json.loads(f[0].read_text())["rows"]
+                                                  if not r.get("unanswerable") and not r.get("report_only")}
+        return _rows_cache[d]
     out = []
     for label, a, b in LEV_CMP:
         A, B = rows(a), rows(b)
@@ -1145,9 +1155,17 @@ def replay_score(item, text, target):
         return replay_score_uncached(item, text, target)
     if _REPLAY_CACHE is None:
         import atexit
-        _REPLAY_CACHE = json.load(open(path)) if os.path.exists(path) else {}
+        if os.path.exists(path):
+            with open(path) as f:
+                _REPLAY_CACHE = json.load(f)
+        else:
+            _REPLAY_CACHE = {}
         n0 = len(_REPLAY_CACHE)
-        atexit.register(lambda: len(_REPLAY_CACHE) > n0 and json.dump(_REPLAY_CACHE, open(path, "w")))
+        def _save_cache():
+            if len(_REPLAY_CACHE) > n0:
+                with open(path, "w") as f:
+                    json.dump(_REPLAY_CACHE, f)
+        atexit.register(_save_cache)
     k = hashlib.md5(json.dumps([item, text, str(target)]).encode()).hexdigest()
     if k not in _REPLAY_CACHE:
         _REPLAY_CACHE[k] = replay_score_uncached(item, text, target)
@@ -1215,20 +1233,23 @@ BATCH_PAIRS = [("a4x1pm", "native1st"), ("a4x1pm", "D1st"), ("a4x1pm", "D1r80st"
                ("a4x2pm", "D2st"), ("a4x2pm", "D2r80st")]
 
 
-def batched_requests(cond, b, prefix="batch", model="2.6B"):
+def batched_requests(cond, b, prefix="batch", model="2.6B", wall_only=False):
     """One condition served with batch_requests.py (continuous batching, up to b requests in flight) over the four timed
     tasks: per-request (score, batch-1 prefill seconds, output tokens), summed wall seconds and request count; None if a
-    task is missing."""
+    task is missing. wall_only=True skips reading the .jsonl answers when only (wall, n) from .summary.json is needed."""
     rows, wall, n = {}, 0.0, 0
     tasks, name = (TIME_TASKS, cond) if model == "2.6B" else (("gsm", "math", "bbh", "mmlupro"), "14-" + cond)
     for task in tasks:
         f, s = E2E / f"{prefix}{b}-{name}-{task}.jsonl", E2E / f"{prefix}{b}-{name}-{task}.summary.json"
         if not (f.exists() and s.exists()):
             return None
-        summ = json.load(open(s))
+        with open(s) as fh:
+            summ = json.load(fh)
         wall, n = wall + summ["wall_s"], n + summ["n"]
-        for r in map(json.loads, open(f)):
-            rows[f"{task}/{r['id']}"] = (replay_score(r["id"], r["text"], r["target"]), r["prefill_s"], r["new_tokens"])
+        if not wall_only:
+            with open(f) as fh:
+                for r in map(json.loads, fh):
+                    rows[f"{task}/{r['id']}"] = (replay_score(r["id"], r["text"], r["target"]), r["prefill_s"], r["new_tokens"])
     return rows, wall, n
 
 
@@ -1248,7 +1269,7 @@ def batched_serving(reps=5000):
                     if i == 0:
                         break
                     continue
-                walls = [g[1]] + [again[1] for pre in block[1:] if (again := batched_requests(c, b, pre)) and again[2] == g[2]]
+                walls = [g[1]] + [again[1] for pre in block[1:] if (again := batched_requests(c, b, pre, wall_only=True)) and again[2] == g[2]]
                 rows.update(g[0]); wall += float(np.mean(walls)); n += g[2]
             got[c] = (rows, wall, n) if n else None
         for c, g in got.items():
@@ -1295,7 +1316,7 @@ def batched_passes():
     def per_req(c, b, j):
         W = N = 0
         for block in BATCH_BLOCKS:
-            g = batched_requests(c, b, block[j])
+            g = batched_requests(c, b, block[j], wall_only=True)
             if not g:
                 return None
             W += g[1]; N += g[2]
@@ -1324,7 +1345,7 @@ def batched_serving_14(reps=5000):
             g = batched_requests(c, b, model="1.4B")
             if not g:
                 continue
-            walls = [g[1]] + [x[1] for x in (batched_requests(c, b, pre, "1.4B") for pre in ("batchb", "batchc")) if x and x[2] == g[2]]
+            walls = [g[1]] + [x[1] for x in (batched_requests(c, b, pre, "1.4B", wall_only=True) for pre in ("batchb", "batchc")) if x and x[2] == g[2]]
             got[c] = (g[0], float(np.mean(walls)), g[2], len(walls))
             v = list(g[0].values())
             out[f"{c}@{b}"] = dict(n=g[2], passes=len(walls), acc=round(100 * float(np.mean([x[0] for x in v])), 1),
@@ -1373,19 +1394,23 @@ def thinking_batched(reps=5000):
             for c in ("native2st", "native4st", "D2st", "a4x2pm"):
                 rows, wall, passes = {}, 0.0, []
                 for i, block in enumerate(THINK_BATCH_BLOCKS if task == "gsmthink" else THINK_BATCH_BLOCKS[:1]):
-                    runs = []   # the timing passes of one block of requests (the answers are the same in every pass)
+                    first_rows, walls = None, []   # timing passes of one block (answers are identical; only pass 0 parses .jsonl)
                     for pre in block:
                         f, sm = E2E / f"{pre}{b}-{c}-{task}.jsonl", E2E / f"{pre}{b}-{c}-{task}.summary.json"
                         if f.exists() and sm.exists():
-                            runs.append(([json.loads(x) for x in open(f)], json.load(open(sm))))
-                    if not runs:
+                            with open(sm) as fh:
+                                walls.append(json.load(fh)["wall_s"])
+                            if first_rows is None:
+                                with open(f) as fh:
+                                    first_rows = [json.loads(x) for x in fh]
+                    if not walls:
                         if i == 0:
                             break
                         continue
                     rows.update({r["id"]: (replay_score(r["id"], r["text"], r["target"]), r["prefill_s"], r["new_tokens"])
-                                 for r in runs[0][0]})
-                    wall += float(np.mean([sm["wall_s"] for _, sm in runs]))   # wall time = mean of the block's passes
-                    passes.append(len(runs))
+                                 for r in first_rows})
+                    wall += float(np.mean(walls))   # wall time = mean of the block's passes
+                    passes.append(len(walls))
                 if not rows:
                     continue
                 got[c] = (rows, wall)
@@ -2636,16 +2661,37 @@ def select_aware(cells, nat, ids, half, reps=5000):
     the variability of the choice (the intervals of Table 1; 5,000 draws, seed 0)."""
     rng = np.random.default_rng(0)
     ids = sorted(ids, key=str)
-    A = np.array([[cells[m][i] for i in ids] for m in range(1, 5)])
-    b = np.array([nat[i] for i in ids]); h = np.array([half(i) for i in ids])
-    diffs = []
-    for _ in range(reps):
-        x = rng.integers(0, len(ids), len(ids)); total = 0.0
-        for f in (0, 1):
-            train, test = x[h[x] == f], x[h[x] == 1 - f]
-            m = int(np.argmax(A[:, train].mean(1)))        # ties: the smaller m, as in the main selection
-            total += (A[m, test] - b[test]).sum()
-        diffs.append(100 * total / len(x))
+    n = len(ids)
+    A = np.array([[cells[m][i] for i in ids] for m in range(1, 5)], dtype=np.float64)
+    b = np.array([nat[i] for i in ids], dtype=np.float64)
+    h = np.array([half(i) for i in ids])
+    if np.array_equal(A, np.floor(A)) and np.array_equal(b, np.floor(b)):
+        # Integer/binary scores are exact in float64: bincount + single BLAS matmul is bit-identical and ~6x faster.
+        m0, m1 = (h == 0), (h == 1)
+        D = A - b[None, :]
+        M = np.hstack([(A * m0).T, (A * m1).T, (D * m1).T, (D * m0).T])
+        diffs = np.empty(reps, dtype=np.float64)
+        chunk = 250
+        for s in range(0, reps, chunk):
+            c = min(chunk, reps - s)
+            X = rng.integers(0, n, (c, n))   # identical RNG draw order to looping rng.integers(0, n, n)
+            off = (np.arange(c) * n)[:, None]
+            cnt = np.bincount((X + off).ravel(), minlength=c * n).reshape(c, n).astype(np.float64)
+            P = cnt @ M
+            best0 = np.argmax(P[:, 0:4], axis=1)
+            best1 = np.argmax(P[:, 4:8], axis=1)
+            rows = np.arange(c)
+            diffs[s:s + c] = 100.0 * (P[rows, 8 + best0] + P[rows, 12 + best1]) / n
+    else:
+        # Fractional scores (e.g., RULER): preserve resample summation order to match tie-breaking identically.
+        diffs = []
+        for _ in range(reps):
+            x = rng.integers(0, n, n); total = 0.0
+            for f in (0, 1):
+                train, test = x[h[x] == f], x[h[x] == 1 - f]
+                m = int(np.argmax(A[:, train].mean(1)))
+                total += (A[m, test] - b[test]).sum()
+            diffs.append(100 * total / n)
     return [round(float(np.percentile(diffs, q)), 3) for q in (2.5, 97.5)]
 
 
@@ -2854,7 +2900,8 @@ def _compute(counter):
 
 
 if __name__ == "__main__":
-    if sys.argv[1] == "export":
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "compute"
+    if cmd == "export":
         export(sys.argv[2], Path(sys.argv[3]) if len(sys.argv) > 3 else ITEMS)
     else:
         compute()

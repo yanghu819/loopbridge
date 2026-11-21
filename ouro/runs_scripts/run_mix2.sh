@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: run_mix.sh NAME ARM GPUS PORT STOP [EXTRA...]   fresh decode model on the diverse mix (mix-data), LR decays to the end at STOP
+# usage: run_mix2.sh NAME ARM GPUS PORT STOP [EXTRA...]   fresh decode model on the diverse mix (mix-data), LR decays to the end at STOP
 NAME=$1; ARM=$2; GPUS=$3; PORT=$4; STOP=$5; shift 5
 cd /root/big-small; M=/dev/shm/big-small-ouro; O=$M/runs/$NAME; PY=environments/ouro/.venv/bin/python; mkdir -p $O
 N=$(echo $GPUS | tr , "\n" | wc -l)

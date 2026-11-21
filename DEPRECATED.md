@@ -13,18 +13,15 @@ is the code that ran. [`ARCHIVE.md`](ARCHIVE.md) says where the artifacts went.
 |---|---|---|
 | `ouro/refresh_model.py`, arm `R` in `ouro/train_batched.py` | "refresh" decoding (re-prefill generated chunks); stopped line, it only saves latency and overlaps speculative decoding | `train_batched.py` import |
 | `ouro/evaluate_gsm8k.py`, `ouro/evaluate_prefix_suffix.py` | early evaluators (3-shot GSM8K for the first four paths; PG19 NLL); replaced by `evaluate_bench.py` + lm-evaluation-harness | `evaluate_adapter.py` import |
-| arms `A`, `B`, `C` (per-cell adapters), `U`, `V`, `W` (earlier universal adapters), `T`/`Q` (two-source map), `J`/`K` (shallower prefill models) | superseded by the single-bank universal loop adapter, arm `S`, which every paper result uses | `adapter_model.py`, `batched.py`, `train_batched.py` branches |
-| `ouro/runs_scripts/launch_v.sh` | trains arm `V` (superseded by `S`) | — |
+| arms `A`, `B`, `C` (per-cell adapters), `U`, `V`, `W` (earlier universal adapters), `T`/`Q` (two-source map), `J`/`K` (shallower prefill models) | superseded by LoopBridge (`arm a`, aligned caches) and its one-cache variant (`arm S`) | `adapter_model.py`, `batched.py`, `train_batched.py` branches |
+| `ouro/runs_scripts/launch_v.sh` | trains arm `V` (superseded by `a` / `S`) | — |
 | `ouro/sensenova_bridge.py`, `ouro/sensenova_runner.py`, `ouro/scripts/sn_prepare.py`, `launch_sn.sh`, `launch_sng.sh`, `sn_*.sh` | SenseNova-Loop-9B (a hybrid Gated-DeltaNet looped model): mixed signs, dropped from the paper on 2026-11-12 | `lmeval_ouro.py`, `evaluate_bench.py`, `scripts/e2e_latency.py` imports |
-| `ouro/runs_scripts/launch_nbs21.sh`, `nbs_cell.sh` | Nanbeige: same, dropped on 2026-11-12 | — |
+| `ouro/looped_bridge.py`, `ouro/runs_scripts/launch_nbs21.sh`, `nbs_cell.sh` | Nanbeige / IQuest-Loop bridge: dropped from the paper on 2026-11-12 (`launch_nbs21.sh` / `nbs_cell.sh` also call a removed `./run_lb.sh`) | `lmeval_ouro.py`, `evaluate_bench.py` non-Ouro branch |
 
-Paper arms, for contrast: `a` (aligned caches, the main method), `S` (one stored prompt cache, the memory-saving
-variant and the task-map / design-variant appendices), `O`/`P` (shared answer KV variant, appendix), `M` (gated first-loop
-branch, appendix), `S` with `--freeze-maps` (maps fixed at identity), `D`/`E`/`H` (LoRA distillation of native n/n).
+Paper arms, for contrast: `a` (LoopBridge with aligned caches, the main method), `S` (one-cache LoopBridge, the memory-saving variant in Table 2a and Appendix K), `O`/`P` (shared answer KV variant, Appendix L), `M` (gated first-loop branch, Appendix L), `a`/`S` with `--freeze-maps` (maps fixed at identity, Table 2a), `D`/`E`/`H` (LoRA distillation of native `n/n`).
 
 Moved to `ouro/runs_scripts/deprecated/` (2026-11-07): `a1_fill.sh` (one-off GPU filler), `make_bib.py` (first references.bib generator; the bib now has hand-verified entries).
-`math0_q.sh` (zero-shot MATH-500) is back in `ouro/runs_scripts/` (2026-11-10, `ARM=a` for the aligned adapter's
-0-shot check in Section 6); its old copy in `deprecated/` was removed.
+`math0_q.sh` (zero-shot MATH-500) is back in `ouro/runs_scripts/` (2026-11-10, `ARM=a` for LoopBridge's 0-shot check in Appendix H); its old copy in `deprecated/` was removed.
 Deleted: `ouro/scripts/rescore_mbpp_plus.py` (a check of the earlier MBPP+ prompt, superseded by evalplus scoring).
 
 Never in this repository: the training-free untying check on Huginn-0125 (2026-11-17), a recurrent-depth model from

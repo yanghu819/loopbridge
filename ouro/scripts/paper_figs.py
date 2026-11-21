@@ -17,11 +17,10 @@ import numpy as np  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]                 # ouro/
 OUT = ROOT.parent / "paper" / "figs"                       # paper/figs at the repository root
 # One meaning per color across the paper (palette checked for colour-blind separation with the dataviz validator):
-# methods: Ours orange (LoopBridge squares, fixed-depth adapter diamonds), Distilled blue, Original grey; decode depth inside one method
-# (Figure 2): n = 1 violet, n = 2 green. Filled markers: one decode loop; hollow: two.
-OURS, DIST, LORA4 = "#EB6834", "#2A78D6", "#1BAF7A"
+# methods: Ours/LoopBridge orange (squares), Distilled blue (triangles), Original grey (circles); decode depth inside
+# one method (Figure 10): n = 1 violet, n = 2 green. Filled markers: one decode loop; hollow: two.
+OURS, DIST = "#EB6834", "#2A78D6"
 N1, N2 = "#6250D6", "#008300"
-OURS_LIGHT = OURS   # kept for the appendix helpers; n is shown by marker fill, not by a lighter shade
 NAT, NAT_LIGHT, INK, GRID = "#4D4D4D", "#9A9A9A", "#1A1A1A", "#E6E6E6"
 plt.rcParams.update({
     "font.size": 8, "font.family": "DejaVu Sans", "axes.labelsize": 9, "xtick.labelsize": 8, "ytick.labelsize": 8, "axes.spines.top": False, "axes.spines.right": False,
@@ -30,7 +29,6 @@ plt.rcParams.update({
     "legend.frameon": False, "savefig.dpi": 300, "pdf.fonttype": 42})
 
 PN = json.loads((ROOT / "results" / "paper_numbers.json").read_text())
-_M = {m["label"]: m["mean"] for m in PN["means"]}
 
 
 def save(fig, name):
@@ -170,53 +168,10 @@ def fig_tps_teaser():
     save(fig, "fig_tps_teaser")
 
 
-def fig_concept():
-    """Figure 1 (concept): (a) the original looped model runs every token, prompt and answer, through the same n loops;
-    (b) untied, the prompt is read with m loops once and in parallel, and each answer token is decoded with n < m
-    loops; a small adapter (orange) lets the short decoder read the long prefill's KV cache."""
-    from matplotlib.patches import FancyBboxPatch
-    fig, axes = plt.subplots(2, 1, figsize=(3.3, 3.25))
-    W, H, G = 0.6, 0.38, 0.10
-    y0 = 0.40
-    def stack(ax, x, k, fc, ec, lw=0.6):
-        for j in range(k):
-            ax.add_patch(FancyBboxPatch((x, y0 + j * (H + G)), W, H, boxstyle="round,pad=0.0,rounding_size=0.08",
-                                        fc=fc, ec=ec, lw=lw))
-    panels = [("(a) Tied: 4 loops for every token", 4, False), ("(b) Untied (ours): 4 prefill loops, 1 decode loop", 1, True)]
-    for ax, (title, n, ours) in zip(axes, panels):
-        px, dx = [0.55, 1.28, 2.01], [3.25, 3.98, 4.71, 5.44]
-        ax.annotate("", xy=(0.25, y0 + 4 * (H + G) - G), xytext=(0.25, y0), arrowprops=dict(arrowstyle="-|>", color=NAT,
-                    lw=0.7, mutation_scale=7))
-        ax.text(0.12, y0 + 2 * (H + G) - G / 2, "loops", rotation=90, ha="center", va="center", fontsize=6.5, color=NAT)
-        for x in px:
-            stack(ax, x, 4, "#ECECEC", NAT_LIGHT)
-        for x in dx:
-            stack(ax, x, n, "#FDEBE3" if ours else "#ECECEC", OURS if ours else NAT_LIGHT, lw=0.9 if ours else 0.6)
-        for x, t in zip(px + dx, ["p$_1$", "p$_2$", "p$_3$", "y$_1$", "y$_2$", "y$_3$", "y$_4$"]):
-            ax.text(x + W / 2, 0.17, t, ha="center", va="center", fontsize=7.5, color=NAT)
-        ax.plot([2.88, 2.88], [0.05, 2.35], color="#D0D0D0", lw=0.6, ls=(0, (2, 2)))
-        if ours:
-            ax.text(1.58, -0.27, "prompt: once, in parallel", ha="center", va="center", fontsize=7, color=INK)
-            ax.text(4.35, -0.27, "each answer token: 1 loop", ha="center", va="center", fontsize=7, color=INK,
-                    fontweight="bold")
-            top = y0 + 3 * (H + G) + H / 2
-            ax.annotate("", xy=(3.22, y0 + H / 2), xytext=(2.66, top), arrowprops=dict(arrowstyle="-|>", color=OURS,
-                        lw=1.0, mutation_scale=8, connectionstyle="arc3,rad=-0.25"))
-            ax.text(3.3, 1.45, "adapter: the 1-loop decoder\nreads the 4-loop prompt KV", ha="left", va="center",
-                    fontsize=7, color=OURS)
-        else:
-            ax.text(1.58, -0.27, "prefill: < 3% of the time*", ha="center", va="center", fontsize=7, color=INK)
-            ax.text(4.35, -0.27, "decode: > 97% of the time*", ha="center", va="center", fontsize=7, color=INK)
-        ax.set_title(title, fontsize=8.5, color=INK, pad=2, loc="left")
-        ax.set_xlim(0, 6.3); ax.set_ylim(-0.45, 2.45); ax.axis("off")
-    fig.subplots_adjust(left=0.005, right=0.995, top=0.94, bottom=0.02, hspace=0.28)
-    save(fig, "fig_concept")
-
-
 def fig0():
-    """Method (timed form): the frozen model prefills the prompt once with m loops; LoopBridge maps the prompt KV of
-    prefill loop max(m-n+k, 1) once per prompt into a cache for decode loop k (key scale per rotary pair, value map);
-    every token then runs n decode loops (frozen model + LoRA), loop k attending to its own cache and the answer KV."""
+    """Figure 3 (method, timed form): the frozen model prefills the prompt once with m loops; LoopBridge maps the prompt
+    KV of prefill loop max(m-n+k, 1) once per prompt into a cache for decode loop k (key scale per rotary pair, value
+    map); every token then runs n decode loops (frozen model + LoRA), loop k attending to its own cache and answer KV."""
     from matplotlib.patches import FancyBboxPatch
     fig, ax = plt.subplots(figsize=(6.9, 2.05))
     ax.set_xlim(0, 100); ax.set_ylim(0, 31); ax.axis("off")
@@ -316,49 +271,6 @@ def fig_equal():
     save(fig, "fig_equal")
 
 
-def _tput(cond):
-    """Best decode tokens/s over tested batch sizes at 8K context, one B300 (results/throughput-sb4)."""
-    rows = json.loads((ROOT / "results" / "throughput-sb4" / f"{cond}.json").read_text())
-    return max(r["tokens_per_s"] for r in rows if "tokens_per_s" in r and r["context"] == 8192)
-
-
-def fig_pareto():
-    """Accuracy vs decode throughput: native d/d against prefill 4 / decode d, d = 1..4."""
-    C = {c["label"]: c for c in PN["comparisons"] if c["section"] == "Pareto"}
-    panels = [("MMLU (20/subject)", "MMLU"), ("RULER-16K (260)", "RULER-16K"), ("GSM8K (400)", "GSM8K"),
-              ("GSM8K Thinking (full)", "GSM8K (Thinking)")]
-    fig, axes = plt.subplots(1, 4, figsize=(6.9, 2.1))
-    for ax, (key, title) in zip(axes, panels):
-        nat, ours = [], []
-        for d in range(1, 5):
-            c = C.get(f"prefill 4/decode {d} vs native {d}/{d} {key}")
-            if c is not None and c.get("n", 0):
-                nat.append((_tput(f"native{d}st"), c["b"], d)); ours.append((_tput(f"S4{d}sb"), c["a"], d))
-            elif key.startswith("GSM8K Thinking"):  # prefill 4 / decode 4 not evaluated on the Thinking model
-                nat.append((_tput(f"native{d}st"), _M[f"GSM8K full think-native{d}"], d))
-        for pts, col, lab, mk in ((nat, NAT_LIGHT, "Original n/n", "o"), (ours, OURS, "Ours, prefill 4 / decode n", "s")):
-            x, y = [p[0] for p in pts], [p[1] for p in pts]
-            ax.plot(x, y, "-", color=col, lw=1.4, zorder=2)
-            ax.scatter(x, y, s=18, color=col, marker=mk, zorder=3, label=lab)
-            for xi, yi, d in pts:   # label the n = 1 end only; each line runs from n = 1 (right) to n = 4 (left)
-                if d == 1:
-                    ax.annotate(f"n={d}", (xi, yi), xytext=(0, 6 if col == OURS else -11), textcoords="offset points",
-                                fontsize=8, color=OURS if col == OURS else NAT, ha="center")
-        ys = [p[1] for p in nat + ours]
-        lo, hi = min(ys), max(ys); pad = 0.12 * (hi - lo)
-        ax.set_ylim(lo - pad, hi + pad)   # room for the point labels above and below
-        ax.set_xscale("log"); ax.set_xticks([125, 250, 500, 1000], ["125", "250", "500", "1k"])
-        ax.minorticks_off(); ax.set_xlim(100, 1100)
-        ax.set_title(title, fontsize=8.5, color=INK, pad=4)
-        ax.grid(color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
-    axes[0].set_ylabel("accuracy (%)")
-    fig.supxlabel("8K decode microbenchmark throughput (tokens/s, log scale)", fontsize=8.5, y=-0.04)
-    h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="upper center", ncol=2, fontsize=8, bbox_to_anchor=(0.5, 1.1), handlelength=1.2)
-    fig.subplots_adjust(wspace=0.32)
-    save(fig, "fig_pareto")
-
-
 def fig_lev():
     """Decision models (Lev): accuracy against the number of decision loops n. Grey: Original n/n continued with the same
     data and updates as ours; orange: the context prefilled with all of the backbone's loops (fixed m, no selection)."""
@@ -411,54 +323,6 @@ def tab_equal(model="1.4B-T"):
         lines += [r"\midrule", rf"average & & {m['native2']:.1f} & {m['dist2']:.1f} & {m['same22']:.1f} & {m['ours']:.1f} & "
                   rf"{m['native4']:.1f} & {pm(m['ours'], m['native2'], None)} & {pm(m['ours'], m['dist2'], None)} \\"]
     (OUT / f"tab_equal_{model.replace('.', '')}.tex").write_text("\n".join(lines) + "\n")
-
-
-def tab_hybrid():
-    """Appendix table: SenseNova-Loop-9B, the second prefill visit's state in attention KV only, Gated-DeltaNet state only, or both
-    (difference to prefill 1; LaTeX rows from paper_numbers.json)."""
-    C = {c["label"]: c for c in PN["comparisons"] if c["section"] == "Hybrid state"}
-    pm = lambda c: "--" if c is None else ((r"\up{%.1f}" if c["diff"] >= 0 else r"\dn{%.1f}") % abs(c["diff"])
-                                           + ci(c["lo"], c["hi"]))
-    lines = []
-    for bench in ("RULER-4K", "RULER-8K", "RULER-16K", "MMLU-Pro", "ARC-C", "HELMET"):
-        cells = [pm(C.get(f"SenseNova {k} prefill-2 state {part} vs prefill 1 {bench}"))
-                 for k in ("untrained", "trained") for part in ("attention KV", "GDN state", "both")]
-        lines.append(f"{bench} & " + " & ".join(cells) + r" \\")
-    (OUT / "tab_hybrid.tex").write_text("\n".join(lines) + "\n")
-
-
-def tab_sn():
-    """Appendix table: SenseNova-Loop-9B at one writing visit (LaTeX rows from paper_numbers.json, sn_equal)."""
-    pm = lambda v: (r"\up{%.1f}" if v[0] >= 0 else r"\dn{%.1f}") % abs(v[0]) + ci(v[1], v[2])
-    lines = [rf"{e['bench']} & {e['native1']:.1f} & {e['C11']:.1f} & {e['C21']:.1f} & {e['native2']:.1f} & "
-             rf"{pm(e['vs_C11'])} & {pm(e['vs_native2'])} \\" for e in PN.get("sn_equal", [])]
-    (OUT / "tab_sn.tex").write_text("\n".join(lines) + "\n")
-
-
-def fig_taskmap(only=None, name="fig_taskmap_full", ncols=4):
-    """Appendix task map: Ouro-2.6B, one-cache loop adapter. Per benchmark, native n/n against the adapter's best prefill
-    count m at each number of decode loops n (point labels: that m); all points of a panel on the same items."""
-    T = {r["bench"]: r for r in PN["taskmap_cells"] if r["model"] == "Ouro-2.6B"}
-    title = {"BBH 3-shot": "BBH"}
-    panels = [b for b in ("MMLU", "MMLU-Pro", "ARC-C", "GPQA-Diamond", "HellaSwag", "Winogrande", "BBH 3-shot", "IFEval",
-                          "GSM8K", "MATH-500", "HumanEval+", "MBPP+", "RULER-4K", "RULER-8K", "RULER-16K") if b in T]
-    if only:
-        panels = [b for t in only for b in panels if title.get(b, b) == t]
-    nrows = -(-len(panels) // ncols)
-    H = 1.6 * nrows + 0.3
-    fig, axes = plt.subplots(nrows, ncols, figsize=(6.9, H), squeeze=False)
-    for ax in axes.flat[len(panels):]:
-        ax.axis("off")
-    for ax, b in zip(axes.flat, panels):
-        r = T[b]
-        ours = [(n, r[f"S{r['best'][str(n)]}{n}"], f"m={r['best'][str(n)]}") for n in range(1, 5)]
-        nat = [(n, r[f"native{n}"], "") for n in range(1, 5)]
-        frontier(ax, nat, ours, title.get(b, b))
-        ax.set_xticks([1, 2, 3, 4]); ax.set_xlim(0.6, 4.4)
-    fig.supxlabel("decode loops n", fontsize=8.5, y=0.005); fig.supylabel("score (%)", fontsize=8.5, x=0.005)
-    legend(fig, "Ours (one cache), best prefill m", "", y=1.0, ncol=2)
-    fig.subplots_adjust(wspace=0.32, hspace=0.5, left=0.07, right=0.99, top=1 - 0.38 / H, bottom=0.32 / H)
-    save(fig, name)
 
 
 def fig_aligned(panels=None, name="fig_taskmap", ncols=4):
@@ -544,41 +408,6 @@ def fig_aligned(panels=None, name="fig_taskmap", ncols=4):
     save(fig, name)
 
 
-def tab_select(model="Ouro-2.6B", name="tab_select"):
-    """Main table: per benchmark and decode loops n, prefill loops m chosen on one half of the items and scored on the
-    other (cross-fitted), minus native n/n on the same items (LaTeX rows from paper_numbers.json, taskmap_select)."""
-    rows = [r for r in PN.get("taskmap_select", []) if r.get("model", "Ouro-2.6B") == model]
-    R = {(r["bench"], r["n"]): r for r in rows}
-    benches = list(dict.fromkeys(r["bench"] for r in rows))
-    def cell(r):
-        if r is None:
-            return "--"
-        d, lo, hi = r["diff_select_aware"]           # intervals repeat the choice of m in every resample
-        m = r["m_chosen"]
-        mm = str(m[0]) if m[0] == m[1] else f"{m[0]},{m[1]}"
-        v = (r"\up{%.1f}" if d >= 0 else r"\dn{%.1f}") % abs(d)
-        sig = "$^*$" if lo > 0 or hi < 0 else ""          # paired 95% interval excludes zero
-        return rf"{v}{sig}{ci(lo, hi)}\,{{\scriptsize ({mm})}}"
-    lines = [f"{b} & " + " & ".join(cell(R.get((b, n))) for n in range(1, 5)) + r" \\" for b in benches]
-    (OUT / f"{name}.tex").write_text("\n".join(lines) + "\n")
-
-
-def tab_distill():
-    """Appendix table: Ouro-2.6B-Thinking, LoRA distillation of native 2/2 (same data, teacher and tokens) against native
-    2/2 and against prefill 4 / decode 2 (LaTeX rows from paper_numbers.json)."""
-    C = {c["label"]: c for c in PN["comparisons"] if c["section"] == "Distillation baseline"}
-    pm = lambda c: (r"\up{%.1f}" if c["diff"] >= 0 else r"\dn{%.1f}") % abs(c["diff"]) + ci(c["lo"], c["hi"])
-    lines = []
-    for b in ("GSM8K", "MATH-500", "MMLU-Pro", "ARC-C", "BBH", "HumanEval+", "MBPP+", "HELMET"):
-        ours = C.get(f"2.6B-T prefill 4/decode 2 vs LoRA-distilled native 2/2 {b}")
-        dist = C.get(f"2.6B-T LoRA-distilled native 2/2 vs native 2/2 {b}")
-        if not ours or not dist:
-            continue
-        lines.append(rf"{b} & {ours['n']:,} & {dist['b']:.1f} & {dist['a']:.1f} & {ours['a']:.1f} & {pm(dist)} & {pm(ours)} \\")
-    (OUT / "tab_distill.tex").write_text("\n".join(lines) + "\n")
-
-
-
 def tab_lev():
     """Appendix table: Lev decision models, every trained prefill count m minus the same-training control (native n/n)
     at every number of decision loops n, both directions (LaTeX rows from paper_numbers.json, lev)."""
@@ -600,24 +429,6 @@ def tab_lev():
         for m in ms:
             lines.append(rf"{model} & {m} & " + " & ".join(cell(G.get((model, m, n))) for n in range(1, 5)) + r" \\")
     (OUT / "tab_lev.tex").write_text("\n".join(lines) + "\n")
-
-
-def tab_taskmap(model="Ouro-2.6B"):
-    """Appendix table: the full task map, every prefill m / decode n cell and native n/n on every benchmark; the best m
-    at each n in bold (LaTeX header and rows from paper_numbers.json, taskmap_cells)."""
-    rows = [r for r in PN.get("taskmap_cells", []) if r["model"] == model]
-    short = {"MATH-500": "MATH", "BBH 3-shot": "BBH", "MMLU-Pro": "MMLU-P", "HumanEval+": "HE+", "GPQA-Diamond": "GPQA",
-             "HellaSwag": "HSwag", "Winogrande": "Wino",
-             "IFEval": "IFEv", "RULER-4K": "R-4K", "RULER-8K": "R-8K", "RULER-16K": "R-16K"}
-    lines = [" & " + " & ".join(short.get(r["bench"], r["bench"]) for r in rows) + r" \\", r"\midrule"]
-    for n in range(1, 5):
-        for c, name in [(f"native{n}", rf"native {n}/{n}")] + [(f"S{m}{n}", rf"{m}\,/\,{n}") for m in range(1, 5)]:
-            best = lambda r: c == f"S{r['best'][str(n)]}{n}"          # chosen before rounding (taskmap_cells)
-            cell = lambda r: rf"\textbf{{{r[c]:.1f}}}" if best(r) else f"{r[c]:.1f}"
-            lines.append(f"{name} & " + " & ".join(cell(r) for r in rows) + r" \\")
-        if n < 4:
-            lines.append(r"\midrule")
-    (OUT / "tab_taskmap.tex").write_text("\n".join(lines) + "\n")
 
 
 def tab_main(key="main_table", name="tab_main"):
@@ -682,43 +493,8 @@ def tab_tokens():
     (OUT / "tab_tokens.tex").write_text("\n".join(lines) + "\n")
 
 
-def tab_ablation():
-    """Ablation table (Section 4.2): main-table average at prefill 4 / decode 1 and 2 for each training-token budget
-    (rank 16) and LoRA rank (12M tokens); LaTeX rows from paper_numbers.json, ablations."""
-    A = {(r["label"], r["cell"]): r["avg"] for r in PN.get("ablations", [])}
-    rows = [("6M tokens", "6M", "16"), ("12M tokens", "12M", "16"), ("24M tokens", "24M", "16"),
-            ("48M tokens", r"48M (default)", "16"), ("rank 4, 12M", "12M", "4"), ("rank 64, 12M", "12M", "64")]
-    f = lambda x: "--" if x is None else f"{x:.1f}"
-    lines = []
-    for i, (label, tok, rank) in enumerate(rows):
-        if i == 4:
-            lines.append(r"\midrule")
-        lines.append(f"{tok} & {rank} & {f(A.get((label, 'S41')))} & {f(A.get((label, 'S42')))} \\\\")
-    (OUT / "tab_ablation.tex").write_text("\n".join(lines) + "\n")
-
-
-def tab_e2e():
-    """Table 9: end-to-end time per answer at batch 1 (paper_numbers.json, e2e; the 192 GSM8K problems of Figure 6)."""
-    E = {(r["model"], r["task"], r["cond"]): r for r in PN["e2e"] if r["group"] == "main"}
-    blocks = [(r"\shortstack[l]{GSM8K\\Ouro-2.6B-T}", "think", "gsm",
-               [("native2st", r"\nat{2}"), ("native4st", r"\nat{4}"), ("Df2st", "distilled 2/2"), ("S22sb", r"\rw{2}{2}"),
-                ("S42sb", r"\rw{4}{2}")]),
-              (r"\shortstack[l]{MATH-500\\Ouro-2.6B-T}", "think", "math",
-               [("native2st", r"\nat{2}"), ("native4st", r"\nat{4}"), ("S42sb", r"\rw{4}{2}")])]   # SenseNova: repo only
-    lines = []
-    for i, (name, model, task, conds) in enumerate(blocks):
-        if i:
-            lines.append(r"\midrule")
-        for j, (c, label) in enumerate(conds):
-            r = E[(model, task, c)]
-            head = rf"\multirow{{{len(conds)}}}{{*}}{{{name}}}" if j == 0 else ""
-            sec = f"{r['seconds']:.0f}" if r["seconds"] >= 100 else f"{r['seconds']:.1f}"
-            lines.append(f"{head} & {label} & {r['acc']:.1f} & {sec} & {r['tokens']} & {r['n']} \\\\")
-    (OUT / "tab_e2e.tex").write_text("\n".join(lines) + "\n")
-
-
 def tab_repro():
-    """Appendix B: native Ouro-2.6B 4/4 under our evaluation and as reported by Ouro (paper_numbers.json, repro)."""
+    """Table 10 (Appendix H): native Ouro-2.6B 4/4 under our evaluation and as reported by Ouro (paper_numbers.json, repro)."""
     from decimal import Decimal, ROUND_HALF_UP   # 90.85 -> 90.9 (published values have two decimals)
     f = lambda x: "--" if x is None else str(Decimal(repr(x)).quantize(Decimal("0.1"), ROUND_HALF_UP))
     rows = [f"{r['bench']} & {f(r['ours'])} & {f(r['reported'])} & {r['items']:,} \\\\" for r in PN.get("repro", [])]
@@ -751,22 +527,6 @@ def tab_aligned():
     (OUT / "tab_aligned.tex").write_text("\n".join(lines) + "\n")
 
 
-def tab_select_distilled():
-    """Appendix table: the cross-fitted prefill count (Table 1) against the LoRA-distilled native n/n at n = 1, 2, 3;
-    selection-aware intervals (LaTeX rows from paper_numbers.json, taskmap_select)."""
-    rows = [r for r in PN.get("taskmap_select", []) if r["model"] == "Ouro-2.6B" and r["n"] <= 3]
-    R = {(r["bench"], r["n"]): r for r in rows}
-    def cell(r):
-        if r is None or "diff_distilled_select_aware" not in r:
-            return "--"
-        d, lo, hi = r["diff_distilled_select_aware"]
-        sig = "$^*$" if lo > 0 or hi < 0 else ""
-        return (r"\up{%.1f}" if d >= 0 else r"\dn{%.1f}") % abs(d) + sig + ci(lo, hi)
-    benches = list(dict.fromkeys(r["bench"] for r in rows))
-    lines = [f"{b} & " + " & ".join(cell(R.get((b, n))) for n in (1, 2, 3)) + r" \\" for b in benches]
-    (OUT / "tab_select_distilled.tex").write_text("\n".join(lines) + "\n")
-
-
 TIMED = ["GSM8K", "MATH-500", "BBH", "MMLU-Pro"]
 SWEEP_NAME = {"GSM8K": "GSM8K", "MATH-500": "MATH-500", "BBH": "BBH 3-shot", "MMLU-Pro": "MMLU-Pro"}
 
@@ -783,10 +543,9 @@ def _time(task, cond, model="Ouro-2.6B"):
 
 
 def fig_time():
-    """Figure 1, one point: on generation tasks the time of a request is almost all decoding. Share of the time per
-    request spent in prefill and decode for the released model at one loop (Original 1/1, the start of the depth
-    sweep), base model, 200 requests per task; label: prefill share and total seconds. The other configurations and
-    HELMET are in Section 3 and Table 2 (Appendix A)."""
+    """Figure 2: on generation tasks the time of a request is almost all decoding. Share of the time per request spent
+    in prefill and decode for the released model at one loop (Original 1/1), base model, 200 requests per task; label:
+    prefill share and total seconds. The other configurations and HELMET are in Section 5.1 and Table 4 (Appendix A)."""
     rows = [(t, _time(t, "native1st")) for t in TIMED]
     rows = [(t, r) for t, r in rows if r]
     if not rows:
@@ -809,8 +568,8 @@ def fig_time():
 
 
 def fig_depth():
-    """Appendix figure (full data behind Figure 2): per timed task, quality (full evaluation set) and time per request (per-step maps; same replayed
-    requests) against prefill loops m at decode n = 1 (dark) and 2 (light). Quality against time is Figure 3."""
+    """Figure 10 (Appendix D, full data behind Figure 5): per timed task, accuracy (full evaluation set) against prefill
+    loops m at decode n = 1 (violet) and n = 2 (green), for m <= 4 (solid) and wide m <= 16 (dashed)."""
     rows = PN.get("depth_sweep", [])
     tasks = [t for t in TIMED if any(r["bench"] == SWEEP_NAME[t] for r in rows)]
     if not tasks:
@@ -852,10 +611,9 @@ DEPTH_MAIN = ["GSM8K", "MMLU-Pro", "HumanEval+", "RULER-16K"]   # math, knowledg
 
 
 def fig_depth_main(mmax=8, n=1):
-    """Figure 2, one point: with one decode loop, a few more prefill loops buy a lot of accuracy, and the gain levels
-    off at two to four loops. Adapter trained on m in {1,...,16} (no extrapolation), four benchmarks from different
-    domains (math, knowledge, code, long context), m up to `mmax`; label: gain from m = 1 to the best m. Two decode
-    loops, every benchmark and m up to 16: appendix figure (fig_depth)."""
+    """Figure 5: with one decode loop, two to five prefill loops buy most of the accuracy gain. Adapter trained on m in
+    {1,...,16} (no extrapolation), four benchmarks from different domains (math, knowledge, code, long context), m up to
+    `mmax`; label: gain from m = 1 to the best m. Two decode loops and all tasks: Figure 10 / Table 7."""
     from matplotlib.ticker import MaxNLocator
     rows = [r for r in PN.get("depth_sweep", []) if r["adapter"] == "wide" and r["n"] == n]
     benches = [b for b in DEPTH_MAIN if any(r["bench"] == b for r in rows)]
@@ -888,10 +646,8 @@ def fig_depth_main(mmax=8, n=1):
 
 
 def fig_sametime():
-    """Figure 3, one point: in the same measured time per request, one decode loop with four prefill loops (Ours 4/1)
-    is far more accurate than the original model and the distilled model at one loop. Mean accuracy and mean time per
-    request over the same 200 requests of each timed task (batch 1, one B300, two passes; Ours with folded maps).
-    Every configuration against time: appendix figure (fig_budget)."""
+    """Figure 9 (Appendix D): paired comparison at one decode loop over the 800 timed requests (batch 1, one B300, two
+    passes): Original 1/1, Distilled 1/1 baseline, and LoopBridge 4/1 with folded maps."""
     tasks = [t for t in TIMED if _time(t, "native1st")]
     bars = [("Original\n1/1", "native1st", NAT_LIGHT), ("Distilled 1/1\n(baseline)", "D1st", DIST),
             ("Ours, LoopBridge\n4/1", "a4x1pm", OURS)]
@@ -923,9 +679,9 @@ def fig_sametime():
 
 def fig_budget(name="fig_budget"):
     """Figure 6: accuracy against measured time per request on the same 800 replayed requests (batch 1, one B300, mean
-    of two passes; paper_numbers time_breakdown). Filled: one decode loop, hollow: two. Ours sits up and to the left of
-    the original and distilled models at both decode depths. The arrow marks the time-matched comparison of Section 5.5:
-    at LoopBridge 4/1's mean time, a mix of Original 1/1 and 2/2 requests lies on the grey segment (time_matched)."""
+    of two passes; paper_numbers time_breakdown). Filled: one decode loop, hollow: two. The arrow marks the time-matched
+    comparison of Section 5.5: at LoopBridge 4/1's mean time, a mix of Original 1/1 and 2/2 requests lies on the grey
+    segment (time_matched)."""
     tasks = [t for t in TIMED if _time(t, "native1st")]
     if not tasks:
         return drop(name)
@@ -964,8 +720,8 @@ def fig_budget(name="fig_budget"):
 
 
 def fig_batched(name="fig_batched"):
-    """Appendix: Figure 7 measured with batched serving (batch_requests.py, continuous batching): mean accuracy of the
-    served answers against wall seconds per request at batch 1, 8 and 32 (paper_numbers batched_serving)."""
+    """Figure 13 (Appendix K): Figure 6 measured with batched serving (batch_requests.py, continuous batching): mean
+    accuracy of the served answers against wall seconds per request at batch 8 and 32 (paper_numbers batched_serving)."""
     B = PN.get("batched_serving", {})
     sizes = [b for b in (8, 32) if all(f"{c}@{b}" in B for c in ("native1st", "a4x1pm", "D1st", "native2st"))]   # batch 1: Figure 7
     if not sizes:
@@ -1021,9 +777,9 @@ def tab_batched():
 
 
 def fig_tbatched(name="fig_tbatched"):
-    """Figure 8: Ouro-2.6B-Thinking served in batches of 16 (paper_numbers thinking_batched): accuracy of the served
-    answers against wall seconds per request on GSM8K and MATH-500 for Original 2/2 and 4/4, Distilled 2/2 and Ours
-    (LoopBridge 4/2); the panel text gives Ours' time relative to Original 4/4."""
+    """Figure 7: Ouro-2.6B-Thinking served in batches of 16 and 32 (paper_numbers thinking_batched): accuracy of the
+    served answers against wall seconds per request on all 1,319 GSM8K problems for Original 2/2, Original 4/4, and
+    LoopBridge 4/2; the panel text gives LoopBridge 4/2's time relative to Original 4/4."""
     T = PN.get("thinking_batched", {})
     tasks = [("gsmthink", b, f"GSM8K, batch {b}") for b in (16, 32)
              if all(f"gsmthink {c}@{b}" in T for c in ("native2st", "native4st", "D2st", "a4x2pm"))]
@@ -1059,8 +815,8 @@ def fig_tbatched(name="fig_tbatched"):
 
 
 def tab_tbatched():
-    """Appendix K: Ouro-2.6B-Thinking served in batches (paper_numbers thinking_batched): accuracy and wall seconds per
-    request on GSM8K (batch 16 and 32) and MATH-500 (batch 16)."""
+    """Table 15 (Appendix K): Ouro-2.6B-Thinking served in batches (paper_numbers thinking_batched): accuracy and wall
+    seconds per request on all 1,319 GSM8K problems (batch 16 and 32)."""
     T = PN.get("thinking_batched", {})
     rows = [("Original 2/2", "native2st"), ("Original 4/4", "native4st"), ("Distilled 2/2", "D2st"),
             ("Ours, LoopBridge, 4/2", "a4x2pm")]
@@ -1074,24 +830,6 @@ def tab_tbatched():
         lines.append(rf"{sh}{lab} & {cell(g16, 'acc', '%.1f')} & {cell(g32, 'acc', '%.1f')} & {cell(g16, 's_per_request', '%.2f')} & "
                      rf"{cell(g32, 's_per_request', '%.2f')} \\")
     (OUT / "tab_tbatched.tex").write_text("\n".join(lines) + "\n")
-
-
-def tab_longctx():
-    """Appendix (Design Variants): the three all-pairs adapters on RULER-16K, HELMET and LongBench at 4/1 and 4/2 (seed 1;
-    paper_numbers lora80 and longctx_maps, each benchmark on the items the three share)."""
-    L, R = PN.get("longctx_maps", {}), PN.get("lora80", {})
-    arms = [("LoRA r16", "LoRA r16, maps frozen"), ("LoRA r80", "LoRA r80, maps frozen"), ("LoopBridge", "LoopBridge")]
-    lines = []
-    for c, suf, mn in (("a41", "", "4/1"), ("a42", " a42", "4/2")):
-        if not (L.get("helmet" + suf) and L.get("longbench" + suf) and R.get(c)):
-            continue
-        if lines:
-            lines.append(r"\midrule")
-        for lab, arm in arms:
-            sh = r"\rowcolor{oursbg} " if arm == "LoopBridge" else ""
-            lines.append(rf"{sh}{mn} & {lab} & {R[c]['ruler'][arm]:.1f} & {L['helmet' + suf][arm + ' items']:.1f} & "
-                         rf"{L['helmet' + suf][arm]:.1f} & {L['longbench' + suf][arm]:.1f} \\")
-    (OUT / "tab_longctx.tex").write_text("\n".join(lines) + "\n")
 
 
 def tab_time():
@@ -1212,7 +950,12 @@ def tab_build():
     (OUT / "tab_build.tex").write_text("\n".join(lines) + "\n")
 
 if __name__ == "__main__":
-    fig_tps_teaser(); fig_concept(); fig_time(); tab_time(); tab_plateau(); tab_depthwide(); tab_depth14(); tab_prefilltrn(); tab_build(); tab_lr(); fig_depth_main(); fig_depth(); fig_sametime(); fig_budget(); fig_batched(); tab_batched(); fig_tbatched(); tab_tbatched(); fig0(); fig2(); fig_equal(); fig_lev(); fig_aligned(); tab_equal("2.6B-T"); tab_lev(); tab_main(); tab_main("main_table_14", "tab_main14"); tab_ablation(); tab_tokens(); tab_e2e(); tab_repro(); tab_aligned()
+    # 13 figures (Figures 1-11, 13-14; Figure 12 is pseudocode) + 16 generated tables (Tables 1-2, 4-11, 13-16)
+    fig_tps_teaser(); fig_time(); fig0(); fig_aligned(); fig_depth_main(); fig_budget(); fig_tbatched(); fig_lev()
+    fig_sametime(); fig_depth(); fig_equal(); fig_batched(); fig2()
+    tab_main(); tab_build(); tab_tokens(); tab_lr(); tab_time(); tab_prefilltrn(); tab_plateau(); tab_depthwide()
+    tab_depth14(); tab_aligned(); tab_repro(); tab_main("main_table_14", "tab_main14"); tab_equal("2.6B-T")
+    tab_batched(); tab_tbatched(); tab_lev()
     for f in OUT.glob("tab_*.tex"):   # one name per benchmark in every table: BBH is 3-shot throughout (Appendix H)
         f.write_text(f.read_text().replace("BBH 3-shot", "BBH"))
     print("\n".join(sorted(p.name for p in OUT.iterdir())))

@@ -1,4 +1,6 @@
-"""SenseNova-Loop-9B-Preview (hybrid GDN / full-attention looped model) behind the prefill/decode runner API used by
+"""DEPRECATED (not used by the paper; see DEPRECATED.md).
+
+SenseNova-Loop-9B-Preview (hybrid GDN / full-attention looped model) behind the prefill/decode runner API used by
 lmeval_ouro.py and evaluate_bench.py. Needs transformers 5.18 (PYTHONPATH=/dev/shm/big-small-ouro/tf518:...).
 
 The checkpoint runs physical layers [start, end) `count` times; every visit has its own cache slot (KV for full-attention
