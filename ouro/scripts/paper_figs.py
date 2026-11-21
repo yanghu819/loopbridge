@@ -114,7 +114,7 @@ def fig_tps_teaser():
     ax1.plot([lb2[0], lb1[0]], [lb2[1], lb1[1]], "-", color=OURS, lw=1.7, zorder=3)
     for (x, y) in (lb2, lb1):
         ax1.scatter(x, y, marker="s", s=32, color=OURS, zorder=4)
-    ax1.annotate("4/2", lb2, xytext=(7, 3), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="left", va="bottom")
+    ax1.annotate("4/2", lb2, xytext=(6, 2), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="left", va="bottom")
     ax1.annotate("4/1", lb1, xytext=(0, 6), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="center")
 
     # Gain callouts (printed-value differences: 45.0 - 27.8 = +17.2; TPS ratio: 14.3 / 6.7 = 2.1x)
@@ -124,13 +124,13 @@ def fig_tps_teaser():
                  arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.05, mutation_scale=8), zorder=4)
     ax1.text(nat_b[2][0][0] + 0.65, (lb1[1] + nat_b[2][0][1]) / 2, f"+{g1:.1f}", fontsize=7.1, color=OURS,
              fontweight="bold", ha="left", va="center")
-    ax1.text(14.0, 70.5, rf"{lb2[0] / nat_b[0][0][0]:.1f}$\times$ TPS of 4/4", fontsize=7.0, color=OURS,
+    ax1.text(14.3, 71.8, rf"{lb2[0] / nat_b[0][0][0]:.1f}$\times$ TPS of 4/4", fontsize=7.0, color=OURS,
              fontweight="bold", ha="left", va="center")
 
     ax1.set_title("(a) Ouro-2.6B, 4 CoT tasks (batch 1)", fontsize=8.0, color=INK, fontweight="bold", loc="left", pad=3)
     ax1.set_xlabel("output tokens/s", fontsize=7.1, color=NAT, labelpad=1.5)
     ax1.set_ylabel("mean accuracy (%)", fontsize=7.8)
-    ax1.set_xlim(4.5, 33.4); ax1.set_ylim(21.0, 76.5)
+    ax1.set_xlim(4.5, 33.4); ax1.set_ylim(19.5, 76.5)
     ax1.set_xticks([5, 10, 15, 20, 25, 30])
     ax1.grid(color="#EDEDED", lw=0.5); ax1.set_axisbelow(True)
     ax1.tick_params(labelsize=7.2)
@@ -223,14 +223,19 @@ def fig2():
     if len(F) < 5:
         return
     nat = [(*F["native 4/4"], "4/4"), (*F["native 2/2"], "2/2", -11)]
-    ours = [(*F["adapter 2/2"], "2/2", -11), (*F["adapter 4/2"], "4/2", 6)]
+    o22, o42 = F["adapter 2/2"], F["adapter 4/2"]
     fig, ax = plt.subplots(figsize=(3.3, 2.45))
-    frontier(ax, nat, ours, "")
+    frontier(ax, nat, [(*o22, "2/2", -11), (*o42, "4/2", 6)], "", lines=False)
+    ax.plot([p[0] for p in nat], [p[1] for p in nat], "-", color=NAT_LIGHT, lw=1.4, zorder=2)
+    ax.annotate("", xy=(o42[0], o42[1] - 0.25), xytext=(o22[0], o22[1] + 0.25),
+                arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.4, mutation_scale=9), zorder=4)
+    ax.text(o42[0] + 8, (o22[1] + o42[1]) / 2, f"+{round(o42[1], 1) - round(o22[1], 1):.1f}", fontsize=7.5,
+            color=OURS, fontweight="bold", ha="left", va="center")
     x, y = F["distilled 2/2"]
     ax.scatter([x], [y], s=26, color=DIST, marker="^", zorder=4)
-    ax.annotate("Distilled 2/2\n(baseline)", (x, y), xytext=(-2, 7), textcoords="offset points", fontsize=7.0,
+    ax.annotate("Distilled 2/2\n(baseline)", (x, y), xytext=(-6, 7), textcoords="offset points", fontsize=7.0,
                 color=DIST, ha="center", va="bottom", linespacing=1.05)
-    ax.set_xlim(80, 460)
+    ax.set_xlim(80, 470)
     ax.set_xlabel("decode tokens/s, best batch, 8K prompt", fontsize=8)
     ax.set_ylabel("average accuracy (%)", fontsize=8)
     legend(fig, "Ours (LoopBridge, one cache)", "", y=1.02, ncol=2)
@@ -263,9 +268,9 @@ def fig_equal():
             ax.set_ylim(min(lo, e["dist2"] - 0.06 * (hi - lo)), max(hi, e["dist2"] + 0.06 * (hi - lo)))
         ax.set_title(b, fontsize=8.5, color=INK, pad=6)
     fig.supxlabel("decode loops n", fontsize=8.5, y=0.015); fig.supylabel("score (%)", fontsize=8.5, x=0.005)
-    h = [plt.Line2D([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4), plt.Line2D([], [], color=OURS, marker="s", ms=4, lw=1.4),
+    h = [plt.Line2D([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4), plt.Line2D([], [], color=OURS, marker="s", ms=4.5, ls="none"),
          plt.Line2D([], [], color=DIST, marker="^", ms=4.5, ls="none")]
-    fig.legend(h, ["Original n/n", "Ours, prefill 4 / decode 2", "Distilled 2/2 (baseline)"], loc="upper center", ncol=3, fontsize=8,
+    fig.legend(h, ["Original n/n (tied)", "Ours, prefill 4 / decode 2", "Distilled 2/2 (baseline)"], loc="upper center", ncol=3, fontsize=8,
                bbox_to_anchor=(0.5, 1.01), handlelength=1.6, frameon=False)
     fig.subplots_adjust(wspace=0.35, hspace=0.48, left=0.07, right=0.99, bottom=0.125, top=0.865)
     save(fig, "fig_equal")
@@ -366,13 +371,16 @@ def fig_aligned(panels=None, name="fig_taskmap", ncols=4):
                 y_lab = max(a4, nv) + 1.4 if n >= 3 else a4 + 1.4
                 ax.text(xs[idx] + offs[3], y_lab, f"{a4:.1f}", ha="center", va="bottom",
                         fontsize=6.8, color=OURS, fontweight="bold", zorder=6)
-                pill = dict(fc="white", ec="none", alpha=0.86, pad=0.6)
+                pill = dict(fc="white", ec="none", alpha=0.88, pad=0.4)
                 if n == 1:
-                    ax.text(xs[idx], nv - 2.3, f"Orig {nv:.1f}", ha="center", va="top",
+                    ax.text(xs[idx], nv - 2.2, f"Orig {nv:.1f}", ha="center", va="top",
                             fontsize=6.1, color="#262626", zorder=6, bbox=pill)
+                elif n == 2:
+                    ax.text(xs[idx] - 0.39, nv - 1.2, f"{nv:.1f}", ha="left", va="top",
+                            fontsize=6.0, color="#262626", zorder=6, bbox=pill)
                 else:
-                    ax.text(xs[idx] - 0.37, nv - 1.8, f"{nv:.1f}", ha="left", va="top",
-                            fontsize=6.1, color="#262626", zorder=6, bbox=pill)
+                    ax.text(xs[idx] - 0.39, nv - 1.1, f"{nv:.1f}", ha="left", va="top",
+                            fontsize=6.0, color="#262626", zorder=6, bbox=pill)
         ax.set_title(title, fontsize=8.5 if big else 8.0, color=INK, fontweight="bold" if big else "normal", pad=4)
         ax.set_xticks(xs); ax.set_xticklabels([f"n={n}" for n in range(1, 5)], fontsize=7.5 if big else 7.2)
         ax.set_xlim(0.45, 4.55)
@@ -679,9 +687,9 @@ def fig_sametime():
 
 def fig_budget(name="fig_budget"):
     """Figure 6: accuracy against measured time per request on the same 800 replayed requests (batch 1, one B300, mean
-    of two passes; paper_numbers time_breakdown). Filled: one decode loop, hollow: two. The arrow marks the time-matched
-    comparison of Section 5.5: at LoopBridge 4/1's mean time, a mix of Original 1/1 and 2/2 requests lies on the grey
-    segment (time_matched)."""
+    of two passes; paper_numbers time_breakdown). Both curves connect n = 1 and n = 2 to show the accuracy-latency
+    frontier (any request mix lies on the segment). The arrow marks the time-matched comparison of Section 5.5: at
+    LoopBridge 4/1's mean time, an Original 1/1-2/2 mix lies on the grey segment (time_matched)."""
     tasks = [t for t in TIMED if _time(t, "native1st")]
     if not tasks:
         return drop(name)
@@ -691,30 +699,29 @@ def fig_budget(name="fig_budget"):
         return None if None in rs else (float(np.mean([r["total_s"] for r in rs])), float(np.mean([r["quality"] for r in rs])))
 
     fig, ax = plt.subplots(figsize=(3.3, 2.45))
-    nat = [(point(f"native{d}st"), f"{d}/{d}") for d in (1, 2)]
-    ax.plot([p[0][0] for p in nat], [p[0][1] for p in nat], "-", color=NAT_LIGHT, marker="o", ms=4.2, lw=1.5, zorder=2)
-    ax.annotate("Original 1/1", nat[0][0], xytext=(2, -11), textcoords="offset points", fontsize=6.6, color=NAT, ha="center")
-    ax.annotate("Original 2/2", nat[1][0], xytext=(4, -11), textcoords="offset points", fontsize=6.6, color=NAT, ha="center")
-    for n, fill in ((1, None), (2, "white")):
-        p = point(f"a4x{n}pm")
-        if p:
-            ax.scatter(*p, marker="s", s=34, zorder=4, facecolors=fill or OURS, edgecolors=OURS, lw=1.2)
+    nat = [(point(f"native{d}st"), f"Original {d}/{d}") for d in (1, 2)]
+    ax.plot([p[0][0] for p in nat], [p[0][1] for p in nat], "-", color=NAT_LIGHT, marker="o", ms=4.4, lw=1.5, zorder=2)
+    ax.annotate("Original 1/1", nat[0][0], xytext=(4, -11), textcoords="offset points", fontsize=6.8, color=NAT, ha="center")
+    ax.annotate("Original 2/2", nat[1][0], xytext=(5, -16), textcoords="offset points", fontsize=6.8, color=NAT, ha="center")
+    ours = [point("a4x1pm"), point("a4x2pm")]
+    if None not in ours:
+        ax.plot([p[0] for p in ours], [p[1] for p in ours], "-", color=OURS, marker="s", ms=5.0, lw=1.7, zorder=4)
+        ax.annotate("Ours 4/1", ours[0], xytext=(-4, 7), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="center")
+        ax.annotate("Ours 4/2", ours[1], xytext=(-6, 7), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="center")
     # time-matched comparison at LoopBridge 4/1 (Section 5.5): the grey segment at the same mean time
     (x1, y1), (x2, y2) = nat[0][0], nat[1][0]
-    xo, yo = point("a4x1pm")
+    xo, yo = ours[0]
     ym = y1 + (xo - x1) / (x2 - x1) * (y2 - y1)
-    ax.annotate("", (xo, yo - 1.1), xytext=(xo, ym + 1.0), arrowprops=dict(arrowstyle="->", color=INK, lw=0.95), zorder=5)
-    ax.text(xo + 0.50, 47.4, f"+{yo - ym:.1f} at the\nsame time", fontsize=6.5, color=INK, va="center", ha="left")
-    ax.text(12.82, 52.5, "one decode loop", ha="center", va="bottom", fontsize=6.5, color=NAT)
-    ax.text(20.12, 69.8, "two decode loops", ha="center", va="top", fontsize=6.5, color=NAT)
-    ax.set_xlim(9.0, 22.8); ax.set_ylim(21.5, 72)
+    ax.annotate("", (xo, yo - 1.3), xytext=(xo, ym + 0.9), arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.1, mutation_scale=8), zorder=5)
+    ax.text(xo - 0.35, (yo + ym) / 2 + 0.4, f"+{yo - ym:.1f} at\nsame time", fontsize=6.7, color=OURS, fontweight="bold", va="center", ha="right")
+    ax.set_xlim(8.8, 22.8); ax.set_ylim(21.0, 71.0)
     ax.set_xlabel("seconds per request"); ax.set_ylabel("mean accuracy (%)")
     ax.grid(color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
     L = plt.Line2D
-    h = [L([], [], color=OURS, marker="s", ms=4.5, ls="none"),
-         L([], [], color=NAT_LIGHT, marker="o", ms=4.2, lw=1.5)]
+    h = [L([], [], color=OURS, marker="s", ms=4.5, lw=1.7),
+         L([], [], color=NAT_LIGHT, marker="o", ms=4.4, lw=1.5)]
     l = ["Ours (LoopBridge 4/n)", "Original n/n (tied)"]
-    fig.legend(h, l, fontsize=6.7, loc="lower center", frameon=False, handlelength=1.6, ncol=2, columnspacing=1.2)
+    fig.legend(h, l, fontsize=6.8, loc="lower center", frameon=False, handlelength=1.6, ncol=2, columnspacing=1.2)
     fig.subplots_adjust(left=0.15, right=0.97, top=0.97, bottom=0.27)
     save(fig, name)
 
@@ -723,35 +730,44 @@ def fig_batched(name="fig_batched"):
     """Figure 13 (Appendix K): Figure 6 measured with batched serving (batch_requests.py, continuous batching): mean
     accuracy of the served answers against wall seconds per request at batch 8 and 32 (paper_numbers batched_serving)."""
     B = PN.get("batched_serving", {})
-    sizes = [b for b in (8, 32) if all(f"{c}@{b}" in B for c in ("native1st", "a4x1pm", "D1st", "native2st"))]   # batch 1: Figure 7
+    sizes = [b for b in (8, 32) if all(f"{c}@{b}" in B for c in ("native1st", "a4x1pm", "D1st", "native2st"))]   # batch 1: Figure 6
     if not sizes:
         return drop(name)
-    fig, axes = plt.subplots(1, len(sizes), figsize=(2.3 * len(sizes), 2.65), squeeze=False)
+    fig, axes = plt.subplots(1, len(sizes), figsize=(2.4 * len(sizes), 2.65), squeeze=False)
     pt = lambda c, b: (B[f"{c}@{b}"]["s_per_request"], B[f"{c}@{b}"]["acc"]) if f"{c}@{b}" in B else None
     for ax, b in zip(axes[0], sizes):
         nat = [(pt(f"native{d}st", b), f"{d}/{d}") for d in (1, 2) if pt(f"native{d}st", b)]
-        ax.plot([p[0][0] for p in nat], [p[0][1] for p in nat], "-", color=NAT_LIGHT, marker="o", ms=3, lw=1.3)
+        ax.plot([p[0][0] for p in nat], [p[0][1] for p in nat], "-", color=NAT_LIGHT, marker="o", ms=3.5, lw=1.4, zorder=2)
         for (x, y), lab in nat:
-            ax.annotate(lab, (x, y), xytext=(2 if lab == "1/1" else -2, -10), textcoords="offset points", fontsize=6.6, color=NAT, ha="center")
+            ax.annotate(lab, (x, y), xytext=(2 if lab == "1/1" else -4, -10), textcoords="offset points", fontsize=6.7, color=NAT, ha="center")
         for n, fill in ((1, None),):   # one decode loop (the regime of Section 5.5)
-            for c, m, col, sz in ((f"D{n}st", "^", DIST, 24), (f"a4x{n}pm", "s", OURS, 24)):
+            for c, m, col, sz in ((f"D{n}st", "^", DIST, 24), (f"a4x{n}pm", "s", OURS, 28)):
                 p = pt(c, b)
                 if p:
-                    ax.scatter(*p, marker=m, s=sz, zorder=3, facecolors=fill or col, edgecolors=col, lw=0.9)
+                    ax.scatter(*p, marker=m, s=sz, zorder=4, facecolors=fill or col, edgecolors=col, lw=0.9)
             p80 = pt(f"D{n}r80st", b)
             if p80:
                 ax.scatter(*p80, marker="x", s=24, zorder=4, color=DIST, lw=1.2)
+        p41 = pt("a4x1pm", b)
+        if p41 and len(nat) == 2:
+            (x1, y1), (x2, y2) = nat[0][0], nat[1][0]
+            ym = y1 + (p41[0] - x1) / (x2 - x1) * (y2 - y1)
+            ax.annotate("", (p41[0], p41[1] - 1.3), xytext=(p41[0], ym + 0.9),
+                        arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.05, mutation_scale=7.5), zorder=5)
+            ax.text(p41[0] - 0.04 * (x2 - x1), (p41[1] + ym) / 2 + 0.8, f"+{p41[1] - ym:.1f}",
+                    fontsize=6.5, color=OURS, fontweight="bold", ha="right", va="center")
+            ax.annotate("4/1", p41, xytext=(0, 6), textcoords="offset points", fontsize=6.9, color=OURS, fontweight="bold", ha="center")
         lo = min(B[k]["acc"] for k in B if k.endswith(f"@{b}") and "acc" in B[k])
         ax.set_ylim(lo - 7.5, None)   # room for the 1/1 label under its point
-        xlo, xhi = ax.get_xlim(); ax.set_xlim(xlo - 0.04 * (xhi - xlo), xhi + 0.04 * (xhi - xlo))
+        xlo, xhi = ax.get_xlim(); ax.set_xlim(xlo - 0.05 * (xhi - xlo), xhi + 0.05 * (xhi - xlo))
         ax.set_title(f"batch {b}", fontsize=8.5, color=INK, pad=4)
         ax.set_xlabel("seconds per request"); ax.grid(color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
     axes[0, 0].set_ylabel("mean accuracy (%)")
     L = plt.Line2D
     h = [L([], [], color=OURS, marker="s", ms=4.2, ls="none"),
          L([], [], color=DIST, marker="^", ms=4.5, ls="none"), L([], [], color=DIST, marker="x", ms=4.5, lw=1.2, ls="none"),
-         L([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.3)]
-    l = ["Ours (LoopBridge 4/1)", "Distilled 1/1 (baseline)", "Distilled r80 (baseline)", "Original n/n"]
+         L([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4)]
+    l = ["Ours (LoopBridge 4/1)", "Distilled 1/1 (baseline)", "Distilled r80 (baseline)", "Original n/n (tied)"]
     fig.legend(h, l, fontsize=6.5, loc="lower center", frameon=False, handlelength=1.6, ncol=2, columnspacing=1.2)
     fig.subplots_adjust(left=0.11, right=0.98, top=0.90, bottom=0.33, wspace=0.28)
     save(fig, name)
@@ -779,7 +795,7 @@ def tab_batched():
 def fig_tbatched(name="fig_tbatched"):
     """Figure 7: Ouro-2.6B-Thinking served in batches of 16 and 32 (paper_numbers thinking_batched): accuracy of the
     served answers against wall seconds per request on all 1,319 GSM8K problems for Original 2/2, Original 4/4, and
-    LoopBridge 4/2; the panel text gives LoopBridge 4/2's time relative to Original 4/4."""
+    LoopBridge 4/2; horizontal arrow marks LoopBridge 4/2's wall-time reduction relative to Original 4/4."""
     T = PN.get("thinking_batched", {})
     tasks = [("gsmthink", b, f"GSM8K, batch {b}") for b in (16, 32)
              if all(f"gsmthink {c}@{b}" in T for c in ("native2st", "native4st", "D2st", "a4x2pm"))]
@@ -789,28 +805,33 @@ def fig_tbatched(name="fig_tbatched"):
     for ax, (t, bs, lab) in zip(axes[0], tasks):
         pt = lambda c: (T[f"{t} {c}@{bs}"]["s_per_request"], T[f"{t} {c}@{bs}"]["acc"])
         (x2, y2), (x4, y4), (xo, yo) = pt("native2st"), pt("native4st"), pt("a4x2pm")
-        ax.plot([x2, x4], [y2, y4], "-", color=NAT_LIGHT, marker="o", ms=3.5, lw=1.4, zorder=2)
-        ax.annotate("2/2", (x2, y2), xytext=(5, -2), textcoords="offset points", fontsize=6.5, color=NAT, ha="left", va="top")
-        ax.annotate("4/4", (x4, y4), xytext=(0, -9), textcoords="offset points", fontsize=6.5, color=NAT, ha="center")
-        ax.scatter(xo, yo, marker="s", s=26, zorder=4, color=OURS)
-        ax.annotate("4/2", (xo, yo), xytext=(-5, 2), textcoords="offset points", fontsize=6.6, color=OURS, fontweight="bold", ha="right")
+        ax.plot([x2, x4], [y2, y4], "-", color=NAT_LIGHT, marker="o", ms=3.8, lw=1.4, zorder=2)
+        ax.annotate("2/2", (x2, y2), xytext=(4, -9), textcoords="offset points", fontsize=6.6, color=NAT, ha="center")
+        ax.annotate("4/4", (x4, y4), xytext=(-1, -9), textcoords="offset points", fontsize=6.6, color=NAT, ha="center")
+        ax.scatter(xo, yo, marker="s", s=30, zorder=4, color=OURS)
+        ax.annotate("4/2", (xo, yo), xytext=(0, 6), textcoords="offset points", fontsize=6.9, color=OURS, fontweight="bold", ha="center")
         ax.axhline(y4, color=NAT_LIGHT, lw=0.7, ls=":", zorder=1)
         r = T.get(f"{t} a4x2pm vs native4st@{bs}")
         if r:
-            ax.text(0.03, 0.05, rf"4/2: {r['ratio']:.2f}$\times$ the" + "\ntime of 4/4", transform=ax.transAxes, fontsize=6.1,
-                    color=OURS, ha="left", va="bottom")
+            span = x4 - xo
+            ax.annotate("", xy=(xo + 0.12 * span, y4 + 0.14), xytext=(x4 - 0.08 * span, y4 + 0.14),
+                        arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.1, mutation_scale=8), zorder=4)
+            ax.text((xo + x4) / 2 + 0.04 * span, y4 + 0.36, rf"{r['ratio']:.2f}$\times$ time", fontsize=6.6,
+                    color=OURS, fontweight="bold", ha="center", va="bottom")
         lo, hi = min(y2, y4, yo), max(y2, y4, yo)
-        ax.set_ylim(lo - 2.6, hi + 1.5); ax.set_xlim(0, max(x2, x4, xo) * 1.12)
-        ax.set_title(lab, fontsize=7.5, color=INK, pad=3)
-        ax.set_xlabel("seconds per request", fontsize=7); ax.tick_params(labelsize=6.5)
+        ax.set_ylim(lo - 1.3, hi + 1.1)
+        xpad = 0.24 * (x4 - xo)
+        ax.set_xlim(xo - xpad * 1.15, x4 + xpad * 0.85)
+        ax.set_title(lab, fontsize=7.6, color=INK, fontweight="bold", pad=3)
+        ax.set_xlabel("seconds per request", fontsize=7.2); ax.tick_params(labelsize=6.6)
         ax.grid(color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
-    axes[0, 0].set_ylabel("accuracy (%)", fontsize=7)
+    axes[0, 0].set_ylabel("accuracy (%)", fontsize=7.2)
     L = plt.Line2D
-    h = [L([], [], color=OURS, marker="s", ms=4.2, ls="none"),
-         L([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4)]
+    h = [L([], [], color=OURS, marker="s", ms=4.4, ls="none"),
+         L([], [], color=NAT_LIGHT, marker="o", ms=4.0, lw=1.4)]
     fig.legend(h, ["Ours (LoopBridge 4/2)", "Original n/n (tied)"], fontsize=6.6, loc="lower center",
                frameon=False, handlelength=1.5, ncol=2, columnspacing=1.2)
-    fig.subplots_adjust(left=0.12, right=0.98, top=0.9, bottom=0.3, wspace=0.3)
+    fig.subplots_adjust(left=0.14, right=0.98, top=0.89, bottom=0.30, wspace=0.30)
     save(fig, name)
 
 

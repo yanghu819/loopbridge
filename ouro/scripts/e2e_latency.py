@@ -19,22 +19,15 @@ import torch
 from transformers import AutoTokenizer
 
 
+from ouro.bench_throughput import make  # Ouro runners (transformers 4.x)
+
 model_dir, cond, ckpt, task, n, out = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]), Path(sys.argv[6])
 start = int(os.environ.get("START", 0))
-family = json.load(open(Path(model_dir) / "config.json"))["model_type"]
-if family == "sensenova_loop":  # native<c> | splice<p><d> | C<p>1 (+ checkpoint); needs transformers 5.18 on PYTHONPATH
-    from ouro.sensenova_runner import SenseNovaRunner, tokenizer
-    runner = SenseNovaRunner(model_dir, cond, None if ckpt == "-" else ckpt)
-    tok = tokenizer(model_dir)
-else:
-    from ouro.bench_throughput import make  # Ouro runners (transformers 4.x)
-    runner = make(cond, model_dir, None if ckpt == "-" else ckpt, merge=ckpt != "-")
-    tok = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
+runner = make(cond, model_dir, None if ckpt == "-" else ckpt, merge=ckpt != "-")
+tok = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
 
 
 def chat_ids(msg):
-    if family == "sensenova_loop":  # transformers 5 returns a mapping for tokenize=True; render text, then encode
-        return tok(tok.apply_chat_template(msg, add_generation_prompt=True, tokenize=False), add_special_tokens=False)["input_ids"]
     return tok.apply_chat_template(msg, add_generation_prompt=True, tokenize=True)
 gen_cfg = json.load(open(Path(model_dir) / "generation_config.json")) if (Path(model_dir) / "generation_config.json").exists() else {}
 eos = gen_cfg.get("eos_token_id", tok.eos_token_id)

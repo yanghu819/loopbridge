@@ -22,16 +22,15 @@ from torch.nn.parallel import DistributedDataParallel
 from torch import nn
 
 from ouro.adapter_model import AdapterSystem
-from ouro.batched import adapter_forward, delta_forward, kvshare_forward, kvshare_self_forward, loopmap_forward, loopmap_selflive_forward, native_lora_forward, refresh_forward
-from ouro.refresh_model import RefreshSystem
+from ouro.batched import adapter_forward, delta_forward, kvshare_forward, kvshare_self_forward, loopmap_forward, loopmap_selflive_forward, native_lora_forward
 
 
 class Batched(nn.Module):
-    def __init__(self, system, refresh):
+    def __init__(self, system):
         super().__init__()
-        self.system, self.refresh = system, refresh
+        self.system = system
 
-    def forward(self, samples, blocks):
+    def forward(self, samples):
         device = next(p for p in self.system.parameters() if p.requires_grad).device
         if self.system.arm in ("D", "E", "H"):
             return native_lora_forward(self.system, samples, device, self.system.first_target)
@@ -47,8 +46,6 @@ class Batched(nn.Module):
             return kvshare_self_forward(self.system, samples, device)
         if self.system.arm in ("F", "G", "I", "J", "K", "L", "U"):
             return delta_forward(self.system, samples, device)
-        if self.refresh:
-            return refresh_forward(self.system, samples, blocks, device)
         return adapter_forward(self.system, samples, device)
 from ouro.model import load_model
 from ouro.prepare_adapter_data import AdapterDataset
@@ -78,9 +75,8 @@ def main():
     parser.add_argument("--model-path", type=Path, required=True)
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--arm", choices=("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "U", "V", "S", "W", "T", "R", "Z1", "Z2", "Z3", "Z4", "Y1", "Y2", "Y3", "Y4", "M", "O", "P", "a")
+    parser.add_argument("--arm", choices=("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "U", "V", "S", "W", "T", "Z1", "Z2", "Z3", "Z4", "Y1", "Y2", "Y3", "Y4", "M", "O", "P", "a")
                         + tuple(f"{a}{p}{d}" for a in "XNQ" for p in range(1, 5) for d in range(1, 5)), required=True)
-    parser.add_argument("--blocks", type=int, nargs="+", default=[4, 8, 16, 32, 1000])
     parser.add_argument("--micro", type=int, default=6)
     parser.add_argument("--stop-tokens", type=int, default=50_000_000)
     parser.add_argument("--planned-tokens", type=int, default=200_000_000)
@@ -120,8 +116,7 @@ def main():
         raise ValueError("Prepared data must end on a complete global batch.")
     writer = load_model(args.model_path, device=device)
     reader = load_model(args.model_path, device=device, dtype=torch.float32 if args.full_ft else torch.bfloat16)
-    system = RefreshSystem(writer, reader) if args.arm == "R" else AdapterSystem(writer, reader, args.arm, full_ft=args.full_ft,
-                                                                                          prefill_lora=args.prefill_lora)
+    system = AdapterSystem(writer, reader, args.arm, full_ft=args.full_ft, prefill_lora=args.prefill_lora)
     system.first_target = args.first_target
     trainable = [p for p in system.parameters() if p.requires_grad]
     if args.freeze_maps:  # maps stay in the checkpoint (as identity) so evaluation is unchanged, but are never updated
@@ -138,7 +133,7 @@ def main():
     cumulative = {"fineweb_kl_tokens": 0, "gsm_kl_tokens": 0, "input_tokens": 0}
     if args.resume:
         saved = torch.load(args.resume, map_location=device, weights_only=False)
-        if saved["arm"] != ("B" if args.arm == "R" else args.arm):
+        if saved["arm"] != args.arm:
             raise ValueError("Resume arm differs from the requested arm.")
         system.load_trainable_state(saved["trainable_state"])
         if len(saved["optimizer"]["param_groups"]) != len(optimizer.param_groups):
@@ -153,7 +148,7 @@ def main():
         torch.cuda.set_rng_state(saved["rng"]["cuda"].cpu(), device)
         random.setstate(saved["rng"]["python"])
         np.random.set_state(saved["rng"]["numpy"])
-    wrapper = Batched(system, args.arm == "R")
+    wrapper = Batched(system)
     # env OURO_DDP_FIND_UNUSED=1: ranks whose micro-batch leaves some trainable parameter without a gradient (diagnosis of
     # the trainable-prefill hang) let DDP skip it instead of waiting for it
     model = DistributedDataParallel(wrapper, device_ids=[local_rank], broadcast_buffers=False,
@@ -161,7 +156,7 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     if rank == 0:
         setup = {
-            "event": "start", "arm": args.arm, "cells": V_CELLS, "first_target": args.first_target, "freeze_maps": args.freeze_maps, "prefill_lora": args.prefill_lora, "refresh_blocks": args.blocks if args.arm == "R" else None, "micro": args.micro, "world_size": world,
+            "event": "start", "arm": args.arm, "cells": V_CELLS, "first_target": args.first_target, "freeze_maps": args.freeze_maps, "prefill_lora": args.prefill_lora, "micro": args.micro, "world_size": world,
             "global_batch": args.global_batch, "microbatch": 1,
             "gradient_accumulation": args.global_batch // world,
             "trainable_parameters": sum(p.numel() for p in trainable),
@@ -187,14 +182,13 @@ def main():
         chunks = [local_indices[k:k + args.micro] for k in range(0, len(local_indices), args.micro)]
         for micro, chunk in enumerate(chunks):
             samples = [data[index] for index in chunk]
-            blocks = [random.Random(args.seed * 1_000_003 + index).choice(args.blocks) for index in chunk]
             if args.arm in ("U", "V", "S", "W", "T", "M", "O", "P", "a"):  # universal connector: one (prefill p, decode d) cell per micro-batch
                 cells = U_CELLS if args.arm == "U" else V_CELLS
                 system.prefill_steps, system.decode_steps = random.Random(args.seed * 7919 + chunk[0]).choice(cells)
             syncing = micro == len(chunks) - 1
             context = nullcontext() if syncing or world == 1 else model.no_sync()
             with context, autocast:
-                loss_sum, metrics = model(samples, blocks)
+                loss_sum, metrics = model(samples)
                 (loss_sum * world / block_tokens).backward()
             stats[:4] += metrics.to(torch.float64)
             for sample in samples:
@@ -232,7 +226,7 @@ def main():
         if args.full_ft:  # bf16 reader weights; optimizer dropped (no resume) to fit storage
             state = {k: v.to(torch.bfloat16) if k.startswith("reader.") else v for k, v in state.items()}
         checkpoint = {
-            "arm": "B" if args.arm == "R" else args.arm, "trained_as": args.arm, "model_path": str(args.model_path),
+            "arm": args.arm, "trained_as": args.arm, "model_path": str(args.model_path),
             "full_ft": args.full_ft, "prefill_lora": args.prefill_lora,
             "trainable_state": state, "optimizer": None if args.full_ft else optimizer.state_dict(),
             "optimizer_steps": update, "kl_tokens": consumed, "next_sample": next_sample,

@@ -20,8 +20,6 @@ import torch
 from transformers import AutoTokenizer
 
 from ouro.evaluate import continuation, generate, rows, save
-from ouro.evaluate_gsm8k import generate_one, strict_score
-from ouro.evaluate_prefix_suffix import split_document
 from ouro.model import MODEL_ID, MODEL_REVISION, OuroRunner, Variant, cache_bytes, load_model
 
 
@@ -138,8 +136,6 @@ def source_rows(dataset, data, gsm_data, full_data=None):
         directory = full_data
         filename = dataset.removeprefix("full-")
     source = rows(directory / f"{filename}.jsonl")
-    if dataset == "pg19":
-        source = [split_document(row) for row in source]
     # Missing or duplicate rows would silently change the fixed subset.
     if len(source) != COUNTS[dataset] or len({r["id"] for r in source}) != len(source):
         raise ValueError(f"{dataset}: expected {COUNTS[dataset]} unique fixed examples")
@@ -209,8 +205,7 @@ def quality(args, runner, tokenizer, destination):
                     result = continuation(runner, row)
                     result["source_id"] = row["source_id"]
                 elif dataset == "gsm8k":
-                    result = generate_one(runner, tokenizer, row, gsm_manifest["generation"])
-                    result.update(strict_score(result["text"], row["answer"], gsm_manifest["strict_match"]))
+                    raise NotImplementedError("Use lm-evaluation-harness via ouro/run_lmeval.py for GSM8K.")
                 else:
                     result = generate(runner, tokenizer, row)
                 result["seconds"] = time.perf_counter() - started

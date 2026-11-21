@@ -1,7 +1,6 @@
 """lm-eval-harness model "ouro": official task prompts, few-shot sets, filters and metrics on our runners.
 
-model_args: path=<model dir>,condition=native1|native2|native4|E|F|D|G|J|K,checkpoint=<pt>,
-            (non-Ouro looped families via ouro.looped_bridge.LoopedRunner: native{n} | E | F)
+model_args: path=<model dir>,condition=native1|native2|native4|a41|S41|E|D|H|...,checkpoint=<pt>,
             batch_tokens=65536,max_batch=64,max_length=32768
 Every condition goes through the same runner API used by our own benchmarks:
 - generate_until: batched greedy decoding (evaluate_bench.greedy_batch); the prompt runs through
@@ -36,19 +35,9 @@ class OuroLM(LM):
     def __init__(self, path, condition="native4", checkpoint=None, batch_tokens=65536, max_batch=64,
                  max_length=32768, **kwargs):
         super().__init__()
-        family = json.loads((Path(path) / "config.json").read_text())["model_type"]
-        if family == "ouro":
-            self.tok = AutoTokenizer.from_pretrained(path, local_files_only=True, trust_remote_code=True)
-            self.runner = make_runner(SimpleNamespace(condition=condition, model_path=path, checkpoint=checkpoint,
-                                                      timing=False))
-        elif family == "sensenova_loop":  # hybrid GDN / full attention; needs transformers 5.18 on PYTHONPATH
-            from ouro.sensenova_runner import SenseNovaRunner, tokenizer
-            self.tok = tokenizer(path)
-            self.runner = SenseNovaRunner(path, condition, checkpoint)
-        else:  # other looped families (Nanbeige, IQuest-Loop): native{n} or a looped_bridge checkpoint
-            from ouro.looped_bridge import LoopedRunner, tokenizer
-            self.tok = tokenizer(path)
-            self.runner = LoopedRunner(path, condition, checkpoint)
+        self.tok = AutoTokenizer.from_pretrained(path, local_files_only=True, trust_remote_code=True)
+        self.runner = make_runner(SimpleNamespace(condition=condition, model_path=path, checkpoint=checkpoint,
+                                                  timing=False))
         self.batch_tokens, self.max_batch, self.max_length = int(batch_tokens), int(max_batch), int(max_length)
         gen = Path(path) / "generation_config.json"
         eos = json.loads(gen.read_text()).get("eos_token_id") if gen.exists() else None

@@ -13,7 +13,7 @@ Paired bootstrap: 5,000 resamples of items (numpy, seed 0), 2.5 / 97.5 percentil
                                 MMLU-Pro / BBH: exact_match; thinking tasks: math_verify;
                                 MATH-500 for base models: boxed = math_verify on the final (last boxed) answer)
   T:<prefix>:<metric>           thinking-model GSM8K, four shards <prefix>_s0.._s3 merged
-  B:<run>:<bench>               evaluate_bench.py outputs (RULER, HELMET, BBH for SenseNova)
+  B:<run>:<bench>               evaluate_bench.py outputs (RULER, HELMET)
 """
 import glob
 import gzip
@@ -54,33 +54,6 @@ EQUAL = [("GSM8K", "T:T26-S42-gsm8k_think:math_verify", "T:think-native{n}-gsm8k
          ("MBPP+", "P:T26x-S42-evalplus:mbpp_chat:plus", "P:T26x-native{n}-evalplus:mbpp_chat:plus"),
          ("HELMET", "B:T26ne-S42-helmet:helmet", "B:T26ne-native{n}-helmet:helmet")]
 
-# SenseNova-Loop-9B headline at decode 1 ({c}: native1, C11, C21, native2)
-SN_EQUAL = [("GSM8K", "T:SN-{c}-gsm8k_think:math_verify"), ("MATH-500", "T:SN-{c}-math500_think:math_verify"),
-            ("MMLU-Pro", "L:SN-{c}-mmlupro:exact_match"), ("ARC-C", "L:SN-{c}-arc:acc_norm"), ("BBH", "B:SNnt-{c}-bbh:bbh"),
-            ("HumanEval", "L:SN-{c}-code:pass@1"), ("HELMET", "B:SNnt-{c}-helmet:helmet")]
-# MBPP+ is left out for SenseNova: its instruct prompt forces a code prefix, and this thinking model then opens a <think>
-# block inside the code in nearly every answer (native 2/2: 375 of 378), so the score measures that format failure for
-# every condition (native 2/2 44.4, prefill 2 / decode 1 64.0). HumanEval (completion prompt) has no such answers.
-# which part of the hybrid gets the prefill-2 state: attention KV only (A), Gated-DeltaNet state only (G), both ("")
-SN_STATE = [("RULER-4K", "B:SNnt-{c}:ruler4k"), ("RULER-8K", "B:SNnt-{c}:ruler8k"), ("RULER-16K", "B:SNnt-{c}:ruler16k"),
-            ("MMLU-Pro", "L:SN-{c}-mmlupro:exact_match"), ("ARC-C", "L:SN-{c}-arc:acc_norm"),
-            ("HELMET", "B:SNnt-{c}-helmet:helmet")]
-
-# hybrid-state numbers quoted in Appendix "Reading Deep in a Hybrid Model": (kind, mix, benchmark) -> printed
-HYBRID_PRINTED = {("untrained", "A", "RULER-16K"): (50.2, None, None), ("untrained", "G", "RULER-16K"): (50.5, None, None),
-                  ("untrained", "", "RULER-16K"): (66.6, None, None), ("untrained", "A", "MMLU-Pro"): (23.7, None, None),
-                  ("untrained", "G", "MMLU-Pro"): (21.5, None, None), ("untrained", "", "MMLU-Pro"): (36.2, None, None),
-                  ("trained", "A", "MMLU-Pro"): (4.6, 2.0, 7.2), ("trained", "G", "MMLU-Pro"): (2.0, -0.4, 4.5),
-                  ("trained", "G", "RULER-16K"): (4.9, 2.1, 7.7), ("trained", "A", "RULER-4K"): (-4.5, -7.2, -2.0),
-                  ("trained", "", "ARC-C"): (-2.9, -4.8, -1.0), ("trained", "G", "ARC-C"): (-2.7, -4.5, -0.9),
-                  ("trained", "A", "ARC-C"): (0.8, None, None), ("trained", "G", "HELMET"): (9.1, 6.5, 11.6),
-                  ("trained", "A", "HELMET"): (-0.2, None, None), ("trained", "A", "RULER-16K"): (0.7, None, None)}
-
-SNG_KEYS = [("RULER-4K", "B:SNGnt-{c}:ruler4k"), ("RULER-8K", "B:SNGnt-{c}:ruler8k"), ("RULER-16K", "B:SNGnt-{c}:ruler16k"),
-            ("MMLU-Pro", "L:SNG-{c}-mmlupro:exact_match"), ("ARC-C", "L:SNG-{c}-arc:acc_norm"),
-            ("BBH", "B:SNGnt-{c}-bbh:bbh"), ("GSM8K", "T:SNG-{c}-gsm8k_think:math_verify"),
-            ("HELMET", "B:SNGnt-{c}-helmet:helmet")]
-
 CMP = []
 # Table 6 / Section 3 (maps frozen at the identity, same recipe, minus the loop adapter): the values the paper prints
 NOMAP = {("S41", "RULER-16K"): (-11.4, -14.7, -8.2), ("S41", "GSM8K"): (2.3, 0.2, 4.5), ("S41", "MMLU"): (-0.2, -0.6, 0.1),
@@ -104,9 +77,6 @@ CMP += [
     ("Table 2", "Ouro-1.4B-T MMLU-Pro", "L:T14x-S41-mmlupro:exact_match", "L:T14x-S11-mmlupro:exact_match", (17.1, 12.4, 22.4)),
     ("Table 2", "Ouro-1.4B-T HELMET", "B:T14ne-S41-helmet:helmet", "B:T14ne-S11-helmet:helmet", (4.6, 0.1, 8.6)),
     ("Table 2", "Ouro-1.4B-T GSM8K", "T:T14-S41-gsm8k_think:math_verify", "T:T14-S11-gsm8k_think:math_verify", (13.6, 10.5, 16.6)),
-    ("Table 2", "SenseNova MMLU-Pro", "L:SN-C21-mmlupro:exact_match", "L:SN-C11-mmlupro:exact_match", (5.5, 2.9, 8.1)),
-    ("Table 2", "SenseNova HELMET", "B:SNnt-C21-helmet:helmet", "B:SNnt-C11-helmet:helmet", (3.5, 0.8, 6.1)),
-    ("Table 2", "SenseNova BBH", "B:SNnt-C21-bbh:bbh", "B:SNnt-C11-bbh:bbh", (7.0, 5.9, 8.0)),
     ("Table 5", "2.6B decode 1 RULER-4K", ruler("X26-S41", 4), ruler("X26-S11", 4), (-3.8, -8.2, 0.3)),
     ("Table 5", "2.6B decode 1 MATH 4-shot", "L:o26x-S41-math:boxed", "L:o26x-S11-math:boxed", (-12.0, -16.2, -7.8)),
     ("Table 5", "2.6B decode 1 MATH 0-shot", "L:o26x-S41-math0shot:boxed", "L:o26x-S11-math0shot:boxed", (8.0, 4.2, 11.6)),
@@ -172,8 +142,7 @@ CMP += [
       for lab, x, y in (("2.6B-T prefill 4/decode 2 vs native 4/4", "T26ne-S42-helmet", "T26ne-native4-helmet"),
                         ("2.6B-T prefill 4/decode 2 vs native 2/2", "T26ne-S42-helmet", "T26ne-native2-helmet"),
                         ("2.6B-T prefill 4 vs 1 (decode 1)", "T26ne-S41-helmet", "T26ne-S11-helmet"),
-                        ("1.4B-T prefill 4 vs 1 (decode 1)", "T14ne-S41-helmet", "T14ne-S11-helmet"),
-                        ("SenseNova prefill 2 vs 1 (decode 1)", "SNnt-C21-helmet", "SNnt-C11-helmet"))
+                        ("1.4B-T prefill 4 vs 1 (decode 1)", "T14ne-S41-helmet", "T14ne-S11-helmet"))
       for cat in ("rag", "rerank", "icl", "recall")],
     *[("Equal decode cost", f"2.6B-T prefill 4/decode 2 vs native {n}/{n} {bench}", ka.format(c="S42", r=f"T26x"),
        kb.format(n=n), None)
@@ -187,27 +156,6 @@ CMP += [
           ("HumanEval+", "P:T26x-S42-evalplus:humaneval_chat:plus", "P:T26x-native{n}-evalplus:humaneval_chat:plus"),
           ("MBPP+", "P:T26x-S42-evalplus:mbpp_chat:plus", "P:T26x-native{n}-evalplus:mbpp_chat:plus"),
           ("HELMET", "B:T26ne-S42-helmet:helmet", "B:T26ne-native{n}-helmet:helmet"))],
-    *[("Hybrid state", f"SenseNova {kind} prefill-2 state {part} vs prefill 1 {bench}", key.format(c=deep + mix), key.format(c=shallow),
-       HYBRID_PRINTED.get((kind, mix, bench)))
-      for kind, deep, shallow in (("untrained", "splice21", "native1"), ("trained", "C21", "C11"))
-      for mix, part in (("", "both"), ("A", "attention KV"), ("G", "GDN state"))
-      for bench, key in SN_STATE],
-    *[("Hybrid state", f"SenseNova trained prefill-2 GDN state only vs both {bench}", key.format(c="C21G"), key.format(c="C21"),
-       {"RULER-4K": (6.5, None, None), "RULER-8K": (4.2, None, None), "RULER-16K": (3.7, None, None),
-        "MMLU-Pro": (-3.5, None, None), "HELMET": (5.6, None, None)}.get(bench))
-      for bench, key in SN_STATE],
-    ("Hybrid state", "SenseNova trained prefill-2 GDN state only vs native 2/2 HELMET", "B:SNnt-C21G-helmet:helmet",
-     "B:SNnt-native2-helmet:helmet", (-11.2, -13.0, -9.4)),
-    # SenseNova adapter trained with the GDN-only prefill-2 state (SNG-*, --mix G): prefill loops within it, and against the
-    # original adapter trained with both parts at prefill 2 (SN-* C21)
-    *[("Hybrid G-trained", f"SenseNova G-trained {name} {bench}", key.format(c="C21G"), key.format(c=ref),
-       {"HELMET": (7.2, 4.7, 9.7), "RULER-16K": (6.1, 3.2, 9.1), "ARC-C": (-2.8, -4.7, -0.9)}.get(bench))
-      for name, ref in (("prefill 2 (GDN) vs prefill 1", "C11"),)
-      for bench, key in SNG_KEYS],
-    *[("Hybrid G-trained", f"SenseNova G-trained prefill 2 (GDN) vs original both-layer prefill 2 {bench}", key.format(c="C21G"),
-       key.replace("SNGnt-", "SNnt-").replace("SNG-", "SN-").format(c="C21"),
-       {"HELMET": (4.4, 2.7, 6.2), "RULER-4K": (6.7, None, None), "RULER-8K": (2.8, None, None),
-        "RULER-16K": (2.9, None, None), "MMLU-Pro": (-2.7, -5.0, -0.3)}.get(bench)) for bench, key in SNG_KEYS],
     # fewer prefill than decode loops (m < n) on the tasks where more prefill loops hurt: same adapter, same n
     *[("Fewer prefill loops", f"{model} prefill {lo} vs {hi} (decode {n}) {bench}", key.format(c=f"S{lo}{n}"),
        key.format(c=f"S{hi}{n}"), (17.2, 13.0, 21.4) if (bench, lo, hi, n) == ("MATH-500 4-shot", 1, 4, 4) else None)
@@ -243,18 +191,9 @@ CMP += [
                             "T:think-native{d}-gsm8k_think:math_verify"))],
     ("Sec 4.2", "2.6B-T prefill 4/decode 2 vs native 4/4 GSM8K (full)", "T:T26-S42-gsm8k_think:math_verify",
      "T:think-native4-gsm8k_think:math_verify", (-1.0, -2.0, 0.1)),
-    ("Sec 4.2", "SenseNova prefill 1/decode 1 vs native 2/2 GSM8K (full)", "T:SN-C11-gsm8k_think:math_verify",
-     "T:SN-native2-gsm8k_think:math_verify", None),
     ("Limitations", "decode 3 RULER-4K vs native 3/3", ruler("X26-S43", 4), "B:X26-n3f:ruler4k", (-10.4, None, None)),
     ("Limitations", "decode 3 RULER-8K vs native 3/3", ruler("X26-S43", 8), "B:X26-n3f:ruler8k", (-9.5, None, None)),
     ("Limitations", "decode 3 RULER-16K vs native 3/3", ruler("X26-S43", 16), "B:X26-n3f:ruler16k", (-5.3, None, None)),
-    ("App B", "Nanbeige RULER-4K prefill 2 vs 1 (decode 1)", "B:NBX-p2d1:ruler4k", "B:NBX-p1d1:ruler4k", (11.8, None, None)),
-    ("App B", "Nanbeige RULER-8K", "B:NBX-p2d1:ruler8k", "B:NBX-p1d1:ruler8k", (11.7, None, None)),
-    ("App B", "Nanbeige RULER-16K", "B:NBX-p2d1:ruler16k", "B:NBX-p1d1:ruler16k", (14.2, None, None)),
-    ("App B", "Nanbeige MMLU", "L:NBX-p2d1-mmlufull:acc", "L:NBX-p1d1-mmlufull:acc", (12.2, None, None)),
-    ("App B", "Nanbeige GSM8K", f"L:NBX-p2d1-gsmfull:{GF}", f"L:NBX-p1d1-gsmfull:{GF}", (-8.4, -11.5, -5.3)),
-    ("App B", "Nanbeige GSM8K flexible extraction", "L:NBX-p2d1-gsmfull:exact_match:flexible-extract",
-     "L:NBX-p1d1-gsmfull:exact_match:flexible-extract", (5.2, None, None)),
 ]
 # means (Figure 1 grid on evaluation subsets)
 MEANS = []
@@ -286,7 +225,7 @@ MEANS += [("Task map 1.4B", f"{c} {bench}", key.format(c=c)) for bench, key in T
 MEANS += [("Task map", f"{c} {bench}", key.format(c=c)) for bench, key in TASK_MAP
           for c in [f"S{m}{n}" for m in range(1, 5) for n in range(1, 5)] + [f"native{n}" for n in range(1, 5)]]
 MEANS += [("Sec 4.2", f"GSM8K full {c}", f"T:{c}-gsm8k_think:math_verify")
-          for c in ("T26-S42", "think-native4", "SN-C11", "SN-C21", "SN-native2", "SN-native1", "SN-splice21")]
+          for c in ("T26-S42", "think-native4")]
 MEANS += [("Figure pareto", f"GSM8K full think-native{d}", f"T:think-native{d}-gsm8k_think:math_verify") for d in (1, 2, 3)]
 for p in range(1, 5):
     for d in range(1, 5):
@@ -400,7 +339,6 @@ def load_raw(runs, key):
 def keys():
     ks = {a for _, _, a, b, _ in CMP} | {b for _, _, a, b, _ in CMP} | {k for _, _, k in MEANS}
     ks |= {k for _, _, ka, kb in equal_specs() for k in (ka, ka.replace("S42", "S22"), kb.format(n=2), kb.format(n=4))}
-    ks |= {k.format(c=c) for _, k in SN_EQUAL for c in ("native1", "C11", "C21", "native2")}
     ks |= {ka.replace("S42", "S12") for _, _, ka, _ in equal_specs() if "T26" in ka}
     ks |= {k.format(c=c) for _, k in TASK_MAP_14 for c in [f"S{m}{n}" for m in range(1, 5) for n in range(1, 5)]
            + [f"native{n}" for n in range(1, 5)]}
@@ -546,7 +484,6 @@ RATIOS = [("2.6B-T GSM8K prefill 4/decode 2 vs native 4/4", "think", "gsm", "S42
           ("2.6B-T GSM8K prefill 4/decode 2 vs LoRA-distilled native 2/2", "think", "gsm", "S42sb", "Df2st", (1.20, 1.05, 1.38)),
           ("2.6B-T MATH prefill 4/decode 2 vs native 4/4", "think", "math", "S42sb", "native4st", (0.63, None, None)),
           ("2.6B-T MATH prefill 4/decode 2 vs native 2/2", "think", "math", "S42sb", "native2st", (1.22, None, None)),
-          ("SenseNova GSM8K prefill 1/decode 1 vs native 2/2", "sn", "gsm", "C11", "native2", (0.59, 0.52, 0.68)),
           ("2.6B-T GSM8K answer once vs per-loop answer banks (prefill 4/decode 2, batch 1)", "think", "gsm", "O42sb", "S42sb", None)]
 
 
@@ -699,7 +636,6 @@ def e2e_table():
             ("main", "think", "gsm", ("native2st", "native4st", "Df2st", "S22sb", "S42sb")),           # 192 problems
             ("first64", "think", "gsm", ("native1st", "native2st", "native4st", "S41sb", "S22sb", "S42sb")),  # 64
             ("main", "think", "math", ("native2st", "native4st", "S42sb")),
-            ("main", "sn", "gsm", ("native2", "C11", "C21")),
             ("answer-once", "think", "gsm", ("S42sb", "O42sb")),   # appendix: answer stored once
             ("smaller", "think14", "gsm", ("native2st", "native4st"))):  # Ouro-1.4B-Thinking, the 192 problems of "main"
         recs = {c: e2e(model, task, c) for c in conds}
@@ -986,28 +922,6 @@ def think_seeds():
           + ("" if above == THINK_SEED_ABOVE2 else f"  !! paper: above 2/2 on {THINK_SEED_ABOVE2}"))
     return out
 
-
-def sn_equal():
-    """SenseNova-Loop-9B at the decode depth of one visit: adapter prefill 2 / decode 1 (C21) against native 1/1, the same
-    adapter reading one visit (C11) and native 2/2, all four on the items every one of them has."""
-    out = []
-    for bench, key in SN_EQUAL:
-        d = {c: load(key.format(c=c)) for c in ("native1", "C11", "C21", "native2")}
-        if any(v is None for v in d.values()):
-            print(f"SN equal     {bench:12s} MISSING {[c for c, v in d.items() if v is None]}"); continue
-        ids = set.intersection(*(set(v) for v in d.values()))
-        d = {c: {i: v[i] for i in ids} for c, v in d.items()}
-        row = dict(bench=bench, n=len(ids))
-        for c in ("native1", "C11", "native2"):
-            r = boot(d["C21"], d[c])
-            row["C21"], row[c] = round(r["a"], 1), round(r["b"], 1)
-            row[f"vs_{c}"] = [round(r[k], 3) for k in ("diff", "lo", "hi")]
-        out.append(row)
-        print(f"SN equal     {bench:12s} n={len(ids):5d} read2/write1 {row['C21']:5.1f} | 1/1 {row['native1']:5.1f} "
-              f"{row['vs_native1'][0]:+5.1f} | C11 {row['C11']:5.1f} {row['vs_C11'][0]:+5.1f} [{row['vs_C11'][1]:+.1f}, "
-              f"{row['vs_C11'][2]:+.1f}] | 2/2 {row['native2']:5.1f} {row['vs_native2'][0]:+5.1f} [{row['vs_native2'][1]:+.1f}, "
-              f"{row['vs_native2'][2]:+.1f}]")
-    return out
 
 def taskmap_specs():
     """(model, benchmark, cell key with {c}, native key with {n}, distilled key with {d} or None) for every task map."""
@@ -1334,48 +1248,6 @@ def batched_passes():
     return dict(max_spread=round(max(spread), 1), ratios=ratios)
 
 
-def batched_serving_14(reps=5000):
-    """Ouro-1.4B served like batched_serving (time_batch14.sh): Original n/n, Distilled n/n and LoopBridge 4/n, n = 1, 2,
-    at batch 8 and 32, wall time = mean of the timing passes."""
-    out = {}
-    conds = ("native1st", "D1st", "a4x1pm", "native2st", "D2st", "a4x2pm")
-    for b in (8, 32):
-        got = {}
-        for c in conds:
-            g = batched_requests(c, b, model="1.4B")
-            if not g:
-                continue
-            walls = [g[1]] + [x[1] for x in (batched_requests(c, b, pre, "1.4B", wall_only=True) for pre in ("batchb", "batchc")) if x and x[2] == g[2]]
-            got[c] = (g[0], float(np.mean(walls)), g[2], len(walls))
-            v = list(g[0].values())
-            out[f"{c}@{b}"] = dict(n=g[2], passes=len(walls), acc=round(100 * float(np.mean([x[0] for x in v])), 1),
-                                   s_per_request=round(got[c][1] / g[2], 3),
-                                   prefill_pct=round(100 * sum(x[1] for x in v) / got[c][1], 1))
-            r = out[f"{c}@{b}"]
-            print(f"Batched 1.4B batch {b:2d} {c:10s} n={r['n']} passes={r['passes']}  acc {r['acc']:5.1f}  {r['s_per_request']:6.3f} s/request"
-                  f"  prefill {r['prefill_pct']:4.1f}%")
-        for a, c in (("a4x1pm", "native1st"), ("a4x1pm", "D1st"), ("native2st", "a4x1pm"), ("D2st", "a4x1pm"),
-                     ("a4x2pm", "native2st"), ("a4x2pm", "D2st")):
-            if a not in got or c not in got:
-                continue
-            A, C = got[a][0], got[c][0]
-            ids = sorted(set(A) & set(C))
-            d = np.array([A[i][0] - C[i][0] for i in ids])
-            rng = np.random.default_rng(0)
-            dq = 100 * d[rng.integers(0, len(ids), (reps, len(ids)))].mean(1)
-            row = dict(n=len(ids), diff=round(100 * float(d.mean()), 1), lo=round(float(np.percentile(dq, 2.5)), 1),
-                       hi=round(float(np.percentile(dq, 97.5)), 1), ratio=round((got[a][1] / got[a][2]) / (got[c][1] / got[c][2]), 2))
-            out[f"{a} vs {c}@{b}"] = row
-            print(f"Batched 1.4B batch {b:2d} {a:10s} vs {c:10s} n={row['n']}  acc {row['diff']:+5.1f} [{row['lo']:+5.1f}, {row['hi']:+5.1f}]"
-                  f"  time x{row['ratio']:.2f}")
-    want = {}   # not in the paper since 2026-11-14 (NOTES: runaway MMLU-Pro answers); printed for the record
-    for k, w in want.items():
-        r = out.get(k)
-        if r and (r["diff"], r["lo"], r["hi"], r["ratio"]) != w:
-            print(f"Batched 1.4B {k}: {r}  !! paper: {w}")
-    return out
-
-
 USE_TBATCH2 = True   # GSM8K requests 401-1,319 served in batches (time_batch_think.sh START=400 N=919; files tbatch2a on a2,
 # tbatch2b / tbatch2c on a1). Never name a pass by case alone (tbatchB vs tbatchb): on the Mac's case-insensitive disk
 # pn_sync.sh copied one over the other.
@@ -1384,11 +1256,11 @@ THINK_BATCH_BLOCKS = (("tbatch", "tbatchb", "tbatchc"),) + ((("tbatch2a", "tbatc
 
 def thinking_batched(reps=5000):
     """Ouro-2.6B-Thinking served with batch_requests.py (time_batch_think.sh; passes tbatch / tbatchb / tbatchc): GSM8K
-    (all 1,319 requests in two blocks, THINK_BATCH_BLOCKS; 4,096-token budget) at batch 16 and 32 and MATH-500 (500, 8,192 tokens) at batch 16, chat template;
+    (all 1,319 requests in two blocks, THINK_BATCH_BLOCKS; 4,096-token budget) at batch 16 and 32, chat template;
     accuracy (math_verify, as lm-eval), wall seconds per request (mean of the passes), prefill share; LoopBridge 4/2
     against Original 4/4, Original 2/2 and Distilled 2/2."""
     out = {}
-    for task, sizes in (("gsmthink", (16, 32)), ("maththink", (16,))):
+    for task, sizes in (("gsmthink", (16, 32)),):
         for b in sizes:
             got = {}
             for c in ("native2st", "native4st", "D2st", "a4x2pm"):
@@ -1459,59 +1331,8 @@ def thinking_batched(reps=5000):
 
 BUDGET_PAIRS = [("a4x1pm", "native1st"), ("a4x1pm", "D1st"), ("a4x1pm", "D1r80st"), ("a4x2pm", "D2st"),
                 ("a4x2pm", "D2r80st"), ("a4x2pm", "f4x2pm"), ("a4x2pm", "native2st"), ("a3x2pm", "D2st"),
-                ("native2st", "a4x1pm"), ("f4x1pm", "native1st"), ("f4x1pm", "D1st"),   # Ours fixed m=4 (Figure 3)
+                ("native2st", "a4x1pm"), ("f4x1pm", "native1st"), ("f4x1pm", "D1st"),   # Ours fixed m=4 (Appendix L)
                 ("f4x2pm", "native2st"), ("f4x2pm", "D2st"), ("f4x2pm", "D2r80st")]   # two decode loops
-
-
-SPEC_DRAFTERS = {"native1st": "Original 1/1", "D1st": "Distilled 1/1", "D1r80st": "Distilled 1/1, rank 80",
-                 "f4x1pm": "Ours, fixed m=4, 4/1", "a4x1pm": "Ours, LoopBridge 4/1"}
-
-
-def spec_blocks(agree, k):
-    """Greedy speculative decoding with k drafted tokens per step, simulated from the teacher-forced agreement string
-    (spec_agree.py): each step accepts the run of agreeing drafts (at most k) plus the target's own next token."""
-    p = steps = 0
-    while p < len(agree):
-        run = 0
-        while run < k and p + run < len(agree) and agree[p + run] == "1":
-            run += 1
-        p += run + 1
-        steps += 1
-    return steps
-
-
-def spec_decoding():
-    """Appendix: one-decode-loop drafters for speculative decoding of Original 4/4 on the 400 timed requests. Measured:
-    the share of answer tokens on which the drafter's greedy token equals the target's, and the tokens accepted per
-    verification step (tau) for k drafted tokens. Estimated: the speed-up over plain Original 4/4 decoding at batch 1,
-    with each draft costing the drafter's measured time per decoded token and each verification one decode step of
-    Original 4/4 (time_breakdown, batch 1); prefill is left out (the drafters reuse the target's prompt pass)."""
-    tok = lambda c: [r for r in time_breakdown_rows() if r.get("model", "Ouro-2.6B") == "Ouro-2.6B" and r["cond"] == c]
-    ms = lambda c: (1000 * sum(r["decode_s"] for r in tok(c)) / sum(r["out_tokens"] for r in tok(c))) if len(tok(c)) == 4 else None
-    c44 = ms("native4st")
-    out = {}
-    for c, name in SPEC_DRAFTERS.items():
-        rows = []
-        for task in TIME_TASKS:
-            f = E2E / f"spec-{c}-{task}.jsonl"
-            if f.exists():
-                rows += [json.loads(l) for l in open(f)]
-        if len(rows) < 400 or c44 is None or ms(c) is None:
-            print(f"Spec decode  {name}: MISSING ({len(rows)} rows)"); continue
-        L = sum(len(r["agree"]) for r in rows)
-        rate = 100 * sum(r["agree"].count("1") for r in rows) / L
-        res = {}
-        for k in range(1, 9):
-            steps = sum(spec_blocks(r["agree"], k) for r in rows)
-            tau = L / steps
-            speed = c44 * L / (steps * (k * ms(c) + c44))
-            res[k] = (round(tau, 2), round(speed, 2))
-        best = max(res, key=lambda k: res[k][1])
-        out[c] = dict(name=name, tokens=L, agree=round(rate, 1), draft_ms=round(ms(c), 1), target_ms=round(c44, 1),
-                      by_k={str(k): v for k, v in res.items()}, best_k=best)
-        print(f"Spec decode  {name:24s} agree {rate:5.1f}%  draft {ms(c):5.1f} ms/token  tau(k=4) {res[4][0]:.2f}  "
-              f"best k={best}: tau {res[best][0]:.2f}, est. speed-up {res[best][1]:.2f}x over Original 4/4")
-    return out
 
 
 def time_matched(reps=5000):
@@ -2632,8 +2453,8 @@ def aligned_cells():
         print(f"Aligned map  11-benchmark average LoopBridge 4/3 vs Original 3/3: {got}"
               + ("" if got == (70.8, 70.8) else "  !! paper (Section 5.3): (70.8, 70.8)"))
         grid_got = {c: round(float(np.mean([r[c] for r in out])), 1)
-                    for c in ("a11", "a41", "a12", "a32", "a42", "a13", "a23", "a14", "a24", "a44", "native4")}
-        grid_want = dict(a11=47.0, a41=58.2, a12=57.2, a32=68.9, a42=69.1, a13=59.7, a23=66.0, a14=60.4, a24=66.3, a44=70.7, native4=71.9)
+                    for c in ("a11", "a41", "a12", "a32", "a42", "a13", "a23", "a33", "a14", "a24", "a44", "native4")}
+        grid_want = dict(a11=47.0, a41=58.2, a12=57.2, a32=68.9, a42=69.1, a13=59.7, a23=66.0, a33=70.2, a14=60.4, a24=66.3, a44=70.7, native4=71.9)
         print(f"Aligned map  11-benchmark 4x4 checks (Section 5.3 / Figure 4): {grid_got}"
               + ("" if grid_got == grid_want else f"  !! paper: {grid_want}"))
     return out
@@ -2656,46 +2477,6 @@ def taskmap_cells():
     return out
 
 
-def select_aware(cells, nat, ids, half, reps=5000):
-    """Bootstrap that repeats the cross-fitted choice of m in every resample of the items, so the interval includes
-    the variability of the choice (the intervals of Table 1; 5,000 draws, seed 0)."""
-    rng = np.random.default_rng(0)
-    ids = sorted(ids, key=str)
-    n = len(ids)
-    A = np.array([[cells[m][i] for i in ids] for m in range(1, 5)], dtype=np.float64)
-    b = np.array([nat[i] for i in ids], dtype=np.float64)
-    h = np.array([half(i) for i in ids])
-    if np.array_equal(A, np.floor(A)) and np.array_equal(b, np.floor(b)):
-        # Integer/binary scores are exact in float64: bincount + single BLAS matmul is bit-identical and ~6x faster.
-        m0, m1 = (h == 0), (h == 1)
-        D = A - b[None, :]
-        M = np.hstack([(A * m0).T, (A * m1).T, (D * m1).T, (D * m0).T])
-        diffs = np.empty(reps, dtype=np.float64)
-        chunk = 250
-        for s in range(0, reps, chunk):
-            c = min(chunk, reps - s)
-            X = rng.integers(0, n, (c, n))   # identical RNG draw order to looping rng.integers(0, n, n)
-            off = (np.arange(c) * n)[:, None]
-            cnt = np.bincount((X + off).ravel(), minlength=c * n).reshape(c, n).astype(np.float64)
-            P = cnt @ M
-            best0 = np.argmax(P[:, 0:4], axis=1)
-            best1 = np.argmax(P[:, 4:8], axis=1)
-            rows = np.arange(c)
-            diffs[s:s + c] = 100.0 * (P[rows, 8 + best0] + P[rows, 12 + best1]) / n
-    else:
-        # Fractional scores (e.g., RULER): preserve resample summation order to match tie-breaking identically.
-        diffs = []
-        for _ in range(reps):
-            x = rng.integers(0, n, n); total = 0.0
-            for f in (0, 1):
-                train, test = x[h[x] == f], x[h[x] == 1 - f]
-                m = int(np.argmax(A[:, train].mean(1)))
-                total += (A[m, test] - b[test]).sum()
-            diffs.append(100 * total / n)
-    return [round(float(np.percentile(diffs, q)), 3) for q in (2.5, 97.5)]
-
-
-
 OVERLAP = Path(__file__).resolve().parents[1] / "results" / "overlap" / "mix-data-48m.json"
 
 
@@ -2706,20 +2487,12 @@ OVERLAP_PRINTED = {("MMLU", "a41", "dist1"): 14.3, ("MMLU-Pro", "a41", "dist1"):
 
 
 def overlap_check():
-    """Items whose question shares a 13-gram with the adapters' training mixture (overlap_audit.py) are dropped and the
-    Ouro-2.6B selection of Table 1 and the 4-shot MATH-500 contrast are recomputed on the remaining items."""
+    """Items whose question shares a 13-gram with the adapters' training mixture (overlap_audit.py) are dropped and
+    Table 1's aligned rows and the 4-shot MATH-500 contrast are recomputed on the remaining items."""
     if not OVERLAP.exists():
         return {}
     drop = {k for r in json.loads(OVERLAP.read_text())["runs"].values() for k in r["overlapping"]}
     out = dict(dropped=len(drop))
-    rows = taskmap_select(exclude=drop, quiet=True)
-    for n in (1, 2):
-        sel = [r for r in rows if r["model"] == "Ouro-2.6B" and r["n"] == n]
-        out[f"n{n}"] = (sum(r["diff_select_aware"][1] > 0 for r in sel), len(sel))
-        out[f"n{n}_rows"] = {r["bench"]: [float(x) for x in r["diff_select_aware"]] for r in sel}
-        flag = ""   # per-task depth selection left the paper on 2026-11-12: printed for the record, not guarded
-        print(f"Overlap      Ouro-2.6B n={n} without overlapping items: significant with selection-aware intervals "
-              f"{out[f'n{n}'][0]} of {out[f'n{n}'][1]}{flag}")
     a, b = load("L:o26x-S14-math:boxed"), load("L:o26x-S44-math:boxed")
     if a and b:
         keep = [i for i in a if i in b and i not in drop]
@@ -2748,84 +2521,6 @@ def overlap_check():
                     print(f"Overlap      {bench} {row} vs {kind}{n}: {r['diff']:+.2f}  !! paper: {want}")
                 print(f"Overlap      {bench:12s} {row} vs {kind} {n}/{n} without {len(both) - len(keep)} overlapping: "
                       f"{r['a']:5.1f} vs {r['b']:5.1f} {r['diff']:+5.1f} [{r['lo']:+.1f}, {r['hi']:+.1f}] n={r['n']}")
-    return out
-
-def taskmap_select(exclude=frozenset(), quiet=False):
-    """Choose the prefill loops m per task without selection bias: for every benchmark and decode loops n, split the
-    items in two halves (by a hash of the item id), pick the m with the best mean on one half, score it on the other
-    half, and swap; every item is scored once by an m chosen without it. Compared with native n/n on the same items
-    (paired bootstrap, 5,000 draws, seed 0)."""
-    import hashlib
-    half = lambda i: int(hashlib.md5(str(i).encode()).hexdigest(), 16) % 2
-    out = []
-    for model, bench, key, nkey, dkey in taskmap_specs():
-        for n in range(1, 5):
-            cells = {m: load(key.format(c=f"S{m}{n}")) for m in range(1, 5)}
-            nat = load(nkey.format(n=n))
-            if nat is None or any(v is None for v in cells.values()):
-                continue
-            ids = set(nat).intersection(*(set(v) for v in cells.values())) - exclude
-            folds = [[i for i in ids if half(i) == h] for h in (0, 1)]
-            chosen, picked = [], {}
-            for h in (0, 1):
-                train, test = folds[h], folds[1 - h]
-                m_best = max(range(1, 5), key=lambda m: (np.mean([cells[m][i] for i in train]), -m))
-                chosen.append(m_best)
-                for i in test:
-                    picked[i] = cells[m_best][i]
-            r = boot(picked, {i: nat[i] for i in picked})
-            row = dict(model=model, bench=bench, n=n, m_chosen=chosen, items=len(picked), selected=round(r["a"], 1),
-                       native=round(r["b"], 1), diff=[round(r[k], 3) for k in ("diff", "lo", "hi")],
-                       diff_select_aware=[round(r["diff"], 1), *select_aware(cells, nat, ids, half)])
-            ra = boot(picked, {i: cells[n][i] for i in picked})
-            # within the adapter: the chosen m against the same adapter's m = n (isolates the prefill loops)
-            row.update(adapter_nn=round(ra["b"], 1), diff_adapter=[round(ra[k], 3) for k in ("diff", "lo", "hi")],
-                       diff_adapter_select_aware=[round(ra["diff"], 1), *select_aware(cells, cells[n], ids, half)])
-            # same-training control: LoRA distillation of native n/n (native 4/4 is the teacher itself)
-            dist = None if dkey is None else nat if n == 4 else load(dkey.format(d=DISTILLED[n]))
-            if dist is not None and set(picked) <= set(dist):    # only a complete run (partial exports are skipped)
-                shared = picked
-                r = boot(shared, {i: dist[i] for i in shared})
-                row.update(distilled=round(r["b"], 1), distilled_items=len(shared),
-                           diff_distilled=[round(r[k], 3) for k in ("diff", "lo", "hi")],
-                           diff_distilled_select_aware=[round(r["diff"], 3), *select_aware(cells, dist, ids, half)])
-            out.append(row)
-            vs_d = (f" | distilled {row['distilled']:5.1f} {row['diff_distilled'][0]:+5.1f} [{row['diff_distilled'][1]:+.1f}, "
-                    f"{row['diff_distilled'][2]:+.1f}]") if "distilled" in row else ""
-            if quiet:
-                continue
-            print(f"Select m     {model} {bench:16s} n={n} m={chosen} selected {row['selected']:5.1f} native {row['native']:5.1f} "
-                  f"{row['diff'][0]:+5.1f} [{row['diff'][1]:+.1f}, {row['diff'][2]:+.1f}]{vs_d}")
-    if quiet:
-        return out
-    # single values quoted in Section 4.2: (bench, n, field) -> (diff, lo, hi) or point estimate
-    quoted = {}   # per-task depth selection left the paper on 2026-11-12: the counts below are printed, not guarded
-    for (bench, n, field), v in quoted.items():
-        got = next((r.get(field) for r in out if r["model"] == "Ouro-2.6B" and r["bench"] == bench and r["n"] == n), None)
-        want = v if isinstance(v, tuple) else (v,)
-        if got is None or any(abs(a - b) > 0.051 for a, b in zip(want, got)):
-            print(f"Select m     {bench} n={n} {field}: {got}  !! paper: {v}")
-    for model in ("Ouro-2.6B", "Ouro-1.4B"):
-        for n in range(1, 5):
-            rows = [r for r in out if r["n"] == n and r["model"] == model]
-            got = (sum(r["diff_select_aware"][1] > 0 for r in rows), sum(r["diff_adapter_select_aware"][1] > 0 for r in rows),
-                   sum(r["diff_adapter_select_aware"][2] < 0 for r in rows), len(rows))
-            # quoted in Section 4.2: (selection-aware significant, above adapter n/n, below adapter n/n, benchmarks)
-            printed = {("Ouro-2.6B", 1): (14, 9, 0, 15), ("Ouro-2.6B", 2): (9, 3, 0, 15), ("Ouro-1.4B", 1): (12, 6, 0, 15),
-                       ("Ouro-1.4B", 2): (2, 1, 0, 15)}.get((model, n))
-            flag = ""
-            print(f"Select m     {model} n={n}: significant with selection-aware intervals {got[0]} of {got[3]}; above the "
-                  f"adapter's {n}/{n} significantly {got[1]}, below {got[2]}{flag}")
-    for model, counts in (("Ouro-2.6B", DISTILLED_COUNTS), ("Ouro-1.4B", DISTILLED_COUNTS_14)):
-        for n in (1, 2, 3):
-            rows = [r for r in out if r["model"] == model and r["n"] == n and "diff_distilled" in r]
-            if rows:   # selection-aware intervals, as Table 1; quoted in Section 4.2: (above, below, settings)
-                got = (sum(r["diff_distilled_select_aware"][1] > 0 for r in rows),
-                       sum(r["diff_distilled_select_aware"][2] < 0 for r in rows), len(rows))
-                printed = counts.get(n)
-                flag = ""
-                print(f"Select m     {model} vs distilled {n}/{n}: significantly above on {got[0]}, below on {got[1]} of "
-                      f"{got[2]}{flag}")
     return out
 
 def throughput():
@@ -2895,7 +2590,7 @@ def _compute(counter):
         print(f"{sec:12s} {label:52s} {means[-1]['mean']:6.1f}  n={len(s)}")
     e2e_rows, ratios = e2e_table()
     _TB = time_breakdown()   # printed once (its checks count); later callers reuse it through time_breakdown_rows
-    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), think_seeds=think_seeds(), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), sn_equal=sn_equal(), taskmap_select=taskmap_select(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), time_matched=time_matched(), spec_decoding=spec_decoding(), batched_serving=batched_serving(), batched_passes=batched_passes(), thinking_batched=thinking_batched(), batched_serving_14=batched_serving_14(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), main_table_14_seeds=SEEDS14_OUT, bbh_stop=bbh_stop_check(), aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
+    OUT.write_text(json.dumps(dict(comparisons=res, means=means, e2e=e2e_rows, e2e_ratios=ratios, throughput=throughput(), lev=lev(), equal=(eq := equal()), equal_aligned=equal("a"), think_seeds=think_seeds(), smaller=smaller_model(e2e_rows, eq), throughput_context=throughput_context(), appendix=appendix_checks(), think_frontier=think_frontier(), repro=repro(), taskmap_cells=taskmap_cells(), main_table=main_table(), gsm_protocol=gsm_protocol(), same_weights=same_weights(), same_weights_seeds=same_weights_seeds(), time_breakdown=_TB, batch_time=batch_time(), timing_repeat=timing_repeat(), depth_sweep=depth_sweep(), depth_gains=depth_gains_main(), main_gains=main_gains(), lora80=lora80(), longctx_maps=longctx_maps(), maps_by_depth=maps_by_depth(), math0_rows=math0_rows(), budget_pairs=budget_pairs(), time_matched=time_matched(), batched_serving=batched_serving(), batched_passes=batched_passes(), thinking_batched=thinking_batched(), depth_sweep_14=depth_sweep_14(), plateau_seeds=plateau_seeds(), prefill_trainable=prefill_trainable(), lr_check=lr_check(), think_sweep=think_sweep(), plateau=plateau(), plateau_extrapolated=plateau("m<=4"), main_table_14=main_table_14(), main_table_14_seeds=SEEDS14_OUT, bbh_stop=bbh_stop_check(), aligned_cells=aligned_cells(), ablations=ablations(), overlap=overlap_check()), indent=1))
     print(f"wrote {OUT}; {counter.flags} printed values differ ({bad} in the paired comparisons)")
 
 

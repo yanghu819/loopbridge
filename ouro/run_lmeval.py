@@ -1,8 +1,8 @@
-"""lm-eval-harness CLI with small compatibility patches for remote-code looped models.
+"""lm-eval-harness CLI with small transformers compatibility guards for looped models.
 
-- transformers >= 4.56 removed Cache.get_max_length (Nanbeige remote code still calls it).
-- transformers 5 has no AutoModelForVision2Seq (SenseNova-Loop needs transformers 5.18).
-Importing ouro.lmeval_ouro registers --model ouro (our runners: natives and delta arms).
+- transformers >= 4.56 removed Cache.get_max_length (some remote-code models still call it).
+- transformers 5 has no AutoModelForVision2Seq (lm-eval's optional VLM import).
+Importing ouro.lmeval_ouro registers --model ouro (our runners: natives and LoopBridge/distilled arms).
 """
 import faulthandler
 import os

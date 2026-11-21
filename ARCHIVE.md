@@ -3,14 +3,10 @@
 The project finished on 2026-11-19. The two 8-GPU boxes it ran on were released, and their working directories
 (`/dev/shm`, a tmpfs) were deleted. This file says what survived, and where.
 
-The tag `paper-arxiv` is the commit the arXiv version was built from. Nothing was removed from the code at close-out,
-so the modules the runs used are all published (see [`DEPRECATED.md`](DEPRECATED.md) for the parts the paper does not
-use). The source tree on each box is archived as it stood when the runs ended, because it is not identical to this
-repository: the repository was pruned of old development scripts (296 of them on one box) and then kept growing. On
-a1's snapshot, 11 files differ, and the differences are the repository's later additions — docstrings and
-`DEPRECATED` headers, HELMET support in `scripts/e2e_latency.py`, `paper_numbers.py` growing from 687 to 2,831 lines
-as the paper was written, an `OURO_TIME_START` offset and two opt-in environment flags that default to the behaviour
-that ran.
+The tag `paper-arxiv` is the commit the arXiv version was built from. Dead/dropped model lines and non-paper artifacts
+were pruned during release cleanup while keeping every module, launcher, and score file required to reproduce the paper
+(see [`DEPRECATED.md`](DEPRECATED.md) for the few legacy training-arm branches kept inside core Ouro modules). The raw
+source tree snapshots from the training boxes are archived as they stood when the runs ended.
 
 ## In this repository
 
@@ -23,9 +19,8 @@ from them on a CPU, and `ouro/scripts/paper_figs.py` redraws every figure. The e
 
 ## Private cold archive
 
-The heavy artifacts are in a private ModelScope repository, `torushy/untying-prefill-decode-backup`: 115.8 GB in
-10,679 files, uploaded by `ouro/scripts/backup_ms.py` (every two hours while the project ran) and, at close-out, by
-`backup_lev.py` and `backup_extra.py`. `a1/` and `a2/` are the two boxes.
+The heavy artifacts are stored in a private cold archive (115.8 GB across 10,679 files), organized by training host
+(`a1/` and `a2/`).
 
 | path | what | size |
 |---|---|---|

@@ -276,10 +276,10 @@ the training corpora (Appendix~\ref{app:training}).
 \centering
 \includegraphics[width=\textwidth]{../figs/fig_taskmap.pdf}
 \caption{\textbf{More prefill loops help at every decode depth, while fewer prefill loops hurt.} Ouro-2.6B, accuracy (\%)
-of LoopBridge across all 16 pairs $m,n\in\{1,\dots,4\}$ (bars shaded by prefill $m$, grouped by decode $n$) against
-Original~$n/n$ (dashed lines). Left: 11-benchmark average (orange: $4/n$ and gains over Original~$n/n$). Right: four
-tasks of different kinds. All 11 benchmarks: Table~\ref{tab:alignedcells}. At $4/4$ the phases are tied: LoopBridge
-averages 70.7 against 71.9 for Original~4/4, and deployment can bypass the adapter there to run Original~4/4 directly.}
+of LoopBridge across all 16 pairs $m,n\in\{1,\dots,4\}$ (shaded by prefill $m$, grouped by decode $n$) against
+Original~$n/n$ (dashed). Left: 11-benchmark average (orange: $4/n$ and gains over Original~$n/n$). Right: four diverse
+tasks (all 11: Table~\ref{tab:alignedcells}). Sharing one 2.4\% adapter across all 16 pairs leaves tied $3/3$ (70.2 vs.\
+70.8) and $4/4$ (70.7 vs.\ 71.9) slightly below Original; since the backbone is frozen, tied serving can bypass it.}
 \label{fig:grid}
 \end{figure*}
 
@@ -301,9 +301,11 @@ at $n=3$; 60.4 to 70.7 at $n=4$). Spending loops on prefill outweighs spending t
 loops ($m<n$) falls below Original $n/n$ on average for every single pair (by 1.9 to 11.5 points). Across task families,
 knowledge (MMLU) and retrieval (RULER-16K) are governed largely by prefill depth: with $m=1$, MMLU stalls near 53\% even
 at $n=4$, whereas $m=4$ reaches 67.1\% at $n=1$ and 73.5\% at $n=2$. Multi-step reasoning (BBH, GSM8K) benefits more from
-extra decode loops, yet $m=4$ still adds 21.8 points on BBH and 12.6 on GSM8K over Original 1/1. At $n=3$, LoopBridge 4/3
-matches Original 3/3 (both average 70.8; 79.8 vs.\ 78.7 on RULER-16K). At $4/4$, keeping the adapter active stays within
-1.2 points of Original 4/4 (70.7 vs.\ 71.9; Table~\ref{tab:alignedcells}), and serving can bypass it when phases are tied.
+extra decode loops, yet $m=4$ still adds 21.8 points on BBH and 12.6 on GSM8K over Original 1/1. At deep tied pairs
+($3/3$: 70.2 vs.\ 70.8; $4/4$: 70.7 vs.\ 71.9), one shared 2.4\% adapter across all 16 pairs pays a 0.6--1.2 point
+multi-regime tax against the frozen 4/4 teacher ($4/3$ already recovers 3/3 at 70.8; Table~\ref{tab:alignedcells}).
+Because the backbone stays frozen, tied $3/3$ or $4/4$ serving bypasses the adapter for exact Original accuracy, while
+LoopBridge serves the fast untied $m>n$ regime.
 
 \subsection{How many prefill loops?}
 \label{sec:depth}
@@ -329,20 +331,14 @@ pretrained depth $m=4$ is a reliable default (Table~\ref{tab:main}).
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.95\columnwidth]{../figs/fig_budget.pdf}
-\caption{\textbf{More accuracy for the time.} Ouro-2.6B: mean accuracy and mean time per request over the same 200 requests of each of GSM8K, MATH-500, BBH and MMLU-Pro (batch 1, one B300, mean of two passes). Filled: one decode
-loop; hollow: two. LoopBridge lies well above Original $n/n$, and at two decode loops also takes slightly less time.
-Arrow: at the mean time of LoopBridge 4/1, a mix of Original 1/1 and 2/2 requests (grey line) scores 10.5 points less.
-Comparison with Distilled 1/1: Figure~\ref{fig:budgetfull}.}
+\caption{\textbf{More accuracy for the time.} Ouro-2.6B: mean accuracy against measured time over 200 requests each of GSM8K, MATH-500, BBH, and MMLU-Pro (batch 1, one B300, two passes). Lines connect $n=1,2$ to trace each request-mix frontier; LoopBridge sits well above Original~$n/n$ and takes slightly less time at $n=2$. Arrow: at LoopBridge~4/1's time, an Original 1/1--2/2 mix scores 10.5 points lower (Distilled 1/1: Figure~\ref{fig:budgetfull}).}
 \label{fig:budget}
 \end{figure}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.95\columnwidth]{../figs/fig_tbatched.pdf}
-\caption{\textbf{On GSM8K, the Thinking model gets four-loop accuracy at two-loop cost.} Ouro-2.6B-Thinking on the 1,319 GSM8K problems
-served with continuous batching (one B300; chat template, 4,096-token budget): accuracy of the served answers against
-wall seconds per request. Ours: LoopBridge with per-loop caches and the maps folded in, prefill 4 / decode 2; dotted:
-Original 4/4. Full numbers (including Distilled 2/2): Table~\ref{tab:tbatched}.}
+\caption{\textbf{On GSM8K, the Thinking model gets four-loop accuracy at two-loop cost.} Ouro-2.6B-Thinking on all 1,319 GSM8K problems with continuous batching (one B300; chat template, 4,096-token budget): accuracy vs.\ wall seconds per request. Grey line: Original tied trade-off (2/2 to 4/4); orange square/arrow: LoopBridge 4/2 (per-loop caches, folded maps), taking 0.47$\times$ (b16) and 0.57$\times$ (b32) the time of Original 4/4 (dotted). Full table: Table~\ref{tab:tbatched}.}
 \label{fig:tbatched}
 \end{figure}
 
@@ -413,9 +409,9 @@ points higher. At two decode loops, LoopBridge 4/2 runs in 0.94--0.99$\times$ th
 while scoring 3.3 to 5.4 points higher.
 
 Continuous batching preserves this margin even though each prompt prefills alone while the batch waits
-(Figure~\ref{fig:batched}, Table~\ref{tab:batched} in Appendix~\ref{app:serve}). At batch 32, LoopBridge 4/1 remains
+(Figure~\ref{fig:batched}, Table~\ref{tab:batched}). At batch 32, LoopBridge 4/1 stays
 $+18.5$\ci{14.9}{22.1} and $+11.3$\ci{7.8}{14.9} points ahead of Original 1/1 and Distilled 1/1 in $1.18\times$ and
-$1.19\times$ their per-request time.
+$1.19\times$ their time.
 
 On the Thinking model, the trade-off improves further. Served in batches on all 1,319 GSM8K problems
 (Figure~\ref{fig:tbatched}), Ouro-2.6B-Thinking with LoopBridge 4/2 matches Original 4/4 (94.6 vs.\ 94.2--94.3) in
@@ -435,8 +431,8 @@ parameters, all-pairs LoRA remains 8.9\ci{6.1}{11.7} points behind on RULER-16K.
 $63.9\pm1.0$ on RULER-16K against $57.6\pm1.6$ at rank 80 and $44.7\pm4.4$ at rank 16. The key and value maps are thus
 what keep long-context retrieval intact when one adapter serves every $(m,n)$. Per-loop caches match Original $n/n$'s KV
 footprint, while a single shared cache saves memory at a 0.4-point cost at 4/1. Appendix~\ref{sec:ablation} also reports a
-restricted single-depth LoRA trained solely for $m=4$ (12.6M parameters), which cannot switch $m$ without reloading
-weights and drops 6.4 points on RULER-16K.
+restricted single-depth LoRA trained only for $m=4$ (12.6M params), which cannot switch $m$ without reloading and drops
+6.4 points on RULER-16K.
 
 \paragraph{Data and learning rate.} Adaptation requires little data: trained on just 6M answer tokens (one eighth of the
 default), the one-cache LoopBridge already averages 54.8 at 4/1 (Table~\ref{tab:ablate}b), well above tied-loop
@@ -462,8 +458,8 @@ prefill loops instead of one lift MMLU-Pro by 18.6 points on Ouro-2.6B-Thinking 
 (Table~\ref{tab:models}).
 
 \paragraph{Looped decision models.} Untying also helps outside text generation. Lev~\citep{lev} adapts looped language
-models into decision models that encode a context and score answer options at every loop. Prefilling the context with more
-loops than the decision uses beats continued training of the original model on all 13 $(m,n)$ pairs (12 significantly).
+models into decision models that encode a context and score answer options at every loop. Using more context than
+decision loops beats continued tied training on all 13 $(m,n)$ pairs (12 significantly).
 When the context uses all backbone loops, gains peak at one decision loop: $+5.3$\ci{3.4}{7.2} on Lev-1.4B,
 $+7.5$\ci{5.7}{9.5} on Lev-2.6B, and $+4.4$\ci{2.8}{6.1} on Lev-3B (Figure~\ref{fig:lev}). Running fewer context loops
 than decision loops hurts on all 13 pairs (Table~\ref{tab:lev}).
@@ -474,17 +470,16 @@ Should prefill and decode loop equally? Our results say no. In looped language m
 roles with very different latency costs. Untying their loop counts with a small, cache-foldable adapter lets one backbone
 spend more loops where compute is parallel and cheap (reading the prompt) and fewer where it is sequential and costly
 (decoding each token). Across base, Thinking, and looped decision models, this simple split yields clear
-accuracy--throughput gains without retraining the backbone. Treating prefill and decode depth as separate axes, both after
-pretraining and during pretraining itself, is a natural step for future looped models.
+accuracy--throughput gains without retraining the backbone. Treating prefill and decode depth as separate axes---both
+post-hoc and during pretraining---is a natural step for future looped models.
 
 \section*{Limitations}
 \label{sec:limits}
 
-Runtime is measured on one GPU architecture at batch sizes up to 32; at much larger batches, extra prefill loops occupy a
-greater fraction of wall time. Folding LoopBridge's maps into the prompt cache preserves Original $n/n$'s KV footprint,
-whereas the one-cache variant saves memory at the cost of applying maps during decoding. We fix prefill depth per setting
-rather than per prompt, evaluate English benchmarks on models up to 3B parameters (up to four pretrained loops), and
-leave adaptive routing and larger scales to future work.
+Runtime is measured on one GPU architecture up to batch 32; at much larger batches, prefill takes a larger share of wall
+time. Folded maps preserve Original $n/n$'s KV footprint, while the one-cache variant trades decode speed for memory. We
+fix prefill depth per setting rather than per prompt and evaluate English benchmarks up to 3B parameters (four loops),
+leaving adaptive routing and larger scales to future work.
 
 
 \FloatBarrier
@@ -1107,9 +1102,9 @@ Batch 1 results are in Figure~\ref{fig:budget}.
 \centering
 \includegraphics[width=0.66\textwidth]{../figs/fig_batched.pdf}
 \caption{\textbf{Batched serving keeps the one-decode-loop advantage.} The 800 timed requests of
-Figure~\ref{fig:budget} served with continuous batching on one B300, each prompt prefilled alone: mean accuracy of
-the served answers against wall seconds per request (mean of three timing passes), one decode loop; grey: Original
-1/1 and 2/2.}
+Figure~\ref{fig:budget} served with continuous batching on one B300, each prompt prefilled alone: mean accuracy against
+wall seconds per request (mean of three passes) at one decode loop. Grey line: Original 1/1--2/2 request-mix frontier;
+orange arrow: LoopBridge~4/1's gain over the time-matched Original mix.}
 \label{fig:batched}
 \end{figure*}
 

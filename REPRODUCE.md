@@ -49,8 +49,7 @@ verification of every paper number and figure, `uv run --with numpy --with math-
 and `uv run --with numpy --with matplotlib python ouro/scripts/paper_figs.py` require no GPU or `uv sync`).
 
 - Models (Hugging Face): `ByteDance/Ouro-2.6B`, `ByteDance/Ouro-1.4B`, `ByteDance/Ouro-2.6B-Thinking`,
-  `ByteDance/Ouro-1.4B-Thinking`. (Deprecated/dropped lines still present in `ouro/` for historical completeness:
-  `nanbeige/Nanbeige4.2-3B-Base`, `sensenova/SenseNova-Loop-9B-Preview`; see [`DEPRECATED.md`](DEPRECATED.md).)
+  `ByteDance/Ouro-1.4B-Thinking`.
 - Training mix (48M KL tokens): `ouro/prepare_mix.py` (OpenThoughts, Tulu SFT, LongAlpaca, FineWeb-Edu; base models),
   `ouro/scripts/prepare_think_mix.py` (same samples in the thinking chat template).
 - Benchmarks: `ouro/prepare_full_qa.py` (RULER 4K/8K/16K, 13 tasks x 500 rows), `ouro/prepare_helmet.py` (HELMET),
@@ -132,8 +131,8 @@ mismatch with `!!` (must end with `0 printed values differ`).
 `grid_worker.sh` (queue runner), `wait_gpus.sh` (start a job when `K` GPUs are free), `lm1.sh` (one
 lm-evaluation-harness job), `bench3.sh` (RULER / HELMET shards), `run_mix2.sh` (training), `mk_code_local.py` and
 `mk_gpqa_local.py` (local task files), `ouro/lev/levbench_compare.py` (Lev comparisons), `launch_think_o.sh` (shared
-answer KV, Thinking). Queue files recording the grid runs are in `ouro/runs_scripts/queues/`; superseded launchers are
-in `ouro/runs_scripts/deprecated/` and deprecated model/arm modules are listed in [`DEPRECATED.md`](DEPRECATED.md).
+answer KV, Thinking). Queue files recording the grid runs are in `ouro/runs_scripts/queues/`, and remaining legacy
+training-arm branches are documented in [`DEPRECATED.md`](DEPRECATED.md).
 
 ## What is not here
 

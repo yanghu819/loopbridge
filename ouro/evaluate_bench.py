@@ -285,32 +285,13 @@ def score_row(bench, row, text, n, reason):
 def evaluate(args):
     if os.environ.get("OURO_NO_CUDNN_SDP"):  # cuDNN SDPA fails on some 16K single-row shapes
         torch.backends.cuda.enable_cudnn_sdp(False)
-    family = json.loads((Path(args.model_path) / "config.json").read_text())["model_type"]
-    reencode = None
-    if family == "ouro":
-        runner = make_runner(SimpleNamespace(condition=args.condition, checkpoint=args.checkpoint,
-                                             model_path=args.model_path, timing=False))
-        tok = AutoTokenizer.from_pretrained(args.model_path, local_files_only=True, trust_remote_code=True)
-    else:  # other looped families: same benchmark rows (Ouro token ids) decoded to text and re-encoded
-        if family == "sensenova_loop":  # hybrid GDN / full attention; needs transformers 5.18 on PYTHONPATH
-            from ouro.sensenova_runner import SenseNovaRunner, tokenizer
-            runner = SenseNovaRunner(args.model_path, args.condition, args.checkpoint)
-        else:
-            from ouro.looped_bridge import LoopedRunner, tokenizer
-            runner = LoopedRunner(args.model_path, args.condition, args.checkpoint)
-        tok = tokenizer(args.model_path)
-        source = AutoTokenizer.from_pretrained(args.source_tokenizer, local_files_only=True, trust_remote_code=True)
-        reencode = lambda ids: tok.encode(source.decode(ids), add_special_tokens=False)
-        if family == "sensenova_loop":  # thinking model: answer directly (Qwen3 non-thinking form), or a short answer
-            no_think = tok.encode("<think>\n\n</think>\n\n", add_special_tokens=False)  # budget is spent thinking
-            reencode = lambda ids: tok.encode(source.decode(ids), add_special_tokens=False) + no_think
+    runner = make_runner(SimpleNamespace(condition=args.condition, checkpoint=args.checkpoint,
+                                         model_path=args.model_path, timing=False))
+    tok = AutoTokenizer.from_pretrained(args.model_path, local_files_only=True, trust_remote_code=True)
     choice_ids = [tok.encode(f" {c}", add_special_tokens=False)[-1] for c in "ABCD"]
     args.output.mkdir(parents=True, exist_ok=True)
     for bench in args.benches:
         data = rows(args.data / f"{bench}.jsonl")[args.shard_index::args.num_shards]
-        if reencode:
-            for row in data:
-                row["prompt_ids"] = reencode(row["prompt_ids"])
         path = args.output / f"{bench}.jsonl"
         done = done_rows(path)
         path.write_text("".join(json.dumps(r) + "\n" for r in done.values()))

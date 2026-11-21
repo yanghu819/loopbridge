@@ -16,7 +16,7 @@ is documented in Appendix L.)
 **Every number in the paper is recomputed from released per-item scores and timing records by one script** and checked
 against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [`REPRODUCE.md`](REPRODUCE.md).
 
-The per-item scores make this a 1.1 GB checkout. To read the code alone:
+The per-item scores make this a 1.0 GB checkout. To read the code alone:
 
 ```bash
 git clone --filter=blob:none --no-checkout https://github.com/yanghu819/untying-prefill-decode
@@ -86,8 +86,7 @@ data went, and [`DEPRECATED.md`](DEPRECATED.md) which modules and training arms 
 | `third_party/ouro/` | Ouro modeling code (Apache-2.0, see its LICENSE) |
 | `environments/ouro/` | the pinned environment every run used (`pyproject.toml`, `uv.lock`) |
 | `paper/` | PDF, LaTeX source, figures, arXiv build script |
-| `ARCHIVE.md`, `DEPRECATED.md` | where the heavy artifacts are kept; which code the paper does not use |
-| `HANDOFF.md`, `NOTES.md` | the working log: what was run, what was dropped and why, in date order |
+| `ARCHIVE.md`, `DEPRECATED.md` | where the heavy artifacts are kept; legacy training arms not used by the paper |
 
 ## Citation
 
