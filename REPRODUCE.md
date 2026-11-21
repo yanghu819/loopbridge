@@ -50,8 +50,18 @@ Evaluation and paper scripts additionally use `lm-eval`, `evalplus`, `math-verif
 verification of every paper number and figure, `uv run --with numpy --with math-verify python ouro/scripts/paper_numbers.py compute`
 and `uv run --with numpy --with matplotlib python ouro/scripts/paper_figs.py` require no GPU or `uv sync`).
 
-- Models (Hugging Face): `ByteDance/Ouro-2.6B`, `ByteDance/Ouro-1.4B`, `ByteDance/Ouro-2.6B-Thinking`,
-  `ByteDance/Ouro-1.4B-Thinking`.
+- **Released LoopBridge Checkpoints (ModelScope, public, SHA256-verified):**
+  [`https://modelscope.cn/models/torushy/LoopBridge`](https://modelscope.cn/models/torushy/LoopBridge)
+  (`ouro-2.6b/loopbridge`, `loopbridge-wide`, `loopbridge-onecache`; `ouro-2.6b-thinking/loopbridge`, `loopbridge-onecache`; `ouro-1.4b/loopbridge`, `loopbridge-onecache`; `ouro-1.4b-thinking/loopbridge-onecache`).
+- **Prepared Distillation & Long-Context Eval Data (ModelScope, public, GPQA-free):**
+  [`https://modelscope.cn/datasets/torushy/LoopBridge-Data`](https://modelscope.cn/datasets/torushy/LoopBridge-Data)
+  (`mix-data-48m.tar.gz`, `bench.tar.gz`, `bench-mini.tar.gz`).
+- **Base Models (Hugging Face / ModelScope):**
+  `ByteDance/Ouro-2.6B` ([ModelScope](https://modelscope.cn/models/bytedance-community/Ouro-2.6B)),
+  `ByteDance/Ouro-1.4B` ([ModelScope](https://modelscope.cn/models/bytedance-community/Ouro-1.4B)),
+  `ByteDance/Ouro-2.6B-Thinking` ([ModelScope](https://modelscope.cn/models/bytedance-community/Ouro-2.6B-Thinking)),
+  `ByteDance/Ouro-1.4B-Thinking` ([ModelScope](https://modelscope.cn/models/bytedance-community/Ouro-1.4B-Thinking)),
+  `thinkingmachines/Inkling-2-Mini` ([Hugging Face](https://huggingface.co/thinkingmachines/Inkling-2-Mini)).
 - Training mix (48M KL tokens): `ouro/prepare_mix.py` (OpenThoughts, Tulu SFT, LongAlpaca, FineWeb-Edu; base models),
   `ouro/scripts/prepare_think_mix.py` (same samples in the thinking chat template).
 - Benchmarks: `ouro/prepare_full_qa.py` (RULER 4K/8K/16K, 13 tasks x 500 rows), `ouro/prepare_helmet.py` (HELMET),

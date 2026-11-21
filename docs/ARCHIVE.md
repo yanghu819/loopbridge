@@ -17,6 +17,14 @@ checkpoint hashes for the main and ablation models), the figures and the LaTeX s
 from them on a CPU, and `ouro/scripts/paper_figs.py` redraws every figure. The environment is pinned in
 `environments/ouro/` (`pyproject.toml`, `uv.lock`).
 
+## Public release on ModelScope
+
+The 8 core LoopBridge adapter checkpoints (every file SHA256-matched to `ouro/results/provenance/training/`) and the
+GPQA-free 48M-token distillation mix + prepared RULER/HELMET evaluation sets are publicly available on ModelScope:
+
+- **Checkpoints:** [`https://modelscope.cn/models/torushy/LoopBridge`](https://modelscope.cn/models/torushy/LoopBridge)
+- **Data:** [`https://modelscope.cn/datasets/torushy/LoopBridge-Data`](https://modelscope.cn/datasets/torushy/LoopBridge-Data)
+
 ## Private cold archive
 
 The heavy artifacts are stored in a private cold archive (115.8 GB across 10,679 files), organized by training host

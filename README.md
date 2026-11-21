@@ -9,11 +9,13 @@
 <br/>
 
 [![Paper PDF](https://img.shields.io/badge/Paper-PDF-EB6834?style=flat&logo=adobeacrobatreader&logoColor=white)](paper/loopbridge.pdf)
+[![ModelScope Checkpoints](https://img.shields.io/badge/ModelScope-Checkpoints-624AFF?style=flat)](https://modelscope.cn/models/torushy/LoopBridge)
+[![ModelScope Dataset](https://img.shields.io/badge/ModelScope-Dataset-624AFF?style=flat)](https://modelscope.cn/datasets/torushy/LoopBridge-Data)
 [![Reproducibility](https://img.shields.io/badge/Reproducible-0--diff%20verified-0F766E?style=flat&logo=checkmarx&logoColor=white)](REPRODUCE.md)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12%20%C2%B7%20PyTorch-334155?style=flat&logo=pytorch&logoColor=white)](environments/ouro/pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-334155?style=flat)](LICENSE)
 
-[**Paper PDF**](paper/loopbridge.pdf) · [**Results**](#results) · [**How It Works**](#how-loopbridge-works) · [**Quick Start**](#quick-start) · [**Reproduce**](REPRODUCE.md) · [**Citation**](#citation)
+[**Paper PDF**](paper/loopbridge.pdf) · [**Checkpoints (ModelScope)**](https://modelscope.cn/models/torushy/LoopBridge) · [**Data (ModelScope)**](https://modelscope.cn/datasets/torushy/LoopBridge-Data) · [**Results**](#results) · [**How It Works**](#how-loopbridge-works) · [**Quick Start**](#quick-start) · [**Reproduce**](REPRODUCE.md) · [**Citation**](#citation)
 
 </div>
 
@@ -170,7 +172,21 @@ uv run --with numpy --with math-verify python ouro/scripts/paper_numbers.py comp
 uv run --with numpy --with matplotlib python ouro/scripts/paper_figs.py
 ```
 
-### 3. Train & evaluate on GPUs
+### 3. Download released checkpoints & distillation data (ModelScope)
+
+All 8 core LoopBridge adapters (SHA256-verified against [`ouro/results/provenance/`](ouro/results/provenance)) and the GPQA-free 48M-token distillation mix + RULER/HELMET evaluation archives are publicly hosted on ModelScope:
+
+- **Adapter Checkpoints:** [`torushy/LoopBridge`](https://modelscope.cn/models/torushy/LoopBridge) (`ouro-2.6b`, `ouro-2.6b-thinking`, `ouro-1.4b`, `ouro-1.4b-thinking`; both per-loop and one-cache variants)
+- **Distillation & Eval Data:** [`torushy/LoopBridge-Data`](https://modelscope.cn/datasets/torushy/LoopBridge-Data) (`mix-data-48m.tar.gz`, `bench.tar.gz`, `bench-mini.tar.gz`)
+- **Base Models (ModelScope / HF):** [Ouro-2.6B](https://modelscope.cn/models/bytedance-community/Ouro-2.6B) · [Ouro-2.6B-Thinking](https://modelscope.cn/models/bytedance-community/Ouro-2.6B-Thinking) · [Ouro-1.4B](https://modelscope.cn/models/bytedance-community/Ouro-1.4B) · [Ouro-1.4B-Thinking](https://modelscope.cn/models/bytedance-community/Ouro-1.4B-Thinking) · [Inkling-2-Mini](https://huggingface.co/thinkingmachines/Inkling-2-Mini)
+
+```bash
+pip install modelscope
+modelscope download --model torushy/LoopBridge --local_dir ./checkpoints
+modelscope download --dataset torushy/LoopBridge-Data --local_dir ./loopbridge-data
+```
+
+### 4. Train & evaluate on GPUs
 
 ```bash
 cd environments/ouro && uv sync && cd ../..
