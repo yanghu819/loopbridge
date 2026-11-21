@@ -88,6 +88,8 @@ def main():
     parser.add_argument("--seed", type=int, default=31847)
     parser.add_argument("--log-every", type=int, default=10)
     parser.add_argument("--resume", type=Path, default=None)
+    parser.add_argument("--gradient-checkpointing", action="store_true",
+                        help="Enable gradient checkpointing on backbone (saves >150GB VRAM for full-seq Distilled runs)")
     args = parser.parse_args()
 
     cells = [tuple(int(x) for x in c.split("x")) for c in args.cells.split(",")]
@@ -112,6 +114,9 @@ def main():
     pad_id = 199999  # Inkling-2-Mini pad_token_id
 
     base = load_inkling_model(args.model_path, device=device)
+    if args.gradient_checkpointing:
+        base.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        base.model.train()  # GradientCheckpointingLayer checks self.training; dropout is 0.0 in Inkling2Loop
     sys_cfg = SystemConfig(
         mode=args.mode,
         decode_depths=decode_depths,
