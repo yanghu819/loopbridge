@@ -184,8 +184,8 @@ def loopmap_selflive_forward(system, samples, device, faithful=False, gamma=0.1)
 
 def native_lora_forward(system, samples, device, first_target=False):
     """Arms D/E/H: native 2/2, 1/1 or 3/3 Ouro with reader LoRA on prompt and continuation. first_target also supervises
-    the first answer token (predicted at the last prompt position), as the loop adapter does; the runs reported so far
-    were trained without it."""
+    the first answer token (predicted at the last prompt position), matching LoopBridge; all reported Distilled n/n runs
+    are trained with first_target=True."""
     prefix, pmask, suffix, smask = pad_batch(samples, device)
     suffix_input = suffix[:, :-1]
     full = torch.cat((pmask, smask[:, :-1]), dim=1)

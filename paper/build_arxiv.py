@@ -21,6 +21,7 @@ SUBS = [
     (r"\author{Anonymous ACL submission}", r"\author{Yang Hu}"),
     ("{../figs/", "{figs/"),
     ("\\end{abstract}", f"Code, results and per-item outputs: \\url{{{URL}}}.\n\\end{{abstract}}"),
+    ("in the anonymous supplementary material", f"at \\url{{{URL}}}"),
 ]
 
 

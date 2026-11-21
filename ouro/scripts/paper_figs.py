@@ -147,7 +147,8 @@ def fig_tps_teaser():
     ax2.annotate("Original 4/4", n4, xytext=(0, -13), textcoords="offset points", fontsize=6.8, color=NAT, ha="left")
     ax2.annotate("Original 2/2", n2, xytext=(-4, -11), textcoords="offset points", fontsize=6.8, color=NAT, ha="right")
     ax2.scatter(*o42, marker="s", s=34, color=OURS, zorder=4)
-    ax2.annotate("Ours 4/2", o42, xytext=(0, 6), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="center")
+    ax2.annotate("Ours 4/2", o42, xytext=(0, 6), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold",
+                 ha="center", bbox=dict(fc="white", ec="none", alpha=0.85, pad=0.35), zorder=5)
 
     # Horizontal speedup arrow at Original 4/4 accuracy level
     ax2.annotate("", xy=(o42[0] - 5, n4[1] + 0.14), xytext=(n4[0] + 5, n4[1] + 0.14),
@@ -179,11 +180,11 @@ def fig0():
     map); every token then runs n decode loops (frozen model + LoRA), loop k attending to its own cache and answer KV."""
     from matplotlib.patches import FancyBboxPatch
     fig, ax = plt.subplots(figsize=(6.9, 2.1))
-    ax.set_xlim(0, 120); ax.set_ylim(0, 31.5); ax.axis("off")
+    ax.set_xlim(0, 128); ax.set_ylim(0, 31.5); ax.axis("off")
     LIGHT = "#FDEBE3"   # light tint of OURS: the adapter's parts
     GREY = "#F2F2F2"
 
-    def box(x, y, w, h, text, fc=GREY, ec=NAT_LIGHT, lw=0.7, size=7.3, color=INK, weight="normal"):
+    def box(x, y, w, h, text, fc=GREY, ec=NAT_LIGHT, lw=0.7, size=6.9, color=INK, weight="normal"):
         ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.2,rounding_size=0.8", fc=fc, ec=ec, lw=lw))
         ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=size, color=color, fontweight=weight)
 
@@ -192,8 +193,8 @@ def fig0():
                     arrowprops=dict(arrowstyle="-|>", lw=lw, color=c, mutation_scale=8, shrinkA=1, shrinkB=1))
 
     dots = lambda x, y: ax.text(x, y, "$\\vdots$", ha="center", va="center", fontsize=10, color=NAT)
-    for x, t in ((12.5, "Prefill: once, $m$ loops"), (51.0, "LoopBridge: once per prompt"), (90.0, "Decode: $n$ loops per token")):
-        ax.text(x, 29.5, t, ha="center", va="center", fontsize=7.7, color=INK, fontweight="bold")
+    for x, t in ((12.5, "Prefill: once, $m$ loops"), (51.0, "LoopBridge: once per prompt"), (94.0, "Decode: $n$ loops per token")):
+        ax.text(x, 29.5, t, ha="center", va="center", fontsize=7.5, color=INK, fontweight="bold")
     # prefill column (frozen model)
     box(1.5, 21.0, 22, 4.2, "prefill loop $m$")
     dots(12.5, 17.5); arrow(12.5, 19.1, 12.5, 20.8)
@@ -209,14 +210,14 @@ def fig0():
     arrow(24.0, 23.1, 36.5, 23.1, OURS); arrow(24.0, 13.1, 36.5, 13.1, OURS)
     ax.text(30.2, 24.6, "$K, V$", ha="center", fontsize=7.0, color=NAT); ax.text(30.2, 14.6, "$K, V$", ha="center", fontsize=7.0, color=NAT)
     # decode column (frozen model + LoRA)
-    box(76.0, 21.0, 28, 4.2, "decode loop $n$ (+ LoRA)", ec=OURS, lw=0.9)
-    dots(90.0, 17.5); arrow(90.0, 19.1, 90.0, 20.8)
-    box(76.0, 11.0, 28, 4.2, "decode loop $1$ (+ LoRA)", ec=OURS, lw=0.9)
-    box(83.5, 1.5, 13, 3.8, "token", fc="white")
-    arrow(90.0, 5.6, 90.0, 10.8)
-    arrow(65.5, 23.1, 75.5, 23.1, OURS); arrow(65.5, 13.1, 75.5, 13.1, OURS)
-    arrow(104.5, 23.1, 109.0, 23.1); ax.text(109.8, 23.1, "next\ntoken", ha="left", va="center", fontsize=7.0, color=INK)
-    ax.text(98.5, 5.4, "loop $k$ attends to cache $k$\nand to the answer's KV", ha="left", va="center", fontsize=6.8, color=NAT)
+    box(80.0, 21.0, 28, 4.2, "decode loop $n$ (+ LoRA)", ec=OURS, lw=0.9)
+    dots(94.0, 17.5); arrow(94.0, 19.1, 94.0, 20.8)
+    box(80.0, 11.0, 28, 4.2, "decode loop $1$ (+ LoRA)", ec=OURS, lw=0.9)
+    box(87.5, 1.5, 13, 3.8, "token", fc="white")
+    arrow(94.0, 5.6, 94.0, 10.8)
+    arrow(65.5, 23.1, 79.5, 23.1, OURS); arrow(65.5, 13.1, 79.5, 13.1, OURS)
+    arrow(108.5, 23.1, 113.0, 23.1); ax.text(113.8, 23.1, "next\ntoken", ha="left", va="center", fontsize=7.0, color=INK)
+    ax.text(102.5, 5.4, "loop $k$ attends to cache $k$\nand to the answer's KV", ha="left", va="center", fontsize=6.8, color=NAT)
     save(fig, "fig0_method")
 
 
@@ -244,8 +245,11 @@ def fig2():
     ax.set_ylim(lo - 0.55, hi + 0.25)
     ax.set_xlabel("decode tokens/s, best batch, 8K prompt", fontsize=8)
     ax.set_ylabel("average accuracy (%)", fontsize=8)
-    legend(fig, "Ours (LoopBridge, one cache)", "", y=1.02, native="Original n/n (tied)", ncol=2, ours_ls="none")
-    fig.subplots_adjust(left=0.15, right=0.97, bottom=0.18, top=0.80)
+    h = [plt.Line2D([], [], color=OURS, marker="s", ms=4.2, lw=0, ls="none"),
+         plt.Line2D([], [], color=NAT_LIGHT, marker="o", ms=4.0, lw=1.4)]
+    fig.legend(h, ["Ours (LoopBridge, one cache)", "Original n/n (tied)"], loc="upper center", ncol=2, fontsize=7.0,
+               bbox_to_anchor=(0.54, 1.005), handlelength=1.4, columnspacing=0.9, frameon=False)
+    fig.subplots_adjust(left=0.16, right=0.97, bottom=0.18, top=0.87)
     save(fig, "fig2_frontier")
 
 
@@ -259,7 +263,7 @@ def fig_equal():
         e = E[b]
         below = e["ours"] < e["native2"]   # ours under Original 2/2: its label goes below, 2/2's above
         close = abs(e["ours"] - e["native2"]) < 1.2
-        x_n2, x_o2 = (1.94, 2.06) if close else (2.0, 2.0)
+        x_n2, x_o2 = (1.90, 2.10) if close else (2.0, 2.0)
         frontier(ax, [(x_n2, e["native2"], "2/2", 6 if below else -10), (4, e["native4"], "4/4")],
                  [(x_o2, e["ours"], "4/2", -12 if below else 6)], b)
         ax.set_xlim(1.35, 4.45); ax.set_xticks([2, 4])
@@ -270,7 +274,7 @@ def fig_equal():
         low = e["ours"] if below else e["native2"]   # the point whose label goes below it: keep the label off the axis
         lo, hi = ax.get_ylim()
         span = hi - lo
-        ax.set_ylim(min(lo, low - 0.28 * span), max(hi, max(e["ours"], e["native4"]) + 0.30 * span))
+        ax.set_ylim(min(lo, low - 0.32 * span), max(hi, max(e["ours"], e["native4"]) + 0.30 * span))
         if "dist2" in e:   # Distilled 2/2, drawn a little left of n = 2: off the two points there and off the grey line
             ax.scatter([1.62], [e["dist2"]], marker="^", s=20, color=DIST, zorder=3)
             lo, hi = ax.get_ylim()
@@ -530,9 +534,10 @@ def tab_aligned():
     native n/n (each column on the items all available configurations share), plus the 11-benchmark average; bold: the
     best m at each n (paper_numbers.json, aligned_cells)."""
     rows = PN.get("aligned_cells", [])
-    short = {"MATH-500": "MATH", "BBH 3-shot": "BBH", "HumanEval+": "HE+",   # the column names of Table 1
+    short = {"MMLU-Pro": "MMLU-P", "MATH-500": "MATH", "BBH 3-shot": "BBH", "HumanEval+": "HE+",   # the column names of Table 1
              "HellaSwag": "HellaSw.", "Winogrande": "Winogr.", "RULER-16K": "RULER"}
-    lines = ["$m/n$ & " + " & ".join(short.get(r["bench"], r["bench"]) for r in rows) + r" & Avg. \\", r"\midrule"]
+    hdr = " & ".join(rf"\multicolumn{{1}}{{c}}{{{short.get(r['bench'], r['bench'])}}}" for r in rows)
+    lines = [rf"configuration & {hdr} & \multicolumn{{1}}{{c}}{{Avg.}} \\", r"\midrule"]
     f = lambda x, b: "--" if x is None else (rf"\textbf{{{x:.1f}}}" if b else f"{x:.1f}")
     avg_of = lambda vals: None if any(v is None for v in vals) else sum(float(f"{v:.1f}") for v in vals) / len(vals)
     for n in range(1, 5):   # all 16 (m, n) cells for m, n in 1..4
@@ -694,7 +699,7 @@ def fig_sametime():
         ax.text(xi, q + 0.8, f"{q:.1f}", ha="center", va="bottom", fontsize=8.5, color=INK, fontweight="bold")
         if col == OURS:   # gain over Original (grey) and over Distilled (blue), as the difference of the shown values
             ax.text(xi, q + 10.6, f"+{round(q, 1) - round(pts[0][1], 1):.1f}", ha="center", va="bottom", fontsize=7.8, color=NAT,
-                    fontweight="bold")
+                    fontweight="bold", bbox=dict(fc="white", ec="none", alpha=0.85, pad=0.25), zorder=5)
             ax.text(xi, q + 5.8, f"+{round(q, 1) - round(pts[1][1], 1):.1f}", ha="center", va="bottom", fontsize=7.8, color=DIST,
                     fontweight="bold")
     ax.hlines(pts[0][1], x[0] - 0.26, x[-1] + 0.26, color=NAT, lw=0.7, ls=(0, (2, 2)), alpha=0.6, zorder=4)
@@ -802,7 +807,7 @@ def fig_batched(name="fig_batched"):
 
 def tab_batched():
     """Appendix: the batched serving numbers behind fig_batched: accuracy of the served answers (batch 32), wall seconds
-    per request at batch 1, 8 and 32, and the prefill share of the wall time at batch 32."""
+    per request at batch 8 and 32, and the prefill share (%) of the wall time at batch 32."""
     B = PN.get("batched_serving", {})
     rows = [("Original 1/1", "native1st"), ("Distilled 1/1", "D1st"), ("Distilled 1/1 r80", "D1r80st"),
             ("LoopBridge 4/1", "a4x1pm")]
@@ -815,7 +820,7 @@ def tab_batched():
             continue
         sh = r"\rowcolor{oursbg} " if c.startswith(("a4", "f4")) else ""
         t = " & ".join(f"{B[f'{c}@{b}']['s_per_request']:.3f}" if f"{c}@{b}" in B else "--" for b in (8, 32))   # 3 decimals: ratios in Sec 5.5 follow from the printed times
-        lines.append(rf"{sh}{lab} & {B[f'{c}@32']['acc']:.1f} & {t} & {B[f'{c}@32']['prefill_pct']:.0f}\% \\")
+        lines.append(rf"{sh}{lab} & {B[f'{c}@32']['acc']:.1f} & {t} & {B[f'{c}@32']['prefill_pct']:.0f} \\")
     (OUT / "tab_batched.tex").write_text("\n".join(lines) + "\n")
 
 
@@ -932,7 +937,7 @@ def tab_depthwide():
                 continue
             q = {int(k): v for k, v in r["quality"].items()}
             best = max(q.values())
-            cell = lambda m: "--" if m not in q else (f"\\textbf{{{q[m]:.1f}}}" if q[m] == best else f"{q[m]:.1f}")
+            cell = lambda m: "--" if m not in q else (f"\\textbf{{{q[m]:.1f}}}" if f"{q[m]:.1f}" == f"{best:.1f}" else f"{q[m]:.1f}")
             lines.append(f"{b.replace(' 3-shot', '')} & {n} & " + " & ".join(cell(m) for m in ms) + r" \\")
     (OUT / "tab_depthwide.tex").write_text("\n".join(lines) + "\n")
 
@@ -952,7 +957,7 @@ def tab_depth14():
         prev_n = r["n"]
         q = {int(k): v for k, v in r["quality"].items() if int(k) in ms}
         best = max(q.values())
-        cell = lambda m: "--" if m not in q else (f"\\textbf{{{q[m]:.1f}}}" if q[m] == best else f"{q[m]:.1f}")
+        cell = lambda m: "--" if m not in q else (f"\\textbf{{{q[m]:.1f}}}" if f"{q[m]:.1f}" == f"{best:.1f}" else f"{q[m]:.1f}")
         lines.append(f"{r['bench']} & {r['n']} & " + " & ".join(cell(m) for m in ms) + " \\\\")
     (OUT / "tab_depth14.tex").write_text("\n".join(lines) + "\n")
 

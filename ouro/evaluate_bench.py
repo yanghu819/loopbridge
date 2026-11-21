@@ -250,10 +250,12 @@ def greedy_batch(runner, tok, batch):
                 if any(x in tail for x in r["until"]):
                     full = tok.decode(gen[i], skip_special_tokens=True)
                     lead = len(full) - len(full.lstrip())  # leading whitespace never stops generation
-                    q, x = min((full.find(x, lead), x) for x in r["until"] if full.find(x, lead) >= 0)
-                    # raw rows (lm-eval) keep leading whitespace: code indentation must survive, as with HF generate
-                    out[i] = (full[:q] if r.get("raw") else full[lead:q], len(gen[i]), f"stop:{x}")
-                    continue
+                    hits = [(full.find(x, lead), x) for x in r["until"] if full.find(x, lead) >= 0]
+                    if hits:
+                        q, x = min(hits)
+                        # raw rows (lm-eval) keep leading whitespace: code indentation must survive, as with HF generate
+                        out[i] = (full[:q] if r.get("raw") else full[lead:q], len(gen[i]), f"stop:{x}")
+                        continue
             if len(gen[i]) >= r["max_new_tokens"]:
                 full = tok.decode(gen[i], skip_special_tokens=True)
                 out[i] = (full if r.get("raw") else full.lstrip(), len(gen[i]), "max_new_tokens")

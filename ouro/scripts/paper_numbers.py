@@ -2571,7 +2571,7 @@ def _compute(counter):
             print(f"{sec:12s} {label:52s} MISSING {ka if a is None else kb}")
             continue
         r = boot(a, b)
-        r = {k: (round(v, 3) if isinstance(v, float) else v) for k, v in r.items()}   # rounded only when printed
+        r = {k: (round(v, 4) if isinstance(v, float) else v) for k, v in r.items()}   # 4 decimals avoid IEEE-754 double rounding on .x5 ties
         flag = ""
         if printed:
             got = (r["diff"], r["lo"], r["hi"])

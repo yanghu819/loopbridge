@@ -28,8 +28,8 @@ The paper's numbers come from these places, all in this commit:
 | Figure 8, Section 5.7 (`fig_lev`, fixed m = all loops; all pairs: Table 16) | `lev` | Lev scripts (Appendix M) |
 | Appendix Tables 11–13 & Figure 11 (Ouro-1.4B & Thinking models) | `main_table_14`, `equal_aligned`, `same_weights` | `launch_aligned_more.sh`, `eval_think_aligned.sh`, `launch_t26df.sh` |
 | Appendix Figure 14 (`fig2_frontier`, one-cache 8K decode microbenchmark) | `think_frontier`, `throughput` | Thinking evaluations, `tput_*.sh` microbenchmarks |
-| Appendix Table 5 (Trainable prefill, Appendix B) | `prefill_trainable` | `launch_variant.sh prefill / w8` (`SEED=2,3`) |
-| Appendix L (Design variants: unrestricted key maps & fixed-depth `m=4` LoRA) | `main_table`, `time_breakdown`, `batched_serving` | `launch_variant.sh fixed4`, `launch_o.sh` |
+| Appendix Table 6 (Trainable prefill, Appendix B) | `prefill_trainable` | `launch_variant.sh prefill / w8` (`SEED=2,3`) |
+| Appendix L (Design variants: unrestricted key maps & fixed-depth `m=4` LoRA) | `main_table`, `CMP` (`Table 6`), `time_breakdown`, `batched_serving` | `launch_variant.sh fixed4`, `launch_v.sh` |
 | Appendix H (MATH-500 exemplar check & Table 10 reproduction) | `repro`, `CMP` rows "Aligned MATH" | `math0_q.sh ARM=a` |
 
 Every number quoted in the text has a check in `paper_numbers.py`; `compute` prints `!!` next to any that disagrees.
@@ -71,11 +71,11 @@ software versions, times, checkpoint sha256 and training log, the cleaned evalua
 (see [`ouro/results/provenance/README.md`](ouro/results/provenance/README.md)). Regenerate with
 `python ouro/scripts/provenance.py RUNS_DIR OUT_DIR` on each evaluation machine.
 
-## Training (one B300 node, 3–4 GPUs per run)
+## Training (one B300 node, 1–8 GPUs per run)
 
 | checkpoint | used for | launcher |
 |---|---|---|
-| Ouro-2.6B LoopBridge `X26-a-universal` (`arm a`, main method) | Table 1, Figures 1–6, Table 9, Appendix A/B/D/K | `launch_aligned.sh` (`SEED=2/3`: seeds; `TOK=6/12`: token ablation) |
+| Ouro-2.6B LoopBridge `X26-a-universal` (`arm a`, main method) | Table 1, Figures 1–6, Table 9, Appendix A/B/D/K | `launch_aligned.sh` (seeds 2/3: `ARM=a seed_main.sh`) |
 | Ouro-2.6B wide-depth & trainable-prefill adapters `X26-a-wide`, `X26-a-w8`, `X26-a-pf8` | Figure 5, Figure 10, Tables 5–7 (Appendix B) | `launch_variant.sh wide / w8 / prefill` (`SEED=2,3`) |
 | Ouro-2.6B LoopBridge ablations `X26-a-lora`, `X26-a-lora-r80`, `X26-a-fixed4` | Table 2a (rank 16 / rank 80 maps-frozen), Appendix L (fixed `m=4` LoRA) | `launch_variant.sh lora` (`RANK=80`), `launch_variant.sh fixed4` |
 | Ouro-1.4B and Thinking LoopBridge `O14-a-`, `T26-a-universal` | Table 8, Table 11, Figure 11, Table 13, Figure 7, Table 15 | `launch_aligned_more.sh 14 / think`, `eval_think_aligned.sh`, `seed14.sh`, `think_seed.sh` |
