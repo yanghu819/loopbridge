@@ -24,6 +24,10 @@ why, and what changed in the paper. Launchers for every run are in `ouro/runs_sc
 
 ## Log
 
+### 2026-11-21 (unify paper & repo around LoopBridge as sole main method; move fixed-m=4 LoRA to Appendix L)
+- Streamlined the paper, figures, tables, `README.md`, and `llms.txt` to present **LoopBridge** as our single unified method across all tasks and models (eliminating the redundant `Ours, fixed m=4` main-method series from Figures 1, 6, 9, 13, Tables 1, 2a, 11, 14, and main prose).
+- Updated Table 2a (`tab_build`) to a clean 4-row all-`(m,n)` LoopBridge component ablation (`KV maps` column), and consolidated all verified fixed-depth `m=4` decoder-only LoRA numbers cleanly into Appendix L (`Design Variants`).
+
 ### 2026-11-20 (title update, Figure 1 & Figure 4 redesign, raw-file fact-check, writing & figure polish)
 - Retitled paper to *LoopBridge: Should Prefill and Decode Loop Equally?*.
 - Replaced Figure 1 with an accuracy-vs-throughput (tokens/s) teaser (`fig_tps_teaser`: Ouro-2.6B 4 CoT tasks at batch 1 and Ouro-2.6B-Thinking GSM8K at batch 16); explicitly tagged `Distilled` rows in Table 1 / Table 11 and figure legends as competing KD baselines; redesigned Figure 4 (`fig_taskmap`) as an asymmetric 2D grouped bar chart covering all 16 `(m, n) in {1..4}^2` cells against Original `n/n` and extended Appendix Table 9 (`tab_aligned`) to all four decode depths plus `Avg.`.

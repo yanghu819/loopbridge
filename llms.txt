@@ -2,23 +2,25 @@
 
 > Looped (recurrent-depth) language models use the same number of loops to read the prompt (prefill) and to generate
 > each answer token (decode), although generation is almost all decoding. We untie the two loop counts (prefill m
-> loops, decode n < m) and distill a small adapter from the original four-loop model: LoRA on the decoder for a fixed
-> prefill depth ("Ours, fixed m"), or LoopBridge (LoRA + per-loop key/value maps) for every trained (m, n) with one set of
-> weights ("Ours, any m"). Ouro-2.6B, Ouro-1.4B, the Thinking models and Lev decision models. Every number is
-> recomputed from released per-item scores by ouro/scripts/paper_numbers.py.
+> loops, decode n < m) and introduce LoopBridge (2.4% of the parameters: decoder LoRA + RoPE-commuting per-loop
+> key/value maps), a single adapter distilled from the four-loop model that serves every trained (m, n) pair and folds
+> into the prompt cache once at prefill. (A restricted fixed-m=4 decoder-only LoRA variant is documented in Appendix L.)
+> Evaluated on Ouro-2.6B, Ouro-1.4B, Thinking models and Lev decision models. Every number is recomputed from released
+> per-item scores by ouro/scripts/paper_numbers.py.
 
 Main findings (Ouro-2.6B; 95% paired bootstrap intervals in the paper):
-- At batch 1, prefill is 0.3-2.6% of the time of a chain-of-thought request.
-- One decode loop: four prefill loops raise the 11-benchmark average from 44.2 (original) to 58.6 (fixed m=4) and
-  58.2 (LoopBridge), above the original model distilled to one loop on the same data (49.5; rank 80: 49.3); MATH-500
-  zero-shot.
-- Measured time (800 requests), one decode loop: +18.6 / +17.2 points over Original 1/1 and +12.2 / +10.8 over
-  Distilled 1/1 for 14-21% more time per request; +10-14 points at the same mean time (time-matched mix of Original
-  1/1 and 2/2).
-- The gain peaks after two to five prefill loops (also for an adapter trained to 16 loops, over seeds, and with the
+- At batch 1, prefill is 0.3-2.6% of the wall time of a chain-of-thought request (0.1-0.3% on Thinking models).
+- One decode loop: LoopBridge 4/1 raises the 11-benchmark average from 44.2 (Original 1/1) to 58.2 (58.3 +- 0.1 over
+  three seeds), above tied-loop distillation on the same data (49.5; rank 80: 49.3); at two decode loops, 63.7 -> 69.1
+  (vs 66.2 Distilled 2/2); MATH-500 zero-shot.
+- Measured time (800 requests, batch 1): LoopBridge 4/1 scores 45.0% (+17.2 over Original 1/1, +10.8 over Distilled 1/1)
+  at 27.7 tokens/s (vs 28.3 for Original 1/1) and +10.5 points over a time-matched Original 1/1-2/2 mix; 4/2 runs at
+  14.3 tokens/s (2.1x Original 4/4). At batch 32, LoopBridge 4/1 stays +18.5 / +11.3 points ahead in 1.18x / 1.19x time.
+- The gain peaks within two to five prefill loops (also for an adapter trained to 16 loops, over seeds, and with the
   prefill loops trained too).
-- Transfers to Ouro-1.4B (44.2-44.6 vs 40.5 distilled, three seeds), Ouro-2.6B-Thinking (4/2 within 0.8 points of 4/4 on
-  average and 3.1 above Distilled 2/2; served in batches, as accurate as 4/4 on all 1,319 GSM8K problems in about half its time) and Lev.
+- Transfers to Ouro-1.4B (44.5 at 4/1, 44.2 +- 0.2 over three seeds, vs 40.5 distilled and 34.7 original),
+  Ouro-2.6B-Thinking (4/2 within 0.8 points of 4/4 on average and +3.1 above Distilled 2/2; served in batches, matches
+  Original 4/4 on all 1,319 GSM8K problems at 2.0x throughput and 0.47-0.57x wall time) and Lev decision models.
 - Baselines: the distilled controls move by at most 0.8 points over 0.3x-3x learning rates and at rank 80.
 
 Limitations stated by the author: timing on one GPU type at batch 1 to 32; folded maps keep one prompt cache per decode
