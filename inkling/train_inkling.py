@@ -114,9 +114,6 @@ def main():
     pad_id = 199999  # Inkling-2-Mini pad_token_id
 
     base = load_inkling_model(args.model_path, device=device)
-    if args.gradient_checkpointing:
-        base.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
-        base.model.train()  # GradientCheckpointingLayer checks self.training; dropout is 0.0 in Inkling2Loop
     sys_cfg = SystemConfig(
         mode=args.mode,
         decode_depths=decode_depths,
@@ -127,6 +124,12 @@ def main():
         adapt_pre_loop=args.adapt_pre_loop,
     )
     system = InklingLoopBridgeSystem(base, sys_cfg)
+    if args.gradient_checkpointing:
+        base.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        for layer in base.model.layers:
+            layer.gradient_checkpointing = True
+            layer.train()
+        base.model.train()  # GradientCheckpointingLayer checks self.training; dropout is 0.0 in Inkling2Loop
     trainable = system.trainable_parameters()
     optimizer = torch.optim.AdamW(trainable, lr=args.peak_lr, betas=(0.9, 0.95), weight_decay=0.0)
 
