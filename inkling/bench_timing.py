@@ -160,6 +160,7 @@ def main():
         (1, 16384, args.gen_len),
         (16, 512, args.gen_len),
         (16, 2048, args.gen_len),
+        (32, 512, args.gen_len),
     ]
     arms = [
         ("Original 3/3", "native", 3, 3),

@@ -226,10 +226,13 @@ def main():
     parser.add_argument("--max-batch", type=int, default=32)
     parser.add_argument("--chunk-size", type=int, default=2048)
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--force-text-header", action="store_true",
+                        help="Append <|message_model|><|content_text|> so effort=none answers directly without thinking")
     args = parser.parse_args()
 
     device = torch.device("cuda:0")
     tok = AutoTokenizer.from_pretrained(args.model_path, local_files_only=True)
+    text_hdr = tok.encode("<|message_model|><|content_text|>", add_special_tokens=False) if args.force_text_header else []
     runner = load_inkling_runner(
         args.model_path,
         mode=args.mode,
@@ -244,6 +247,9 @@ def main():
     for bench in args.benches:
         t0 = perf_counter()
         all_rows = [json.loads(line) for line in (args.data / f"{bench}.jsonl").open()]
+        if text_hdr:
+            for r in all_rows:
+                r["prompt_ids"] = r["prompt_ids"] + text_hdr
         if args.limit:
             all_rows = all_rows[: args.limit]
         shard_rows = all_rows[args.shard_index :: args.num_shards]
