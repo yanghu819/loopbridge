@@ -76,21 +76,20 @@ software versions, times, checkpoint sha256 and training log, the cleaned evalua
 | checkpoint | used for | launcher |
 |---|---|---|
 | Ouro-2.6B LoopBridge `X26-a-universal` (`arm a`, main method) | Table 1, Figures 1–6, Table 9, Appendix A/B/D/K | `launch_aligned.sh` (`SEED=2/3`: seeds; `TOK=6/12`: token ablation) |
-| Ouro-2.6B wide-depth & trainable-prefill adapters `X26-a-wide`, `X26-a-w8`, `X26-a-pf8` | Figure 5, Figure 10, Tables 5–7 (Appendices B & D) | `launch_variant.sh wide / w8 / prefill` (`SEED=2,3`) |
+| Ouro-2.6B wide-depth & trainable-prefill adapters `X26-a-wide`, `X26-a-w8`, `X26-a-pf8` | Figure 5, Figure 10, Tables 5–7 (Appendix B) | `launch_variant.sh wide / w8 / prefill` (`SEED=2,3`) |
 | Ouro-2.6B LoopBridge ablations `X26-a-lora`, `X26-a-lora-r80`, `X26-a-fixed4` | Table 2a (rank 16 / rank 80 maps-frozen), Appendix L (fixed `m=4` LoRA) | `launch_variant.sh lora` (`RANK=80`), `launch_variant.sh fixed4` |
-| Ouro-1.4B and Thinking LoopBridge `O14-a-`, `T26-a-universal` | Table 8, Table 11, Table 12, Figure 11, Table 13, Figure 7, Table 15 | `launch_aligned_more.sh 14 / think`, `eval_think_aligned.sh`, `seed14.sh`, `think_seed.sh` |
-| Ouro-2.6B one-cache LoopBridge `X26-S-universal` (`arm S`, memory-saving variant) | Table 2a/b (`tab_build`, `tab_tokens`), Appendix K/L | `launch_s.sh` (= `run_mix2.sh X26-S-universal S <gpus> <port> 48000000 --micro 1`), `ablate_tokens.sh` |
-| Ouro-2.6B-Thinking one-cache LoopBridge `T26-S-universal` | Figure 14 (`fig2_frontier`, 8K decode microbenchmark), Appendix K | `launch_think.sh` |
+| Ouro-1.4B and Thinking LoopBridge `O14-a-`, `T26-a-universal` | Table 8, Table 11, Figure 11, Table 13, Figure 7, Table 15 | `launch_aligned_more.sh 14 / think`, `eval_think_aligned.sh`, `seed14.sh`, `think_seed.sh` |
+| Ouro-2.6B / 1.4B / Thinking one-cache LoopBridge `X26-S-universal`, `T26-S-universal`, `O14-S-universal` (`arm S`) | Table 2a/b (`tab_build`, `tab_tokens`), Table 12 (`tab:models`), Figure 14 (`fig2_frontier`), Appendix K/L | `launch_s.sh`, `launch_think.sh`, `ablate_tokens.sh` |
 | LoRA distillation baseline `T26-Df-native22` (`arm D`, Thinking 2/2) | Table 13, Figures 11 & 14, Table 15, timing | `launch_t26df.sh` |
 | LoRA distillation baselines `X26-{E,D,H}48f-*`, `O14-{E,D}48f-*` (base 1/1, 2/2, 3/3) | Table 1, Table 2c (`tab_lr`), Table 11, Figures 9 & 13, Table 14 | `launch_x26_distill.sh ARM GPUS PORT first` (`SIZE=14`, `RANK=80`, `LRS=0.3/3`), `after_x26_distill.sh` |
-| Design variants `X26-O`, `X26-M`, `X26-V`, `X26-Sfz` | Appendix L (shared answer KV, first-loop branch, unrestricted key maps) | `launch_o.sh`, `launch_m.sh`, `launch_v.sh`, `launch_fz.sh` |
+| Unrestricted key-map variant `X26-V` | Appendix L (unrestricted vs. RoPE-commuting key maps against one-cache LoopBridge) | `launch_v.sh` |
 | Lev continuations (untied arm and control, four seeds, 2× control) | Figure 8, Table 16 (Section 5.7 & Appendix M) | `ouro/lev/train_rd.sh`, `ouro/lev/after_train.sh`, `lev_mn.sh`, `lev_mn_seeds.sh` |
 
 ## Evaluation
 
 A configuration is a *condition* string: `native<n>` (unmodified model, `n` loops for prefill and decode), `a<m><n>`
 (or `a<m>x<n>pm` with folded maps for timing: LoopBridge, prefill `m`, decode `n`), or `S<m><n>` (one-cache LoopBridge);
-`E`/`D`/`H` are the tied-loop distillation baselines (`1/1`, `2/2`, `3/3`) and `O`/`M`/`V` are the Appendix L variants.
+`E`/`D`/`H` are the tied-loop distillation baselines (`1/1`, `2/2`, `3/3`) and `V` is the Appendix L unrestricted key-map variant.
 
 ```bash
 # lm-evaluation-harness through our runner
@@ -108,17 +107,17 @@ figure and table to its runs and generators.
 | Appendix item | runs (launcher) | computed by |
 |---|---|---|
 | Table 3 (implementation behind each result) | — | prose table in `paper/latex/main.tex` |
-| Appendix A: Table 4 (`tab_time`, per-request time distributions) | `time_controls.sh`, `time_sweep.sh`, `time_set2.sh`, `time_math0.sh`, `time_helmet.sh` | `paper_numbers.py` `time_breakdown` → `paper_figs.py tab_time` |
-| Appendix B: Table 5 (`tab_prefilltrn`), Table 6 (`tab_plateau`), Table 7 (`tab_depthwide`) | `launch_variant.sh prefill / w8 / wide`, `sweep_depth.sh` | `prefill_trainable`, `plateau`, `depth_sweep` → `tab_prefilltrn`, `tab_plateau`, `tab_depthwide` |
+| Appendix A: Table 4 (`tab_time`, per-request time distributions), Figure 9 (`fig_sametime`, paired 1-loop bar chart) | `time_controls.sh`, `time_sweep.sh`, `time_set2.sh`, `time_math0.sh`, `time_helmet.sh` | `paper_numbers.py` `time_breakdown` → `paper_figs.py tab_time`, `fig_sametime` |
+| Appendix B: Figure 10 (`fig_depth`), Table 5 (`tab_plateau`), Table 6 (`tab_prefilltrn`), Table 7 (`tab_depthwide`) | `launch_variant.sh prefill / w8 / wide`, `sweep_depth.sh` | `prefill_trainable`, `plateau`, `depth_sweep` → `fig_depth`, `tab_plateau`, `tab_prefilltrn`, `tab_depthwide` |
 | Appendix C: Table 8 (`tab_depth14`, Ouro-1.4B prefill depth) | `launch_aligned_more.sh 14` | `depth_sweep_14` → `tab_depth14` |
-| Appendix D: Figure 9 (`fig_sametime`), Figure 10 (`fig_depth`), Table 9 (`tab_aligned`, full 4×4 LoopBridge grid) | `time_controls.sh`, `sweep_depth.sh`, `launch_aligned.sh` | `time_breakdown`, `depth_sweep`, `aligned_cells` → `fig_sametime`, `fig_depth`, `tab_aligned` |
+| Appendix D: Figure 11 (`fig_equal`, Ouro-2.6B-Thinking 4/2), Table 9 (`tab_aligned`, full 4×4 LoopBridge grid) | `eval_think_aligned.sh`, `launch_t26df.sh`, `launch_aligned.sh` | `equal("a")`, `aligned_cells` → `fig_equal`, `tab_aligned` |
 | Appendix E: Figure 12 (LoopBridge PyTorch pseudocode) | — | `ouro/adapter_model.py`, `ouro/single_bank.py` |
 | Appendix G: training details & 13-gram overlap audit | `ouro/scripts/overlap_audit.py` | `overlap_check` (`ouro/results/overlap/mix-data-48m.json`) |
 | Appendix H: Table 10 (`tab_repro`, reproducing Ouro-2.6B 4/4) & MATH-500 exemplar check | `raw_q.sh`, `math0_q.sh ARM=a`, `evalplus_q.sh` + `score_evalplus.py` | `repro`, `CMP` (`Aligned MATH`) → `tab_repro` |
-| Appendix I: Table 11 (`tab_main14`, Ouro-1.4B), Table 12 (fixed-decoder comparison), Figure 11 (`fig_equal`, Ouro-2.6B-Thinking) | `launch_aligned_more.sh`, `eval_think_aligned.sh`, `launch_t26df.sh`, `seed14.sh`, `think_seed.sh` | `main_table_14`, `same_weights`, `equal("a")` → `tab_main14`, `fig_equal` |
+| Appendix I: Table 11 (`tab_main14`, Ouro-1.4B), Table 12 (`tab:models`, fixed-decoder comparison) | `launch_aligned_more.sh`, `launch_s.sh`, `launch_think.sh`, `seed14.sh` | `main_table_14`, `same_weights` → `tab_main14` |
 | Appendix J: Table 13 (`tab_equal_26B-T`, Figure 11 in numbers) | `eval_think_aligned.sh`, `launch_t26df.sh` | `equal("a")` → `tab_equal("2.6B-T")` |
 | Appendix K: Figure 13 (`fig_batched`), Table 14 (`tab_batched`), Table 15 (`tab_tbatched`), Figure 14 (`fig2_frontier`) | `time_batch.sh`, `batch_set2.sh`, `time_batch_think.sh`, `tput_sb.sh`, `tput_aligned.sh`, `tput_ctx.sh`, `tput_batch.sh`, `e2e_latency.py` | `batched_serving`, `thinking_batched`, `think_frontier`, `throughput`, `appendix_checks` → `fig_batched`, `tab_batched`, `tab_tbatched`, `fig2_frontier` |
-| Appendix L: design variants (one-cache, shared answer KV, first-loop branch, unrestricted maps, fixed-depth `m=4` LoRA) | `launch_s.sh`, `launch_o.sh`, `launch_m.sh`, `launch_v.sh`, `launch_fz.sh`, `launch_variant.sh fixed4`, `fixed14.sh` | `main_table`, `CMP` (`Table 6`, `No-map control`), `time_breakdown`, `batched_serving` |
+| Appendix L: design variants (unrestricted key maps vs. one-cache LoopBridge; fixed-depth `m=4` LoRA) | `launch_v.sh`, `launch_s.sh`, `launch_variant.sh fixed4`, `fixed14.sh` | `main_table`, `CMP` (`Table 6`), `time_breakdown`, `batched_serving` |
 | Appendix M: Table 16 (`tab_lev`, Lev decision models, both directions) | `ouro/lev/train_rd.sh`, `ouro/lev/after_train.sh`, `lev_mn.sh`, `lev_mn_seeds.sh` | `lev` → `tab_lev` |
 | Appendix N: from-scratch re-runs & single-bank exactness checks | `verify_q.sh`, `ouro/scripts/verify_compare.py`, `check_aligned_runner.py`, `single_bank_check.py`, `check_replay_scorer.py` | `ouro/results/verify_rerun.txt` |
 | Paper PDF and arXiv package | — | in order: `paper_numbers.py compute`, `paper_figs.py`, `tectonic -X compile main.tex`, `paper/build_arxiv.py` |

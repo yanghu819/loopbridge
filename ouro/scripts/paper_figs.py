@@ -70,9 +70,10 @@ def frontier(ax, nat, ours, title, xlog=False, lines=True):
     ax.tick_params(labelsize=8)
 
 
-def legend(fig, ours, labels, y=1.1, native="Original n/n", ncol=3):
-    h = [plt.Line2D([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4), plt.Line2D([], [], color=OURS, marker="s", ms=4, lw=1.4)]
-    names = [native, ours]
+def legend(fig, ours, labels, y=1.1, native="Original n/n (tied)", ncol=3, ours_ls="-"):
+    h = [plt.Line2D([], [], color=OURS, marker="s", ms=4.2, lw=1.4 if ours_ls != "none" else 0, ls=ours_ls),
+         plt.Line2D([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4)]
+    names = [ours, native]
     if labels:
         h.append(plt.Line2D([], [], ls="none")); names.append(labels)
     fig.legend(h, names, loc="upper center", ncol=ncol, fontsize=8, bbox_to_anchor=(0.5, y),
@@ -100,7 +101,7 @@ def fig_tps_teaser():
         r = T[f"gsmthink {cond}@16"]
         return r["tokens"] / r["s_per_request"], r["acc"]
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(3.3, 3.35), gridspec_kw=dict(height_ratios=[1.14, 0.90]))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(3.3, 3.45), gridspec_kw=dict(height_ratios=[1.15, 0.90]))
 
     # --- Panel (a): Ouro-2.6B Base, 4 CoT tasks, batch 1 (all points on the exact same 800 requests) ---
     nat_b = [(base_pt(f"native{d}st"), f"{d}/{d}") for d in (4, 2, 1)]
@@ -114,23 +115,27 @@ def fig_tps_teaser():
     ax1.plot([lb2[0], lb1[0]], [lb2[1], lb1[1]], "-", color=OURS, lw=1.7, zorder=3)
     for (x, y) in (lb2, lb1):
         ax1.scatter(x, y, marker="s", s=32, color=OURS, zorder=4)
-    ax1.annotate("4/2", lb2, xytext=(6, 2), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="left", va="bottom")
+    ax1.annotate("4/2", lb2, xytext=(5, 3), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="left", va="bottom")
     ax1.annotate("4/1", lb1, xytext=(0, 6), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="center")
 
     # Gain callouts (printed-value differences: 45.0 - 27.8 = +17.2; TPS ratio: 14.3 / 6.7 = 2.1x)
     g1 = round(lb1[1], 1) - round(nat_b[2][0][1], 1)
-    ax1.hlines(lb1[1], lb1[0] + 0.45, nat_b[2][0][0] + 0.45, color=OURS, lw=0.75, ls=":", zorder=3)
-    ax1.annotate("", xy=(nat_b[2][0][0], lb1[1] - 0.5), xytext=(nat_b[2][0][0], nat_b[2][0][1] + 2.4),
+    ax1.annotate("", xy=(nat_b[2][0][0], lb1[1] - 0.6), xytext=(nat_b[2][0][0], nat_b[2][0][1] + 2.4),
                  arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.05, mutation_scale=8), zorder=4)
     ax1.text(nat_b[2][0][0] + 0.65, (lb1[1] + nat_b[2][0][1]) / 2, f"+{g1:.1f}", fontsize=7.1, color=OURS,
              fontweight="bold", ha="left", va="center")
-    ax1.text(14.3, 71.8, rf"{lb2[0] / nat_b[0][0][0]:.1f}$\times$ TPS of 4/4", fontsize=7.0, color=OURS,
+    # Horizontal TPS callout linking 4/4 -> 4/2 (matching Panel b's arrow grammar)
+    x44, y44 = nat_b[0][0]
+    ax1.vlines(x44, y44 + 2.0, 73.0, color=NAT_LIGHT, lw=0.65, ls=":", zorder=1)
+    ax1.annotate("", xy=(lb2[0], 72.2), xytext=(x44 + 0.3, 72.2),
+                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.0, mutation_scale=7.5), zorder=4)
+    ax1.text(lb2[0] + 0.5, 72.2, rf"{lb2[0] / x44:.1f}$\times$ TPS of 4/4", fontsize=6.9, color=OURS,
              fontweight="bold", ha="left", va="center")
 
-    ax1.set_title("(a) Ouro-2.6B, 4 CoT tasks (batch 1)", fontsize=8.0, color=INK, fontweight="bold", loc="left", pad=3)
-    ax1.set_xlabel("output tokens/s", fontsize=7.1, color=NAT, labelpad=1.5)
+    ax1.set_title("(a) Ouro-2.6B, 4 CoT tasks (batch 1)", fontsize=8.0, color=INK, fontweight="bold", loc="left", pad=4)
+    ax1.set_xlabel("end-to-end throughput (output tokens/s)", fontsize=7.8, color=INK, labelpad=2.5)
     ax1.set_ylabel("mean accuracy (%)", fontsize=7.8)
-    ax1.set_xlim(4.5, 33.4); ax1.set_ylim(19.5, 76.5)
+    ax1.set_xlim(4.5, 33.4); ax1.set_ylim(19.5, 78.5)
     ax1.set_xticks([5, 10, 15, 20, 25, 30])
     ax1.grid(color="#EDEDED", lw=0.5); ax1.set_axisbelow(True)
     ax1.tick_params(labelsize=7.2)
@@ -139,8 +144,8 @@ def fig_tps_teaser():
     n4, n2, o42 = think_pt("native4st"), think_pt("native2st"), think_pt("a4x2pm")
     ax2.plot([n4[0], n2[0]], [n4[1], n2[1]], "-", color=NAT_LIGHT, marker="o", ms=4.2, lw=1.5, zorder=2)
     ax2.axhline(n4[1], color=NAT_LIGHT, lw=0.7, ls=":", zorder=1)
-    ax2.annotate("Original 4/4", n4, xytext=(0, -11), textcoords="offset points", fontsize=6.8, color=NAT, ha="left")
-    ax2.annotate("Original 2/2", n2, xytext=(-4, -10), textcoords="offset points", fontsize=6.8, color=NAT, ha="right")
+    ax2.annotate("Original 4/4", n4, xytext=(0, -13), textcoords="offset points", fontsize=6.8, color=NAT, ha="left")
+    ax2.annotate("Original 2/2", n2, xytext=(-4, -11), textcoords="offset points", fontsize=6.8, color=NAT, ha="right")
     ax2.scatter(*o42, marker="s", s=34, color=OURS, zorder=4)
     ax2.annotate("Ours 4/2", o42, xytext=(0, 6), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="center")
 
@@ -150,8 +155,8 @@ def fig_tps_teaser():
     ax2.text((n4[0] + o42[0]) / 2 - 4, n4[1] + 0.36, rf"{o42[0] / n4[0]:.1f}$\times$ TPS, +{o42[1] - n4[1]:.1f} acc",
              fontsize=7.0, color=OURS, fontweight="bold", ha="center", va="bottom")
 
-    ax2.set_title("(b) Ouro-2.6B-Thinking, GSM8K (batch 16)", fontsize=8.0, color=INK, fontweight="bold", loc="left", pad=3)
-    ax2.set_xlabel("end-to-end throughput (output tokens/s)", fontsize=7.8)
+    ax2.set_title("(b) Ouro-2.6B-Thinking, GSM8K (batch 16)", fontsize=8.0, color=INK, fontweight="bold", loc="left", pad=4)
+    ax2.set_xlabel("end-to-end throughput (output tokens/s)", fontsize=7.8, color=INK, labelpad=2.5)
     ax2.set_ylabel("accuracy (%)", fontsize=7.8)
     ax2.set_xlim(105, 272); ax2.set_ylim(91.7, 95.9)
     ax2.set_yticks([92, 93, 94, 95])
@@ -162,9 +167,9 @@ def fig_tps_teaser():
     h = [L([], [], color=OURS, marker="s", ms=4.5, lw=1.6),
          L([], [], color=NAT_LIGHT, marker="o", ms=4.4, lw=1.5)]
     l = ["Ours (LoopBridge 4/n)", "Original n/n (tied)"]
-    fig.legend(h, l, loc="upper center", ncol=2, fontsize=6.9, bbox_to_anchor=(0.52, 1.005),
+    fig.legend(h, l, loc="upper center", ncol=2, fontsize=7.0, bbox_to_anchor=(0.52, 1.015),
                handlelength=1.5, columnspacing=1.2, frameon=False)
-    fig.subplots_adjust(left=0.16, right=0.98, top=0.90, bottom=0.105, hspace=0.54)
+    fig.subplots_adjust(left=0.16, right=0.98, top=0.875, bottom=0.105, hspace=0.58)
     save(fig, "fig_tps_teaser")
 
 
@@ -173,46 +178,45 @@ def fig0():
     KV of prefill loop max(m-n+k, 1) once per prompt into a cache for decode loop k (key scale per rotary pair, value
     map); every token then runs n decode loops (frozen model + LoRA), loop k attending to its own cache and answer KV."""
     from matplotlib.patches import FancyBboxPatch
-    fig, ax = plt.subplots(figsize=(6.9, 2.05))
-    ax.set_xlim(0, 100); ax.set_ylim(0, 31); ax.axis("off")
+    fig, ax = plt.subplots(figsize=(6.9, 2.1))
+    ax.set_xlim(0, 120); ax.set_ylim(0, 31.5); ax.axis("off")
     LIGHT = "#FDEBE3"   # light tint of OURS: the adapter's parts
     GREY = "#F2F2F2"
 
-    def box(x, y, w, h, text, fc=GREY, ec=NAT_LIGHT, lw=0.7, size=7.2, color=INK, weight="normal"):
+    def box(x, y, w, h, text, fc=GREY, ec=NAT_LIGHT, lw=0.7, size=7.3, color=INK, weight="normal"):
         ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.2,rounding_size=0.8", fc=fc, ec=ec, lw=lw))
         ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=size, color=color, fontweight=weight)
 
-    def arrow(x0, y0, x1, y1, c=NAT, lw=0.8):
+    def arrow(x0, y0, x1, y1, c=NAT, lw=0.85):
         ax.annotate("", xy=(x1, y1), xytext=(x0, y0),
                     arrowprops=dict(arrowstyle="-|>", lw=lw, color=c, mutation_scale=8, shrinkA=1, shrinkB=1))
 
     dots = lambda x, y: ax.text(x, y, "$\\vdots$", ha="center", va="center", fontsize=10, color=NAT)
-    for x, t in ((11.5, "Prefill: once, m loops"), (47.5, "LoopBridge: once per prompt"), (85.5, "Decode: n loops per token")):
-        ax.text(x, 29.2, t, ha="center", va="center", fontsize=7.5, color=INK, fontweight="bold")
+    for x, t in ((12.5, "Prefill: once, $m$ loops"), (51.0, "LoopBridge: once per prompt"), (90.0, "Decode: $n$ loops per token")):
+        ax.text(x, 29.5, t, ha="center", va="center", fontsize=7.7, color=INK, fontweight="bold")
     # prefill column (frozen model)
-    box(1.5, 21, 20, 4, "prefill loop m")
-    dots(11.5, 18.0)
-    box(1.5, 11, 20, 4, "prefill loop m-n+1")
-    dots(11.5, 8.2)
-    box(1.5, 1.5, 20, 4, "prefill loop 1")
+    box(1.5, 21.0, 22, 4.2, "prefill loop $m$")
+    dots(12.5, 17.5); arrow(12.5, 19.1, 12.5, 20.8)
+    box(1.5, 11.0, 22, 4.2, "prefill loop $m{-}n{+}1$")
+    dots(12.5, 7.6); arrow(12.5, 9.2, 12.5, 10.8)
+    box(1.5, 1.5, 22, 4.2, "prefill loop $1$")
     # maps column (adapter)
-    box(34.5, 20.6, 26, 4.8, "cache n:  $c_n \\odot K$,  $W_n V$", fc=LIGHT, ec=OURS, lw=1.0)
-    dots(47.5, 18.0)
-    box(34.5, 10.6, 26, 4.8, "cache 1:  $c_1 \\odot K$,  $W_1 V$", fc=LIGHT, ec=OURS, lw=1.0)
-    ax.text(47.5, 5.6, "key scale per rotary pair, value map;\nfolded into the prompt cache once", ha="center",
-            va="center", fontsize=6.8, color=OURS)
-    arrow(21.9, 23, 34.1, 23, OURS); arrow(21.9, 13, 34.1, 13, OURS)
-    ax.text(28.0, 24.4, "K, V", ha="center", fontsize=6.8, color=NAT); ax.text(28.0, 14.4, "K, V", ha="center", fontsize=6.8, color=NAT)
+    box(37.0, 20.7, 28, 4.8, "cache $n$:  $c_n \\odot K$,  $W_n V$", fc=LIGHT, ec=OURS, lw=1.0)
+    dots(51.0, 18.0)
+    box(37.0, 10.7, 28, 4.8, "cache $1$:  $c_1 \\odot K$,  $W_1 V$", fc=LIGHT, ec=OURS, lw=1.0)
+    ax.text(51.0, 5.4, "key scale per rotary pair, value map;\nfolded into the prompt cache once", ha="center",
+            va="center", fontsize=7.0, color=OURS)
+    arrow(24.0, 23.1, 36.5, 23.1, OURS); arrow(24.0, 13.1, 36.5, 13.1, OURS)
+    ax.text(30.2, 24.6, "$K, V$", ha="center", fontsize=7.0, color=NAT); ax.text(30.2, 14.6, "$K, V$", ha="center", fontsize=7.0, color=NAT)
     # decode column (frozen model + LoRA)
-    box(72.5, 21, 26, 4, "decode loop n (+ LoRA)", ec=OURS, lw=0.9)
-    dots(85.5, 17.3)
-    box(72.5, 11, 26, 4, "decode loop 1 (+ LoRA)", ec=OURS, lw=0.9)
-    box(79.5, 1.5, 12, 3.6, "token", fc="white")
-    arrow(85.5, 5.4, 85.5, 10.6); arrow(85.5, 19.0, 85.5, 20.6)
-    arrow(60.9, 23, 72.1, 23, OURS); arrow(60.9, 13, 72.1, 13, OURS)
-    arrow(99.2, 23, 103.2, 23); ax.text(104.0, 23, "next\ntoken", ha="left", va="center", fontsize=6.6, color=INK)
-    ax.text(93.2, 5.6, "loop k attends to cache k\nand to the answer's KV", ha="left", va="center", fontsize=6.3, color=NAT)
-    ax.set_xlim(0, 115)
+    box(76.0, 21.0, 28, 4.2, "decode loop $n$ (+ LoRA)", ec=OURS, lw=0.9)
+    dots(90.0, 17.5); arrow(90.0, 19.1, 90.0, 20.8)
+    box(76.0, 11.0, 28, 4.2, "decode loop $1$ (+ LoRA)", ec=OURS, lw=0.9)
+    box(83.5, 1.5, 13, 3.8, "token", fc="white")
+    arrow(90.0, 5.6, 90.0, 10.8)
+    arrow(65.5, 23.1, 75.5, 23.1, OURS); arrow(65.5, 13.1, 75.5, 13.1, OURS)
+    arrow(104.5, 23.1, 109.0, 23.1); ax.text(109.8, 23.1, "next\ntoken", ha="left", va="center", fontsize=7.0, color=INK)
+    ax.text(98.5, 5.4, "loop $k$ attends to cache $k$\nand to the answer's KV", ha="left", va="center", fontsize=6.8, color=NAT)
     save(fig, "fig0_method")
 
 
@@ -236,24 +240,29 @@ def fig2():
     ax.annotate("Distilled 2/2\n(baseline)", (x, y), xytext=(-6, 7), textcoords="offset points", fontsize=7.0,
                 color=DIST, ha="center", va="bottom", linespacing=1.05)
     ax.set_xlim(80, 470)
+    lo, hi = ax.get_ylim()
+    ax.set_ylim(lo - 0.55, hi + 0.25)
     ax.set_xlabel("decode tokens/s, best batch, 8K prompt", fontsize=8)
     ax.set_ylabel("average accuracy (%)", fontsize=8)
-    legend(fig, "Ours (LoopBridge, one cache)", "", y=1.02, ncol=2)
+    legend(fig, "Ours (LoopBridge, one cache)", "", y=1.02, native="Original n/n (tied)", ncol=2, ours_ls="none")
     fig.subplots_adjust(left=0.15, right=0.97, bottom=0.18, top=0.80)
     save(fig, "fig2_frontier")
 
 
 def fig_equal():
     """Ouro-2.6B-Thinking: native 2/2 and 4/4 and Distilled 2/2 against LoopBridge at prefill 4 / decode 2."""
+    from matplotlib.ticker import MaxNLocator
     E = {e["bench"]: e for e in PN["equal_aligned"] if e.get("model", "2.6B-T") == "2.6B-T"}   # LoopBridge (per-loop caches)
     benches = ["GSM8K", "MATH-500", "MMLU-Pro", "ARC-C", "BBH", "HumanEval+", "MBPP+", "HELMET"]
-    fig, axes = plt.subplots(2, 4, figsize=(6.9, 3.4))
+    fig, axes = plt.subplots(2, 4, figsize=(6.9, 3.45))
     for ax, b in zip(axes.flat, benches):
         e = E[b]
         below = e["ours"] < e["native2"]   # ours under Original 2/2: its label goes below, 2/2's above
-        frontier(ax, [(2, e["native2"], "2/2", 5 if below else -10), (4, e["native4"], "4/4")],
-                 [(2, e["ours"], "4/2", -12 if below else 5)], b)
-        ax.set_xlim(1.5, 4.5); ax.set_xticks([2, 3, 4])
+        close = abs(e["ours"] - e["native2"]) < 1.2
+        x_n2, x_o2 = (1.94, 2.06) if close else (2.0, 2.0)
+        frontier(ax, [(x_n2, e["native2"], "2/2", 6 if below else -10), (4, e["native4"], "4/4")],
+                 [(x_o2, e["ours"], "4/2", -12 if below else 6)], b)
+        ax.set_xlim(1.35, 4.45); ax.set_xticks([2, 4])
         lo, hi = ax.get_ylim()
         if hi - lo < 6:   # at least 6 points per panel, so differences within noise are not drawn as large gaps
             mid = (lo + hi) / 2
@@ -261,18 +270,20 @@ def fig_equal():
         low = e["ours"] if below else e["native2"]   # the point whose label goes below it: keep the label off the axis
         lo, hi = ax.get_ylim()
         span = hi - lo
-        ax.set_ylim(min(lo, low - 0.28 * span), max(hi, max(e["ours"], e["native4"]) + 0.24 * span))
+        ax.set_ylim(min(lo, low - 0.28 * span), max(hi, max(e["ours"], e["native4"]) + 0.30 * span))
         if "dist2" in e:   # Distilled 2/2, drawn a little left of n = 2: off the two points there and off the grey line
-            ax.scatter([1.7], [e["dist2"]], marker="^", s=20, color=DIST, zorder=3)
+            ax.scatter([1.62], [e["dist2"]], marker="^", s=20, color=DIST, zorder=3)
             lo, hi = ax.get_ylim()
             ax.set_ylim(min(lo, e["dist2"] - 0.06 * (hi - lo)), max(hi, e["dist2"] + 0.06 * (hi - lo)))
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
         ax.set_title(b, fontsize=8.5, color=INK, pad=6)
     fig.supxlabel("decode loops n", fontsize=8.5, y=0.015); fig.supylabel("score (%)", fontsize=8.5, x=0.005)
-    h = [plt.Line2D([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4), plt.Line2D([], [], color=OURS, marker="s", ms=4.5, ls="none"),
+    h = [plt.Line2D([], [], color=OURS, marker="s", ms=4.5, ls="none"),
+         plt.Line2D([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4),
          plt.Line2D([], [], color=DIST, marker="^", ms=4.5, ls="none")]
-    fig.legend(h, ["Original n/n (tied)", "Ours, prefill 4 / decode 2", "Distilled 2/2 (baseline)"], loc="upper center", ncol=3, fontsize=8,
+    fig.legend(h, ["Ours (LoopBridge 4/2)", "Original n/n (tied)", "Distilled 2/2 (baseline)"], loc="upper center", ncol=3, fontsize=8,
                bbox_to_anchor=(0.5, 1.01), handlelength=1.6, frameon=False)
-    fig.subplots_adjust(wspace=0.35, hspace=0.48, left=0.07, right=0.99, bottom=0.125, top=0.865)
+    fig.subplots_adjust(wspace=0.36, hspace=0.50, left=0.07, right=0.99, bottom=0.125, top=0.86)
     save(fig, "fig_equal")
 
 
@@ -301,7 +312,10 @@ def fig_lev():
                         arrowprops=dict(arrowstyle="-|>", color=OURS, lw=0.85, mutation_scale=7), zorder=4)
             ax.annotate(f"+{g1:.1f}", (1, y1), xytext=(-2 if top == 4 else 0, 9 if top == 4 else 6), textcoords="offset points",
                         fontsize=6.9, color=OURS, fontweight="bold", ha="center", va="bottom")
-        ax.yaxis.set_major_locator(MaxNLocator(nbins=4, integer=True))
+        if m == "Lev-2.6B":
+            ax.set_yticks([48, 54, 60, 66]); ax.set_ylim(45.5, 69.5)
+        else:
+            ax.yaxis.set_major_locator(MaxNLocator(nbins=4, integer=True))
         ax.set_xticks(ns); ax.set_xlim(ns[0] - (0.55 if top == 4 else 0.4), ns[-1] + 0.4)
     axes[0][0].set_ylabel("accuracy (%)", fontsize=8.5)
     fig.supxlabel("decision loops n", fontsize=8.5, y=0.0)
@@ -364,43 +378,45 @@ def fig_aligned(panels=None, name="fig_taskmap", ncols=4):
                    linewidth=0.45 if m < 4 else 0.6, zorder=3)
         for idx, n in enumerate(range(1, 5)):
             nv = cell[f"native{n}"]
-            ax.hlines(nv, xs[idx] - 0.40, xs[idx] + 0.40, color="#262626", lw=1.35 if big else 1.15,
+            ax.hlines(nv, xs[idx] - 0.40, xs[idx] + 0.40, color=NAT, lw=1.4 if big else 1.2,
                       ls="--", zorder=5)
             if big:
                 a4 = cell[f"a4{n}"]
-                y_lab = max(a4, nv) + 1.4 if n >= 3 else a4 + 1.4
+                y_lab = max(a4, nv) + 2.0 if n >= 3 else a4 + 1.6
                 ax.text(xs[idx] + offs[3], y_lab, f"{a4:.1f}", ha="center", va="bottom",
                         fontsize=6.8, color=OURS, fontweight="bold", zorder=6)
-                pill = dict(fc="white", ec="none", alpha=0.88, pad=0.4)
+                pill = dict(fc="white", ec="none", alpha=0.90, pad=0.4)
                 if n == 1:
                     ax.text(xs[idx], nv - 2.2, f"Orig {nv:.1f}", ha="center", va="top",
-                            fontsize=6.1, color="#262626", zorder=6, bbox=pill)
+                            fontsize=6.1, color=NAT, zorder=6, bbox=pill)
                 elif n == 2:
-                    ax.text(xs[idx] - 0.39, nv - 1.2, f"{nv:.1f}", ha="left", va="top",
-                            fontsize=6.0, color="#262626", zorder=6, bbox=pill)
+                    ax.text(xs[idx] - 0.39, nv - 1.3, f"{nv:.1f}", ha="left", va="top",
+                            fontsize=6.0, color=NAT, zorder=6, bbox=pill)
                 else:
-                    ax.text(xs[idx] - 0.39, nv - 1.1, f"{nv:.1f}", ha="left", va="top",
-                            fontsize=6.0, color="#262626", zorder=6, bbox=pill)
+                    ax.text(xs[idx] - 0.39, nv - 1.3, f"{nv:.1f}", ha="left", va="top",
+                            fontsize=6.0, color=NAT, zorder=6, bbox=pill)
         ax.set_title(title, fontsize=8.5 if big else 8.0, color=INK, fontweight="bold" if big else "normal", pad=4)
         ax.set_xticks(xs); ax.set_xticklabels([f"n={n}" for n in range(1, 5)], fontsize=7.5 if big else 7.2)
         ax.set_xlim(0.45, 4.55)
         if big:
             ymax = max([cell[f"native{n}"] for n in range(1, 5)] + [cell[f"a{m}{n}"] for m in range(1, 5) for n in range(1, 5)])
-            ax.set_ylim(0, ymax * 1.20)
+            ax.set_ylim(0, ymax * 1.25)
         else:
             ax.set_ylim(0, 88)
-            ax.set_yticks([0, 25, 50, 75])
+            ax.set_yticks([0, 20, 40, 60, 80])
         ax.grid(axis="y", color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
         ax.tick_params(axis="y", labelsize=7.2)
 
     draw_bars(ax_avg, avg_cell, "11-Benchmark Average", big=True)
     ax_avg.set_ylabel("accuracy (%)", fontsize=8.5)
     ax_avg.set_xlabel("decode loops n", fontsize=8.2)
-    # Highlight the asymmetry directly on the 11-benchmark average panel
-    ax_avg.annotate("+14.0", xy=(1 + offs[3], avg_cell["a41"] + 6.4), ha="center", va="bottom",
+    # Highlight the asymmetry directly on the 11-benchmark average panel (including -1.2 at tied 4/4 so 70.7 is never misread > 71.9)
+    ax_avg.annotate("+14.0", xy=(1 + offs[3], avg_cell["a41"] + 7.2), ha="center", va="bottom",
                     fontsize=7.2, color=OURS, fontweight="bold")
-    ax_avg.annotate("+5.4", xy=(2 + offs[3], avg_cell["a42"] + 6.4), ha="center", va="bottom",
+    ax_avg.annotate("+5.4", xy=(2 + offs[3], avg_cell["a42"] + 7.2), ha="center", va="bottom",
                     fontsize=7.2, color=OURS, fontweight="bold")
+    ax_avg.annotate("(-1.2)", xy=(4 + offs[3], avg_cell["native4"] + 7.6), ha="center", va="bottom",
+                    fontsize=6.5, color=NAT, fontweight="normal")
 
     for key, title, slot in dom_specs:
         ax = fig.add_subplot(slot)
@@ -409,7 +425,7 @@ def fig_aligned(panels=None, name="fig_taskmap", ncols=4):
             ax.set_xlabel("decode loops n", fontsize=7.5)
 
     handles = [plt.Rectangle((0, 0), 1, 1, fc=M_COLS[i], ec=M_EDGE[i], lw=0.5) for i in range(4)]
-    handles.append(plt.Line2D([], [], color="#262626", lw=1.35, ls="--"))
+    handles.append(plt.Line2D([], [], color=NAT, lw=1.4, ls="--"))
     labels = ["LoopBridge: m=1", "m=2", "m=3", "m=4 (prefill loops)", "Original n/n"]
     fig.legend(handles, labels, loc="upper center", ncol=5, fontsize=7.5, bbox_to_anchor=(0.52, 0.99),
                handlelength=1.4, columnspacing=1.0, frameon=False)
@@ -450,13 +466,13 @@ def tab_main(key="main_table", name="tab_main"):
     if name == "tab_main14":   # Ouro-1.4B: the one-decode-loop comparison of Section 5.7
         groups = [g for g in groups if g[0] != 2]
     show = {"native 1/1": (r"Original {\scriptsize(Ouro)}", "1/1"), "native 2/2": (r"Original {\scriptsize(Ouro)}", "2/2"), "native 4/4": (r"Original {\scriptsize(Ouro)}", "4/4"),
-            "training-free 4/1": (r"Training-free {\scriptsize(baseline)}", "4/1"), "training-free 4/2": (r"Training-free {\scriptsize(baseline)}", "4/2"),
-            "LoRA-distilled 1/1": (r"Distilled {\scriptsize(KD baseline)}", "1/1"), "LoRA-distilled 2/2": (r"Distilled {\scriptsize(KD baseline)}", "2/2"),
-            "distilled r80 1/1": (r"Distilled r80 {\scriptsize(KD base.)}", "1/1"), "distilled r80 2/2": (r"Distilled r80 {\scriptsize(KD base.)}", "2/2"),
+            "training-free 4/1": ("Training-free", "4/1"), "training-free 4/2": ("Training-free", "4/2"),
+            "LoRA-distilled 1/1": (r"Distilled r16 {\scriptsize(KD)}", "1/1"), "LoRA-distilled 2/2": (r"Distilled r16 {\scriptsize(KD)}", "2/2"),
+            "distilled r80 1/1": (r"Distilled r80 {\scriptsize(KD)}", "1/1"), "distilled r80 2/2": (r"Distilled r80 {\scriptsize(KD)}", "2/2"),
             "fixed-4 LoRA 4/1": (r"Ours, fixed $m$", "4/1"), "fixed-4 LoRA 4/2": (r"Ours, fixed $m$", "4/2"),
             "aligned LoRA-only 4/1": ("LoRA all pairs, maps frozen", "4/1"), "aligned LoRA-only 4/2": ("LoRA all pairs, maps frozen", "4/2"),
             "loop adapter 4/1": ("LoopBridge, one cache", "4/1"), "loop adapter 4/2": ("LoopBridge, one cache", "4/2"),
-            "aligned adapter 4/1": ("Ours, LoopBridge", "4/1"), "aligned adapter 4/2": ("Ours, LoopBridge", "4/2")}
+            "aligned adapter 4/1": (r"LoopBridge {\scriptsize(ours)}", "4/1"), "aligned adapter 4/2": (r"LoopBridge {\scriptsize(ours)}", "4/2")}
     lines = []
     for n, labels in groups:
         labels = [l for l in labels if any(T[b].get(l) is not None for b in benches)]   # rows not run for this model
@@ -493,7 +509,7 @@ def tab_tokens():
     A = {(r["label"], r["cell"]): r["avg"] for r in PN.get("ablations", [])}
     toks = [("6M tokens", "6M"), ("12M tokens", "12M"), ("24M tokens", "24M"), ("48M tokens", "48M")]
     f = lambda x: "--" if x is None else f"{x:.1f}"
-    lines = ["tokens & " + " & ".join(t for _, t in toks) + r" \\", r"\midrule"]
+    lines = ["$m/n$ & " + " & ".join(t for _, t in toks) + r" \\", r"\midrule"]
     for cell, name in (("S41", "4/1"), ("S42", "4/2")):
         vals = [f(A.get((lab, cell))) for lab, _ in toks]
         vals[-1] = r"\cellcolor{oursbg}" + vals[-1]
@@ -516,7 +532,7 @@ def tab_aligned():
     rows = PN.get("aligned_cells", [])
     short = {"MATH-500": "MATH", "BBH 3-shot": "BBH", "HumanEval+": "HE+",   # the column names of Table 1
              "HellaSwag": "HellaSw.", "Winogrande": "Winogr.", "RULER-16K": "RULER"}
-    lines = [" & " + " & ".join(short.get(r["bench"], r["bench"]) for r in rows) + r" & Avg. \\", r"\midrule"]
+    lines = ["$m/n$ & " + " & ".join(short.get(r["bench"], r["bench"]) for r in rows) + r" & Avg. \\", r"\midrule"]
     f = lambda x, b: "--" if x is None else (rf"\textbf{{{x:.1f}}}" if b else f"{x:.1f}")
     avg_of = lambda vals: None if any(v is None for v in vals) else sum(float(f"{v:.1f}") for v in vals) / len(vals)
     for n in range(1, 5):   # all 16 (m, n) cells for m, n in 1..4
@@ -529,7 +545,7 @@ def tab_aligned():
         for m in range(1, 5):
             cells = [f(r[f"a{m}{n}"], r[f"a{m}{n}"] is not None and f"{r[f'a{m}{n}']:.1f}" == f"{best[r['bench']]:.1f}") for r in rows]
             acell = f(avgs[m], avgs[m] is not None and f"{avgs[m]:.1f}" == f"{best_avg:.1f}")
-            lines.append(rf"{m}\,/\,{n} & " + " & ".join(cells) + f" & {acell}" + r" \\")
+            lines.append(rf"LoopBridge {m}/{n} & " + " & ".join(cells) + f" & {acell}" + r" \\")
         if n < 4:
             lines.append(r"\midrule")
     (OUT / "tab_aligned.tex").write_text("\n".join(lines) + "\n")
@@ -576,7 +592,7 @@ def fig_time():
 
 
 def fig_depth():
-    """Figure 10 (Appendix D, full data behind Figure 5): per timed task, accuracy (full evaluation set) against prefill
+    """Figure 10 (Appendix B, full data behind Figure 5): per timed task, accuracy (full evaluation set) against prefill
     loops m at decode n = 1 (violet) and n = 2 (green), for m <= 4 (solid) and wide m <= 16 (dashed)."""
     rows = PN.get("depth_sweep", [])
     tasks = [t for t in TIMED if any(r["bench"] == SWEEP_NAME[t] for r in rows)]
@@ -600,7 +616,8 @@ def fig_depth():
                 axes[1, j].plot([m for m, _ in pts], [r["prefill_s"] for _, r in pts], ":", color=col, lw=1)
         axes[0, j].set_title(t, fontsize=8.5, color=INK, pad=4)
         for i in range(nrow):
-            axes[i, j].set_xscale("log", base=2); axes[i, j].set_xticks([1, 2, 4, 8]); axes[i, j].set_xticklabels(["1", "2", "4", "8"])
+            axes[i, j].set_xscale("log", base=2); axes[i, j].set_xticks([1, 2, 3, 4, 6, 8]); axes[i, j].set_xticklabels(["1", "2", "3", "4", "6", "8"])
+            axes[i, j].minorticks_off()
             axes[i, j].axvline(4, color="#BDBDBD", lw=0.8, zorder=0)
             axes[i, j].grid(color="#EDEDED", lw=0.5); axes[i, j].set_axisbelow(True)
         axes[nrow - 1, j].set_xlabel("prefill loops m", fontsize=7.5)
@@ -608,9 +625,9 @@ def fig_depth():
     if timed:
         axes[1, 0].set_ylabel("s / request")
     h = [plt.Line2D([], [], color=N1, lw=1.2), plt.Line2D([], [], color=N2, lw=1.2),
-         plt.Line2D([], [], color=NAT, ls="--", lw=1.2)]
-    fig.legend(h, ["decode n = 1", "decode n = 2", "trained on m ≤ 16"], loc="upper center", ncol=3,
-               fontsize=7.5, bbox_to_anchor=(0.52, 0.99), frameon=False)
+         plt.Line2D([], [], color=NAT, ls="-", lw=1.2), plt.Line2D([], [], color=NAT, ls="--", lw=1.2)]
+    fig.legend(h, ["decode n = 1", "decode n = 2", "trained on m ≤ 4", "trained on m ≤ 16"], loc="upper center", ncol=4,
+               fontsize=7.3, bbox_to_anchor=(0.52, 0.99), columnspacing=1.1, frameon=False)
     fig.subplots_adjust(left=0.075, right=0.99, top=0.78, bottom=0.19, wspace=0.28)
     save(fig, "fig_depth")
 
@@ -622,63 +639,69 @@ def fig_depth_main(mmax=8, n=1):
     """Figure 5: with one decode loop, two to five prefill loops buy most of the accuracy gain. Adapter trained on m in
     {1,...,16} (no extrapolation), four benchmarks from different domains (math, knowledge, code, long context), m up to
     `mmax`; label: gain from m = 1 to the best m. Two decode loops and all tasks: Figure 10 / Table 7."""
-    from matplotlib.ticker import MaxNLocator
     rows = [r for r in PN.get("depth_sweep", []) if r["adapter"] == "wide" and r["n"] == n]
     benches = [b for b in DEPTH_MAIN if any(r["bench"] == b for r in rows)]
     if not benches:
         return drop("fig_depth_main")
-    fig, axes = plt.subplots(1, len(benches), figsize=(6.9, 1.55), squeeze=False)
+    YTICKS = {"GSM8K": [36, 40, 44, 48], "MMLU-Pro": [24, 34, 44, 54],
+              "HumanEval+": [48, 54, 60, 66], "RULER-16K": [52, 56, 60, 64]}
+    fig, axes = plt.subplots(1, len(benches), figsize=(6.9, 1.62), squeeze=False)
     for j, b in enumerate(benches):
         ax = axes[0, j]
         ax.axvspan(2, 5, color="#F3F3F3", zorder=0, lw=0)   # where the gain peaks (two to five loops, Section 5.4)
         r = next(r for r in rows if r["bench"] == b)
         q = {int(m): v for m, v in r["quality"].items() if int(m) <= mmax}
         ms = sorted(q)
-        ax.plot(ms, [q[m] for m in ms], "-o", color=OURS, lw=1.8, ms=4.2, mec="white", mew=0.8, zorder=3)
+        ax.plot(ms, [q[m] for m in ms], "-s", color=OURS, lw=1.7, ms=3.8, mec="white", mew=0.6, zorder=3)
         best = max(ms, key=lambda m: q[m])
         ax.hlines(q[1], 1, best, color=NAT_LIGHT, lw=0.8, ls=(0, (2, 2)), zorder=2)
-        ax.annotate("", (best, q[best]), xytext=(best, q[1]), arrowprops=dict(arrowstyle="->", color=INK, lw=0.9,
-                    shrinkA=0, shrinkB=4), zorder=4)
-        ax.set_title(b, fontsize=8.5, color=INK, pad=3, loc="left")
+        ax.annotate("", (best, q[best] - 0.3), xytext=(best, q[1]), arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.1,
+                    mutation_scale=8, shrinkA=0, shrinkB=3), zorder=4)
+        ax.set_title(b, fontsize=8.1, color=INK, pad=4, loc="left")
         gain = round(round(q[best], 1) - round(q[1], 1), 1)   # from the values Table 7 shows (paper_numbers depth_gains)
-        ax.set_title(f"+{gain:.1f}", fontsize=9, color=OURS, fontweight="bold", pad=3, loc="right")
-        ax.set_xscale("log", base=2); ticks = [m for m in (1, 2, 3, 4, 6, 8, 12, 16) if m <= mmax]
+        ax.set_title(f"+{gain:.1f}", fontsize=8.4, color=OURS, fontweight="bold", pad=4, loc="right")
+        ticks = [m for m in (1, 2, 3, 4, 5, 6, 8) if m <= mmax]
         ax.set_xticks(ticks); ax.set_xticklabels([str(m) for m in ticks]); ax.minorticks_off()
-        ax.set_xlabel("prefill loops m", fontsize=7.5)
+        ax.set_xlim(0.55, mmax + 0.45)
+        ax.set_xlabel("prefill loops m", fontsize=7.6)
         ax.grid(axis="y", color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
-        lo, hi = ax.get_ylim(); ax.set_ylim(lo - 0.04 * (hi - lo), hi + 0.10 * (hi - lo))
-        ax.yaxis.set_major_locator(MaxNLocator(nbins=4, integer=True))
-    axes[0, 0].set_ylabel("accuracy (%)")
-    fig.tight_layout(w_pad=0.8)
+        yt = YTICKS[b]
+        ax.set_yticks(yt)
+        span = yt[-1] - yt[0]
+        ax.set_ylim(yt[0] - 0.08 * span, yt[-1] + 0.08 * span)
+        ax.tick_params(labelsize=7.4)
+    axes[0, 0].set_ylabel("accuracy (%)", fontsize=8.2)
+    fig.subplots_adjust(left=0.065, right=0.99, top=0.84, bottom=0.26, wspace=0.36)
     save(fig, "fig_depth_main")
 
 
 def fig_sametime():
-    """Figure 9 (Appendix D): paired comparison at one decode loop over the 800 timed requests (batch 1, one B300, two
+    """Figure 9 (Appendix A): paired comparison at one decode loop over the 800 timed requests (batch 1, one B300, two
     passes): Original 1/1, Distilled 1/1 baseline, and LoopBridge 4/1 with folded maps."""
     tasks = [t for t in TIMED if _time(t, "native1st")]
-    bars = [("Original\n1/1", "native1st", NAT_LIGHT), ("Distilled 1/1\n(baseline)", "D1st", DIST),
-            ("Ours, LoopBridge\n4/1", "a4x1pm", OURS)]
+    bars = [("Original 1/1\n(tied)", "native1st", NAT_LIGHT), ("Distilled 1/1\n(baseline)", "D1st", DIST),
+            ("LoopBridge 4/1\n(ours)", "a4x1pm", OURS)]
     pts = []
     for lab, cond, col in bars:
         rs = [_time(t, cond) for t in tasks]
         if not tasks or None in rs:
             return drop("fig_sametime")
         pts.append((lab, float(np.mean([r["quality"] for r in rs])), float(np.mean([r["total_s"] for r in rs])), col))
-    fig, ax = plt.subplots(figsize=(3.3, 1.95))
+    fig, ax = plt.subplots(figsize=(3.3, 2.0))
     x = np.arange(len(pts))
     ax.bar(x, [p[1] for p in pts], width=0.52, color=[p[3] for p in pts], zorder=3)
     for xi, (lab, q, t, col) in zip(x, pts):
         ax.text(xi, q + 0.8, f"{q:.1f}", ha="center", va="bottom", fontsize=8.5, color=INK, fontweight="bold")
         if col == OURS:   # gain over Original (grey) and over Distilled (blue), as the difference of the shown values
-            ax.text(xi, q + 10.2, f"+{round(q, 1) - round(pts[0][1], 1):.1f}", ha="center", va="bottom", fontsize=7.8, color=NAT,
+            ax.text(xi, q + 10.6, f"+{round(q, 1) - round(pts[0][1], 1):.1f}", ha="center", va="bottom", fontsize=7.8, color=NAT,
                     fontweight="bold")
-            ax.text(xi, q + 5.6, f"+{round(q, 1) - round(pts[1][1], 1):.1f}", ha="center", va="bottom", fontsize=7.8, color=DIST,
+            ax.text(xi, q + 5.8, f"+{round(q, 1) - round(pts[1][1], 1):.1f}", ha="center", va="bottom", fontsize=7.8, color=DIST,
                     fontweight="bold")
-    ax.hlines(pts[0][1], x[0] - 0.26, x[-1] + 0.26, color=NAT, lw=0.7, ls=(0, (2, 2)), zorder=4)
-    ax.hlines(pts[1][1], x[1] - 0.26, x[-1] + 0.26, color=DIST, lw=0.7, ls=(0, (2, 2)), zorder=4)
+    ax.hlines(pts[0][1], x[0] - 0.26, x[-1] + 0.26, color=NAT, lw=0.7, ls=(0, (2, 2)), alpha=0.6, zorder=4)
+    ax.hlines(pts[1][1], x[1] - 0.26, x[-1] + 0.26, color=DIST, lw=0.7, ls=(0, (2, 2)), alpha=0.6, zorder=4)
     ax.set_xticks(x); ax.set_xticklabels([f"{lab}\n{t:.1f} s" for lab, q, t, col in pts], fontsize=7.0)
-    ax.set_ylabel("accuracy (%)"); ax.set_ylim(0, max(p[1] for p in pts) * 1.42)
+    ax.set_ylabel("accuracy (%)"); ax.set_ylim(0, 66)
+    ax.set_yticks([0, 20, 40, 60])
     ax.set_xlim(-0.55, len(pts) - 0.45)
     ax.spines["bottom"].set_color(NAT); ax.tick_params(axis="x", length=0)
     ax.grid(axis="y", color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
@@ -721,8 +744,8 @@ def fig_budget(name="fig_budget"):
     h = [L([], [], color=OURS, marker="s", ms=4.5, lw=1.7),
          L([], [], color=NAT_LIGHT, marker="o", ms=4.4, lw=1.5)]
     l = ["Ours (LoopBridge 4/n)", "Original n/n (tied)"]
-    fig.legend(h, l, fontsize=6.8, loc="lower center", frameon=False, handlelength=1.6, ncol=2, columnspacing=1.2)
-    fig.subplots_adjust(left=0.15, right=0.97, top=0.97, bottom=0.27)
+    fig.legend(h, l, fontsize=6.9, loc="upper center", bbox_to_anchor=(0.54, 1.01), frameon=False, handlelength=1.6, ncol=2, columnspacing=1.2)
+    fig.subplots_adjust(left=0.15, right=0.97, top=0.87, bottom=0.18)
     save(fig, name)
 
 
@@ -733,43 +756,47 @@ def fig_batched(name="fig_batched"):
     sizes = [b for b in (8, 32) if all(f"{c}@{b}" in B for c in ("native1st", "a4x1pm", "D1st", "native2st"))]   # batch 1: Figure 6
     if not sizes:
         return drop(name)
-    fig, axes = plt.subplots(1, len(sizes), figsize=(2.4 * len(sizes), 2.65), squeeze=False)
+    fig, axes = plt.subplots(1, len(sizes), figsize=(2.6 * len(sizes), 2.75), sharey=True, squeeze=False)
     pt = lambda c, b: (B[f"{c}@{b}"]["s_per_request"], B[f"{c}@{b}"]["acc"]) if f"{c}@{b}" in B else None
-    for ax, b in zip(axes[0], sizes):
+    for idx, (ax, b) in enumerate(zip(axes[0], sizes)):
         nat = [(pt(f"native{d}st", b), f"{d}/{d}") for d in (1, 2) if pt(f"native{d}st", b)]
-        ax.plot([p[0][0] for p in nat], [p[0][1] for p in nat], "-", color=NAT_LIGHT, marker="o", ms=3.5, lw=1.4, zorder=2)
+        ax.plot([p[0][0] for p in nat], [p[0][1] for p in nat], "-", color=NAT_LIGHT, marker="o", ms=3.8, lw=1.4, zorder=2)
         for (x, y), lab in nat:
-            ax.annotate(lab, (x, y), xytext=(2 if lab == "1/1" else -4, -10), textcoords="offset points", fontsize=6.7, color=NAT, ha="center")
+            ax.annotate(lab, (x, y), xytext=(2 if lab == "1/1" else -4, -10), textcoords="offset points", fontsize=7.0, color=NAT, ha="center")
         for n, fill in ((1, None),):   # one decode loop (the regime of Section 5.5)
-            for c, m, col, sz in ((f"D{n}st", "^", DIST, 24), (f"a4x{n}pm", "s", OURS, 28)):
+            for c, m, col, sz in ((f"D{n}st", "^", DIST, 26), (f"a4x{n}pm", "s", OURS, 30)):
                 p = pt(c, b)
                 if p:
                     ax.scatter(*p, marker=m, s=sz, zorder=4, facecolors=fill or col, edgecolors=col, lw=0.9)
             p80 = pt(f"D{n}r80st", b)
             if p80:
-                ax.scatter(*p80, marker="x", s=24, zorder=4, color=DIST, lw=1.2)
+                ax.scatter(*p80, marker="x", s=26, zorder=4, color=DIST, lw=1.2)
         p41 = pt("a4x1pm", b)
         if p41 and len(nat) == 2:
             (x1, y1), (x2, y2) = nat[0][0], nat[1][0]
             ym = y1 + (p41[0] - x1) / (x2 - x1) * (y2 - y1)
             ax.annotate("", (p41[0], p41[1] - 1.3), xytext=(p41[0], ym + 0.9),
-                        arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.05, mutation_scale=7.5), zorder=5)
+                        arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.1, mutation_scale=8), zorder=5)
             ax.text(p41[0] - 0.04 * (x2 - x1), (p41[1] + ym) / 2 + 0.8, f"+{p41[1] - ym:.1f}",
-                    fontsize=6.5, color=OURS, fontweight="bold", ha="right", va="center")
-            ax.annotate("4/1", p41, xytext=(0, 6), textcoords="offset points", fontsize=6.9, color=OURS, fontweight="bold", ha="center")
-        lo = min(B[k]["acc"] for k in B if k.endswith(f"@{b}") and "acc" in B[k])
-        ax.set_ylim(lo - 7.5, None)   # room for the 1/1 label under its point
-        xlo, xhi = ax.get_xlim(); ax.set_xlim(xlo - 0.05 * (xhi - xlo), xhi + 0.05 * (xhi - xlo))
-        ax.set_title(f"batch {b}", fontsize=8.5, color=INK, pad=4)
-        ax.set_xlabel("seconds per request"); ax.grid(color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
-    axes[0, 0].set_ylabel("mean accuracy (%)")
+                    fontsize=7.0, color=OURS, fontweight="bold", ha="right", va="center")
+            ax.annotate("4/1", p41, xytext=(0, 6), textcoords="offset points", fontsize=7.2, color=OURS, fontweight="bold", ha="center")
+        ax.set_ylim(20, 61.5)
+        ax.set_yticks([20, 30, 40, 50, 60])
+        if idx > 0:
+            ax.tick_params(labelleft=False)
+        xlo, xhi = ax.get_xlim(); ax.set_xlim(xlo - 0.05 * (xhi - xlo), xhi + 0.06 * (xhi - xlo))
+        ax.set_title(f"batch {b}", fontsize=8.6, color=INK, fontweight="bold", pad=4)
+        ax.set_xlabel("seconds per request", fontsize=8.2); ax.grid(color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
+        ax.tick_params(labelsize=7.5)
+    axes[0, 0].set_ylabel("mean accuracy (%)", fontsize=8.2)
     L = plt.Line2D
-    h = [L([], [], color=OURS, marker="s", ms=4.2, ls="none"),
-         L([], [], color=DIST, marker="^", ms=4.5, ls="none"), L([], [], color=DIST, marker="x", ms=4.5, lw=1.2, ls="none"),
-         L([], [], color=NAT_LIGHT, marker="o", ms=4, lw=1.4)]
-    l = ["Ours (LoopBridge 4/1)", "Distilled 1/1 (baseline)", "Distilled r80 (baseline)", "Original n/n (tied)"]
-    fig.legend(h, l, fontsize=6.5, loc="lower center", frameon=False, handlelength=1.6, ncol=2, columnspacing=1.2)
-    fig.subplots_adjust(left=0.11, right=0.98, top=0.90, bottom=0.33, wspace=0.28)
+    h = [L([], [], color=OURS, marker="s", ms=4.5, ls="none"),
+         L([], [], color=NAT_LIGHT, marker="o", ms=4.2, lw=1.4),
+         L([], [], color=DIST, marker="^", ms=4.5, ls="none"),
+         L([], [], color=DIST, marker="x", ms=4.5, lw=1.2, ls="none")]
+    l = ["Ours (LoopBridge 4/1)", "Original n/n (tied)", "Distilled 1/1 (baseline)", "Distilled 1/1 r80 (baseline)"]
+    fig.legend(h, l, fontsize=7.0, loc="upper center", bbox_to_anchor=(0.54, 1.01), frameon=False, handlelength=1.6, ncol=2, columnspacing=1.2)
+    fig.subplots_adjust(left=0.10, right=0.98, top=0.77, bottom=0.17, wspace=0.12)
     save(fig, name)
 
 
@@ -777,8 +804,8 @@ def tab_batched():
     """Appendix: the batched serving numbers behind fig_batched: accuracy of the served answers (batch 32), wall seconds
     per request at batch 1, 8 and 32, and the prefill share of the wall time at batch 32."""
     B = PN.get("batched_serving", {})
-    rows = [("Original 1/1", "native1st"), ("Distilled 1/1", "D1st"), ("Distilled 1/1, rank 80", "D1r80st"),
-            ("Ours, LoopBridge, 4/1", "a4x1pm")]
+    rows = [("Original 1/1", "native1st"), ("Distilled 1/1", "D1st"), ("Distilled 1/1 r80", "D1r80st"),
+            ("LoopBridge 4/1", "a4x1pm")]
     lines = []
     for r in rows:
         if r is None:
@@ -801,37 +828,41 @@ def fig_tbatched(name="fig_tbatched"):
              if all(f"gsmthink {c}@{b}" in T for c in ("native2st", "native4st", "D2st", "a4x2pm"))]
     if not tasks:
         return drop(name)
-    fig, axes = plt.subplots(1, len(tasks), figsize=(3.3, 2.25), squeeze=False)
-    for ax, (t, bs, lab) in zip(axes[0], tasks):
+    fig, axes = plt.subplots(1, len(tasks), figsize=(3.3, 2.3), sharey=True, squeeze=False)
+    XTICKS = {16: [3, 4, 5, 6, 7], 32: [2.0, 2.5, 3.0, 3.5]}
+    for idx, (ax, (t, bs, lab)) in enumerate(zip(axes[0], tasks)):
         pt = lambda c: (T[f"{t} {c}@{bs}"]["s_per_request"], T[f"{t} {c}@{bs}"]["acc"])
         (x2, y2), (x4, y4), (xo, yo) = pt("native2st"), pt("native4st"), pt("a4x2pm")
-        ax.plot([x2, x4], [y2, y4], "-", color=NAT_LIGHT, marker="o", ms=3.8, lw=1.4, zorder=2)
-        ax.annotate("2/2", (x2, y2), xytext=(4, -9), textcoords="offset points", fontsize=6.6, color=NAT, ha="center")
-        ax.annotate("4/4", (x4, y4), xytext=(-1, -9), textcoords="offset points", fontsize=6.6, color=NAT, ha="center")
-        ax.scatter(xo, yo, marker="s", s=30, zorder=4, color=OURS)
-        ax.annotate("4/2", (xo, yo), xytext=(0, 6), textcoords="offset points", fontsize=6.9, color=OURS, fontweight="bold", ha="center")
+        ax.plot([x2, x4], [y2, y4], "-", color=NAT_LIGHT, marker="o", ms=4.0, lw=1.4, zorder=2)
+        ax.annotate("2/2", (x2, y2), xytext=(4, -10), textcoords="offset points", fontsize=7.0, color=NAT, ha="center")
+        ax.annotate("4/4", (x4, y4), xytext=(-2, -10), textcoords="offset points", fontsize=7.0, color=NAT, ha="center")
+        ax.scatter(xo, yo, marker="s", s=32, zorder=4, color=OURS)
+        ax.annotate("4/2", (xo, yo), xytext=(0, 7), textcoords="offset points", fontsize=7.2, color=OURS, fontweight="bold", ha="center")
         ax.axhline(y4, color=NAT_LIGHT, lw=0.7, ls=":", zorder=1)
         r = T.get(f"{t} a4x2pm vs native4st@{bs}")
         if r:
             span = x4 - xo
-            ax.annotate("", xy=(xo + 0.12 * span, y4 + 0.14), xytext=(x4 - 0.08 * span, y4 + 0.14),
+            ax.annotate("", xy=(xo + 0.14 * span, y4 + 0.14), xytext=(x4 - 0.08 * span, y4 + 0.14),
                         arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.1, mutation_scale=8), zorder=4)
-            ax.text((xo + x4) / 2 + 0.04 * span, y4 + 0.36, rf"{r['ratio']:.2f}$\times$ time", fontsize=6.6,
+            ax.text((xo + x4) / 2 + 0.10 * span, y4 + 0.36, rf"{r['ratio']:.2f}$\times$ time", fontsize=6.8,
                     color=OURS, fontweight="bold", ha="center", va="bottom")
-        lo, hi = min(y2, y4, yo), max(y2, y4, yo)
-        ax.set_ylim(lo - 1.3, hi + 1.1)
+        ax.set_ylim(91.5, 95.8)
+        ax.set_yticks([92, 93, 94, 95])
+        if idx > 0:
+            ax.tick_params(labelleft=False)
         xpad = 0.24 * (x4 - xo)
         ax.set_xlim(xo - xpad * 1.15, x4 + xpad * 0.85)
-        ax.set_title(lab, fontsize=7.6, color=INK, fontweight="bold", pad=3)
-        ax.set_xlabel("seconds per request", fontsize=7.2); ax.tick_params(labelsize=6.6)
+        ax.set_xticks(XTICKS[bs])
+        ax.set_title(lab, fontsize=7.8, color=INK, fontweight="bold", pad=4)
+        ax.set_xlabel("seconds per request", fontsize=7.4); ax.tick_params(labelsize=6.9)
         ax.grid(color="#EDEDED", lw=0.5); ax.set_axisbelow(True)
-    axes[0, 0].set_ylabel("accuracy (%)", fontsize=7.2)
+    axes[0, 0].set_ylabel("accuracy (%)", fontsize=7.6)
     L = plt.Line2D
-    h = [L([], [], color=OURS, marker="s", ms=4.4, ls="none"),
-         L([], [], color=NAT_LIGHT, marker="o", ms=4.0, lw=1.4)]
-    fig.legend(h, ["Ours (LoopBridge 4/2)", "Original n/n (tied)"], fontsize=6.6, loc="lower center",
-               frameon=False, handlelength=1.5, ncol=2, columnspacing=1.2)
-    fig.subplots_adjust(left=0.14, right=0.98, top=0.89, bottom=0.30, wspace=0.30)
+    h = [L([], [], color=OURS, marker="s", ms=4.5, ls="none"),
+         L([], [], color=NAT_LIGHT, marker="o", ms=4.2, lw=1.4)]
+    fig.legend(h, ["Ours (LoopBridge 4/2)", "Original n/n (tied)"], fontsize=6.9, loc="upper center",
+               bbox_to_anchor=(0.54, 1.01), frameon=False, handlelength=1.5, ncol=2, columnspacing=1.2)
+    fig.subplots_adjust(left=0.14, right=0.98, top=0.79, bottom=0.19, wspace=0.12)
     save(fig, name)
 
 
@@ -840,7 +871,7 @@ def tab_tbatched():
     seconds per request on all 1,319 GSM8K problems (batch 16 and 32)."""
     T = PN.get("thinking_batched", {})
     rows = [("Original 2/2", "native2st"), ("Original 4/4", "native4st"), ("Distilled 2/2", "D2st"),
-            ("Ours, LoopBridge, 4/2", "a4x2pm")]
+            ("LoopBridge 4/2", "a4x2pm")]
     lines = []
     for lab, c in rows:
         g16, g32 = T.get(f"gsmthink {c}@16"), T.get(f"gsmthink {c}@32")
@@ -865,7 +896,8 @@ def tab_time():
         for c, lab in confs:
             r = next((r for r in rows if r["task"] == t and r["cond"] == c), None)
             if r:
-                lines.append(f"{t} & {lab} & {r['in_median']:.0f} & {r['out_median']:.0f} & {r['out_p90']:.0f} & "
+                sh = r"\rowcolor{oursbg} " if c.startswith("a") else ""
+                lines.append(f"{sh}{t} & {lab} & {r['in_median']:,.0f} & {r['out_median']:,.0f} & {r['out_p90']:,.0f} & "
                              f"{r['total_median']:.1f} & {r['total_p90']:.1f} & {r['share_median']:.2f} & {r['share_p90']:.2f} & "
                              f"{r['prefill_share']:.1f} \\\\")   # last: share of the summed time (Figure 2, Section 5.1)
     (OUT / "tab_time.tex").write_text("\n".join(lines) + "\n")
@@ -874,7 +906,7 @@ def tab_time():
 def tab_plateau():
     """Appendix: stopping depth of the prefill gain per benchmark and decode depth (paper_numbers.plateau)."""
     lines = []
-    for ki, (key, name) in enumerate((("plateau_extrapolated", r"trained $\le4$"), ("plateau", r"trained $\le16$"))):
+    for ki, (key, name) in enumerate((("plateau_extrapolated", r"$m{\le}4$"), ("plateau", r"$m{\le}16$"))):
         if ki and lines:
             lines.append(r"\midrule")
         for r in PN.get(key, []):
@@ -935,14 +967,16 @@ def tab_prefilltrn():
     ms = [1, 2, 3, 4, 5, 6, 8, 12, 16]
     lines = []
     prev_n = None
-    for r in P["curves"]:
+    for idx, r in enumerate(P["curves"]):
         if prev_n is not None and r["n"] != prev_n:
             lines.append(r"\midrule")
+        elif idx > 0:
+            lines.append(r"\addlinespace[2pt]")
         prev_n = r["n"]
         for arm, q in r["quality"].items():
             q = {int(k): v for k, v in q.items()}
             best = max(q.values())
-            cell = lambda m: "--" if m not in q else (f"\\textbf{{{q[m]:.1f}}}" if q[m] == best else f"{q[m]:.1f}")
+            cell = lambda m: "--" if m not in q else (f"\\textbf{{{q[m]:.1f}}}" if f"{q[m]:.1f}" == f"{best:.1f}" else f"{q[m]:.1f}")
             star = P.get("stops", {}).get(f"{r['n']}/{r['bench']}", {}).get(arm)
             lines.append(f"{r['bench']} & {r['n']} & {arm.split()[0]} & " + " & ".join(cell(m) for m in ms)
                          + f" & {star if star is not None else '--'} \\\\")

@@ -3,7 +3,7 @@
 > Looped (recurrent-depth) language models use the same number of loops to read the prompt (prefill) and to generate
 > each answer token (decode), although generation is almost all decoding. We untie the two loop counts (prefill m
 > loops, decode n < m) and introduce LoopBridge (2.4% of the parameters: decoder LoRA + RoPE-commuting per-loop
-> key/value maps), a single adapter distilled from the four-loop model that serves every trained (m, n) pair and folds
+> key maps and linear value maps), a single adapter distilled from the four-loop model that serves every trained (m, n) pair and folds
 > into the prompt cache once at prefill. (A restricted fixed-m=4 decoder-only LoRA variant is documented in Appendix L.)
 > Evaluated on Ouro-2.6B, Ouro-1.4B, Thinking models and Lev decision models. Every number is recomputed from released
 > per-item scores by ouro/scripts/paper_numbers.py.
@@ -21,11 +21,12 @@ Main findings (Ouro-2.6B; 95% paired bootstrap intervals in the paper):
 - Transfers to Ouro-1.4B (44.5 at 4/1, 44.2 +- 0.2 over three seeds, vs 40.5 distilled and 34.7 original),
   Ouro-2.6B-Thinking (4/2 within 0.8 points of 4/4 on average and +3.1 above Distilled 2/2; served in batches, matches
   Original 4/4 on all 1,319 GSM8K problems at 2.0x throughput and 0.47-0.57x wall time) and Lev decision models.
-- Baselines: the distilled controls move by at most 0.8 points over 0.3x-3x learning rates and at rank 80.
+- Baselines: the distilled baselines move by at most 0.9 points over 0.3x-3x learning rates (0.7 at rank 16, 0.9 at rank 80).
 
-Limitations stated by the author: timing on one GPU type at batch 1 to 32; folded maps keep one prompt cache per decode
-loop (the one-cache LoopBridge keeps one cache but applies its maps at every decode step, which costs decode time); the prefill depth is fixed per setting; models up to 3B with
-four loops; English benchmarks.
+Limitations stated by the author: timing on one GPU type at batch 1 to 32; folded maps keep Original n/n's KV footprint
+and per-token latency, whereas the one-cache variant cuts prompt KV memory by n× via per-step maps (adding small-batch
+decode overhead while raising max-batch throughput on long prompts); prefill depth is fixed per setting; one looped LLM
+family (Ouro, up to 3B and four loops, greedy Thinking evaluation); English benchmarks.
 
 ## Docs
 - README.md: findings, when to use, repository map

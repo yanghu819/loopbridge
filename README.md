@@ -8,7 +8,7 @@ Looped (recurrent-depth) language models apply the same block of layers for the 
 decode. Yet generation is heavily asymmetric: prefill reads the prompt once in parallel and takes under 3% of the wall
 time, while decoding runs token by token and takes over 97%. We **untie the two loop counts**—reading the prompt with *m*
 loops and decoding each answer token with fewer (*n < m*)—and introduce **LoopBridge**, a lightweight adapter (2.4% of
-the parameters) combining decoder LoRA with RoPE-commuting key/value maps on the prompt cache. One set of LoopBridge
+the parameters) combining decoder LoRA with RoPE-commuting key maps and linear value maps on the prompt cache. One set of LoopBridge
 weights serves every trained *(m, n)* pair, preserves 16K-token retrieval, and folds into the prompt cache once at
 prefill so decoding runs at virtually the original per-token speed. (A restricted fixed-*m*=4 decoder-only LoRA variant
 is documented in Appendix L.)
@@ -47,11 +47,11 @@ data went, and [`DEPRECATED.md`](DEPRECATED.md) which modules and training arms 
    8 benchmarks, 1.1 ± 0.3 over three seeds, and +3.1 above Distilled 2/2; in batched serving, matches Original 4/4 on
    all 1,319 GSM8K problems—94.6% vs. 94.2–94.3%—at **2.0× end-to-end throughput** and 0.47–0.57× wall time), and
    looped decision models (Lev, +4.4 to +7.5 at one decision loop).
-6. **LoopBridge's RoPE-commuting KV maps preserve 16K-token retrieval** when one adapter serves every *(m, n)* pair
+6. **LoopBridge's key and value maps preserve 16K-token retrieval** when one adapter serves every *(m, n)* pair
    (RULER-16K at 4/1 over three seeds: **63.9 ± 1.0** vs. 57.6 ± 1.6 for a parameter-matched rank-80 LoRA and
    44.7 ± 4.4 at rank 16).
-7. **The baselines are not under-tuned:** the distilled controls move by at most 0.8 points over a 0.3×–3×
-   learning-rate range and at rank 80; LoopBridge's weakest learning rate (56.8) still stays well ahead of the best
+7. **The baselines are not under-tuned:** the distilled controls move by at most 0.9 points over a 0.3×–3×
+   learning-rate range (0.7 at rank 16, 0.9 at rank 80); LoopBridge's weakest learning rate (56.8) still stays well ahead of the best
    distilled baseline (49.5).
 
 ![Higher accuracy at higher throughput (tokens/s)](paper/figs/fig_tps_teaser.png)
