@@ -21,6 +21,7 @@ if [[ "$CKPT" != "none" && -n "$CKPT" ]]; then
   CKPT_ARG=(--checkpoint "$CKPT")
 fi
 
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 PIDS=()
 for g in 0 1 2 3 4 5 6 7; do
   SHARD=$((OFFSET + g))
@@ -32,7 +33,7 @@ for g in 0 1 2 3 4 5 6 7; do
     --mode "$MODE" --m "$M" --n "$N" \
     "${CKPT_ARG[@]}" \
     --shard-index "$SHARD" --num-shards "$TOTAL" \
-    --batch-tokens 49152 --max-batch 32 --chunk-size 2048 \
+    --batch-tokens 98304 --max-batch 96 --chunk-size 2048 \
     > "$OUT/shard_${SHARD}.log" 2>&1 &
   PIDS+=($!)
 done

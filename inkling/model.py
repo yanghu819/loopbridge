@@ -482,6 +482,10 @@ class InklingLoopBridgeSystem(nn.Module):
         if isinstance(self.base.model.message_input, ToggleQueryDelta):
             self.base.model.message_input = self.base.model.message_input.merged_module()
 
+    def _lm_head_logits(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        logits = self.base.lm_head(hidden_states).float()
+        return self.base.logit_softcap(logits)
+
     def _run_prefill_chunked(
         self,
         input_ids: torch.Tensor,
@@ -489,8 +493,9 @@ class InklingLoopBridgeSystem(nn.Module):
         num_passes: int,
         adapter_on: bool,
         chunk_size: int = 0,
+        return_logits: bool = True,
     ):
-        """Run prefill with optional chunking (keeps eager attention memory bounded at 16K-64K)."""
+        """Run prefill with optional chunking, never materializing lm_head logits on non-final tokens."""
         set_loop_passes(self.base, num_passes)
         self.adapter_state["on"] = adapter_on
         seq_len = input_ids.shape[1]
@@ -500,34 +505,34 @@ class InklingLoopBridgeSystem(nn.Module):
             pos_ids = torch.arange(seq_len, device=input_ids.device, dtype=torch.long).unsqueeze(0).expand(input_ids.shape[0], -1)
 
         if chunk_size <= 0 or seq_len <= chunk_size:
-            out = self.base(
+            out = self.base.model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
                 position_ids=pos_ids,
                 use_cache=True,
-                logits_to_keep=1,
             )
-            return out.logits, out.cache
+            logits = self._lm_head_logits(out.last_hidden_state[:, -1:]) if return_logits else None
+            return logits, out.cache
 
         cache = None
-        last_logits = None
+        last_hidden = None
         for start in range(0, seq_len, chunk_size):
             end = min(start + chunk_size, seq_len)
             sub_ids = input_ids[:, start:end]
             sub_pos = pos_ids[:, start:end]
             sub_mask = None if attention_mask is None else attention_mask[:, :end]
-            out = self.base(
+            out = self.base.model(
                 input_ids=sub_ids,
                 attention_mask=sub_mask,
                 position_ids=sub_pos,
                 cache=cache,
                 use_cache=True,
-                logits_to_keep=1 if end == seq_len else 0,
             )
             cache = out.cache
             if end == seq_len:
-                last_logits = out.logits
-        return last_logits, cache
+                last_hidden = out.last_hidden_state[:, -1:]
+        logits = self._lm_head_logits(last_hidden) if (return_logits and last_hidden is not None) else None
+        return logits, cache
 
     def forward_kl(
         self,
@@ -552,7 +557,7 @@ class InklingLoopBridgeSystem(nn.Module):
         # 1. Frozen Original 3/3 teacher (adapter strictly OFF)
         with torch.no_grad():
             _, teacher_pre_cache = self._run_prefill_chunked(
-                prefix[:, :-1], pmask[:, :-1], num_passes=3, adapter_on=False, chunk_size=2048
+                prefix[:, :-1], pmask[:, :-1], num_passes=3, adapter_on=False, chunk_size=2048, return_logits=False
             )
             # If LoopBridge with m == 3, reuse teacher_pre_cache for student prefill (clone before teacher decode mutates it)
             if self.cfg.mode == "loopbridge" and m == 3:
@@ -579,7 +584,7 @@ class InklingLoopBridgeSystem(nn.Module):
             if student_pre_cache is None:
                 with torch.no_grad():
                     _, student_pre_cache = self._run_prefill_chunked(
-                        prefix[:, :-1], pmask[:, :-1], num_passes=m, adapter_on=False, chunk_size=2048
+                        prefix[:, :-1], pmask[:, :-1], num_passes=m, adapter_on=False, chunk_size=2048, return_logits=False
                     )
             s_dec_cache = build_aligned_decode_cache(
                 student_pre_cache,
@@ -608,14 +613,15 @@ class InklingLoopBridgeSystem(nn.Module):
             set_loop_passes(self.base, n)
             self.adapter_state["on"] = True
             full_ids = torch.cat([prefix, suffix[:, :-1]], dim=1)
-            s_out = self.base(
+            s_out = self.base.model(
                 input_ids=full_ids,
                 attention_mask=full_mask,
                 position_ids=full_pos,
                 use_cache=False,
             )
-            student_logp = s_out.logits[:, P - 1 :].float().log_softmax(dim=-1)
-            del s_out
+            student_logits = self._lm_head_logits(s_out.last_hidden_state[:, P - 1 :])
+            student_logp = student_logits.log_softmax(dim=-1)
+            del s_out, student_logits
             self.adapter_state["on"] = False
         else:
             raise ValueError(f"forward_kl unsupported for mode={self.cfg.mode}")
@@ -679,6 +685,7 @@ class InklingRunner:
             num_passes=self.m,
             adapter_on=False,
             chunk_size=self.chunk_size,
+            return_logits=False,
         )
         if self.time_adapter:
             torch.cuda.synchronize(input_ids.device)

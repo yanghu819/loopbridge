@@ -263,11 +263,15 @@ def main():
         with out_path.open("a") as fh:
             i = 0
             while i < len(todo):
-                span = len(todo[i]["prompt_ids"]) + todo[i]["max_new_tokens"]
-                bs = max(1, min(args.max_batch, args.batch_tokens // max(span, 1)))
-                # Cap batch size on very long prompts (>12K) to keep attention memory crisp
-                if len(todo[i]["prompt_ids"]) > 12000:
-                    bs = min(bs, 4)
+                # Bound batch size by the LONGEST prompt in the candidate slice to keep eager attention <15GB
+                bs = min(args.max_batch, len(todo) - i)
+                while bs > 1:
+                    max_plen = max(len(r["prompt_ids"]) for r in todo[i : i + bs])
+                    max_span = max(len(r["prompt_ids"]) + r["max_new_tokens"] for r in todo[i : i + bs])
+                    cap = 2 if max_plen > 12000 else (4 if max_plen > 6000 else (8 if max_plen > 2048 else (16 if max_plen > 1024 else (48 if max_plen > 512 else 96))))
+                    if bs <= cap and bs * max_span <= args.batch_tokens:
+                        break
+                    bs = min(bs - 1, cap)
                 batch = todo[i : i + bs]
                 outs = greedy_batch(runner, tok, batch, device)
                 for row, (raw_txt, n_gen, reason) in zip(batch, outs):
