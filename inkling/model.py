@@ -606,7 +606,7 @@ class InklingLoopBridgeSystem(nn.Module):
             )
             student_logp = s_out.logits.float().log_softmax(dim=-1)
             del s_out, s_dec_cache
-            self.adapter_state["on"] = False
+            # Keep adapter_state['on']=True through caller's loss.backward() for gradient checkpointing recomputation.
         elif self.cfg.mode == "distilled":
             # Tied-loop Distilled n/n: adapter active on BOTH prefill and decode (same frozen 3/3 teacher)
             assert m == n, f"Distilled mode requires m == n, got {m}/{n}"
@@ -622,7 +622,7 @@ class InklingLoopBridgeSystem(nn.Module):
             student_logits = self._lm_head_logits(s_out.last_hidden_state[:, P - 1 :])
             student_logp = student_logits.log_softmax(dim=-1)
             del s_out, student_logits
-            self.adapter_state["on"] = False
+            # Keep adapter_state['on']=True through caller's loss.backward() for gradient checkpointing recomputation.
         else:
             raise ValueError(f"forward_kl unsupported for mode={self.cfg.mode}")
 
