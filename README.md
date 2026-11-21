@@ -1,92 +1,215 @@
-# LoopBridge: Should Prefill and Decode Loop Equally?
+<div align="center">
 
-**Paper:** [`paper/loopbridge.pdf`](paper/loopbridge.pdf) (arXiv link coming) ·
-**Author:** Yang Hu · **Code license:** MIT · **Keywords:** LoopBridge, looped language model, recurrent depth, Ouro,
-test-time compute, prefill vs decode, KV cache
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-light.svg">
+  <img alt="LoopBridge: Should Prefill and Decode Loop Equally?" src="docs/assets/hero-light.svg" width="100%">
+</picture>
 
-Looped (recurrent-depth) language models apply the same block of layers for the same number of loops during prefill and
-decode. Yet generation is heavily asymmetric: prefill reads the prompt once in parallel and takes under 3% of the wall
-time, while decoding runs token by token and takes over 97%. We **untie the two loop counts**—reading the prompt with *m*
-loops and decoding each answer token with fewer (*n < m*)—and introduce **LoopBridge**, a lightweight adapter (2.4% of
-the parameters) combining decoder LoRA with RoPE-commuting key maps and linear value maps on the prompt cache. One set of LoopBridge
-weights serves every trained *(m, n)* pair, preserves 16K-token retrieval, and folds into the prompt cache once at
-prefill so decoding runs at virtually the original per-token speed. (A restricted fixed-*m*=4 decoder-only LoRA variant
-is documented in Appendix L.)
+<br/>
 
-**Every number in the paper is recomputed from released per-item scores and timing records by one script** and checked
-against the printed value: `python ouro/scripts/paper_numbers.py compute`. See [`REPRODUCE.md`](REPRODUCE.md).
+[![Paper PDF](https://img.shields.io/badge/Paper-PDF-EB6834?style=flat&logo=adobeacrobatreader&logoColor=white)](paper/loopbridge.pdf)
+[![Reproducibility](https://img.shields.io/badge/Reproducible-0--diff%20verified-0F766E?style=flat&logo=checkmarx&logoColor=white)](REPRODUCE.md)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12%20%C2%B7%20PyTorch-334155?style=flat&logo=pytorch&logoColor=white)](environments/ouro/pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-334155?style=flat)](LICENSE)
 
-The per-item scores make this a 1.0 GB checkout. To read the code alone:
+[**Paper PDF**](paper/loopbridge.pdf) · [**Results**](#results) · [**How It Works**](#how-loopbridge-works) · [**Quick Start**](#quick-start) · [**Reproduce**](REPRODUCE.md) · [**Citation**](#citation)
+
+</div>
+
+<br/>
+
+Looped (recurrent-depth) language models reuse one block of layers for the same number of loops during prefill and decode. Yet generation is heavily asymmetric: at batch 1, prefill reads the prompt once in parallel (**<3%** of wall time), while decoding steps token by token (**>97%**).
+
+**LoopBridge** unties prefill depth (*m*) from decode depth (*n* < *m*) with a lightweight **2.4%** adapter (decoder LoRA + RoPE-commuting key scales and linear value maps) distilled from Original 4/4. One adapter serves every trained (*m*, *n*) pair, preserves 16K-token retrieval, and **folds once into the prompt KV cache at prefill**—keeping Original *n*/*n*'s per-token decode speed intact.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/teaser_horizontal_dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/teaser_horizontal.png">
+    <img src="docs/assets/teaser_horizontal.png" alt="LoopBridge accuracy vs end-to-end throughput on Ouro-2.6B and Ouro-2.6B-Thinking" width="96%">
+  </picture>
+  <br/>
+  <sub><b>Higher accuracy at higher throughput (tokens/s).</b> (a) Ouro-2.6B on 800 CoT requests (batch 1): LoopBridge 4/1 adds <b>+17.2</b> points at ~28 tok/s; 4/2 runs at <b>2.1×</b> Original 4/4's throughput. (b) Ouro-2.6B-Thinking on all 1,319 GSM8K problems (batch 16): LoopBridge 4/2 reaches <b>94.6%</b> at <b>2.0×</b> Original 4/4's throughput.</sub>
+</p>
+
+---
+
+## Results
+
+Every number below is recomputed directly from released per-item scores and timing logs via [`paper_numbers.py`](ouro/scripts/paper_numbers.py) (`0 printed values differ`).
+
+### Ouro-2.6B (11-Benchmark Average & Batch-1 Serving)
+
+| Method | Loops (*m*/*n*) | 11-Bench Avg | 3-Seed Mean | 800 CoT Acc | Throughput | Relative TPS |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| Original (Ouro) | 1/1 | 44.2 | — | 27.8% | 28.3 tok/s | 4.2× |
+| Training-free | 4/1 | 28.7 | — | — | — | — |
+| Distilled r16 / r80 (KD) | 1/1 | 49.5 / 49.3 | 49.6 / 49.2 | 34.2% | 26.6 tok/s | 4.0× |
+| **LoopBridge (ours)** | **4/1** | **58.2** | **58.3 ± 0.1** | **45.0%** | **27.7 tok/s** | **4.1×** |
+| Original (Ouro) | 2/2 | 63.7 | — | 57.1% | 13.6 tok/s | 2.0× |
+| Distilled r16 / r80 (KD) | 2/2 | 66.2 / 65.5 | 66.1 / 65.6 | 59.2% | 13.6 tok/s | 2.0× |
+| **LoopBridge (ours)** | **4/2** | **69.1** | **68.6 ± 0.4** | **62.5%** | **14.3 tok/s** | **2.1×** |
+| Original (Ouro) | 4/4 | 71.9 | — | 69.1% | 6.7 tok/s | 1.0× |
+
+<sub><i>11 benchmarks: MMLU, MMLU-Pro, BBH, ARC-C, HellaSwag, Winogrande, GSM8K, MATH-500 (zero-shot), HumanEval+, MBPP+, RULER-16K. 800 CoT: 200 timed requests each of GSM8K, MATH-500, BBH, MMLU-Pro on one B300 GPU. LoopBridge 4/1 also leads a time-matched Original 1/1–2/2 mix by <b>+10.5</b> points, and keeps <b>+18.5 / +11.3</b> points at batch 32 continuous batching in 1.18× / 1.19× time.</i></sub>
+
+### Ouro-2.6B-Thinking (8-Benchmark Average & Batch-16 Serving)
+
+| Method | Loops (*m*/*n*) | 8-Bench Avg | GSM8K (b16) | Wall Time / Req | Throughput (b16) | Speedup vs 4/4 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| Original (Ouro-Thinking) | 2/2 | 65.5 | 92.9% | 4.04 s | 232 tok/s | 1.9× |
+| Distilled r16 (KD) | 2/2 | 67.6 | 91.8% | 3.79 s | 236 tok/s | 1.9× |
+| **LoopBridge (ours)** | **4/2** | **70.7** | **94.6%** | **3.19 s** | **247 tok/s** | **2.0×** |
+| Original (Ouro-Thinking) | 4/4 | 71.5 | 94.3% | 6.84 s | 122 tok/s | 1.0× |
+
+- **Transfers across scales & families:** Works on **Ouro-1.4B** (`34.7 → 44.5` at 4/1; `44.2 ± 0.2` over 3 seeds vs `40.5` distilled) and **Lev looped decision models** (`+4.4` to `+7.5` at one decision loop across all 13/13 *m* > *n* pairs).
+- **Maps matter for long context:** Across 3 seeds on RULER-16K (4/1), LoopBridge scores **63.9 ± 1.0** vs **57.6 ± 1.6** for a parameter-matched rank-80 LoRA and **44.7 ± 4.4** for rank-16 LoRA.
+- **Baselines are tuned:** Scaling the learning rate by `0.3×–3×` shifts Distilled baselines by at most **0.9** points; LoopBridge's weakest LR (`56.8`) stays far above the best distilled baseline (`49.5`).
+
+---
+
+## How LoopBridge Works
+
+<p align="center">
+  <img src="paper/figs/fig0_method.png" alt="LoopBridge architecture diagram" width="90%">
+</p>
+
+1. **Aligned cross-loop mapping.** The frozen backbone prefills the prompt with *m* loops. Decode loop *k* ∈ {1, …, *n*} reads prefill loop `max(m - n + k, 1)` through a complex rotary key scale *c*<sub>*k*</sub> (which commutes with RoPE) and a linear value map *W*<sub>*k*</sub>, plus a shared rank-16 decoder-only LoRA (**63.3M** trainable params = **2.4%** of Ouro-2.6B).
+2. **Folded once at prefill (zero decode overhead).** Because *c*<sub>*k*</sub> commutes with RoPE and attention is linear in *V*, both maps fold once into the prompt KV caches right after prefill—matching Original *n*/*n*'s KV footprint and running standard single-call FlashAttention during decoding. *(A lighter one-cache variant shares only the last prefill loop to cut prompt KV memory by n×.)*
+3. **One adapter for all (*m*, *n*) pairs.** Distilled from Original 4/4 via forward KL over 48M answer tokens while sampling (*m*, *n*) per micro-batch; at tied *n*/*n*, serving can bypass the adapter for exact Original accuracy.
+
+```python
+# LoopBridge core (timed folded form; full exact per-step equivalence in ouro/single_bank.py)
+def prefill_and_fold(prompt, m, n):
+    h = embed(prompt[:-1])
+    for j in range(m):                                 # frozen backbone, m parallel loops
+        for l in range(L):
+            h, K[j][l], V[j][l] = blocks[l](h)
+    for k in range(n):                                 # fold RoPE-commuting key scale & value map once
+        j = max(m - n + k, 0)
+        for l in range(L):
+            Kp[k][l] = complex_mul(K[j][l], c[k][l])   # c_k commutes with RoPE
+            Vp[k][l] = V[j][l] @ W[k][l].T
+    return Kp, Vp
+
+def decode_step(token, Kp, Vp, kv_ans, n):
+    h = embed(token)
+    for k in range(n):                                 # n fast decode loops (+ shared decoder LoRA)
+        for l in range(L):
+            h = blocks_lora[l](h, prompt_kv=(Kp[k][l], Vp[k][l]), answer_kv=kv_ans[k][l])
+    return lm_head(h)
+```
+
+---
+
+## Key Insights
+
+<p align="center">
+  <img src="paper/figs/fig_taskmap.png" alt="All 16 prefill/decode pairs on Ouro-2.6B" width="96%">
+  <br/>
+  <sub><b>Directional asymmetry across all 16 (m, n) pairs.</b> Raising prefill loops from 1 to 4 lifts accuracy by 10–12 points at every decode depth, while running fewer prefill than decode loops (<i>m &lt; n</i>) consistently hurts.</sub>
+</p>
+
+<p align="center">
+  <img src="paper/figs/fig_depth_main.png" alt="Prefill depth sweep up to m=8" width="96%">
+  <br/>
+  <sub><b>A few prefill loops suffice.</b> Across tasks, seeds, and even trainable prefill, gains saturate within 2–5 prefill loops before drifting off-manifold.</sub>
+</p>
+
+<details>
+<summary><b>More figures</b> (wall-time split, paired 1-loop comparison, Ouro-2.6B-Thinking 4/2, and Lev decision models)</summary>
+<br/>
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="paper/figs/fig_time.png" alt="Prefill vs decode wall-time split" width="96%"><br/>
+      <sub><b>Prefill is &lt;3% of wall time</b> (batch 1 CoT)</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="paper/figs/fig_sametime.png" alt="Paired 1-decode-loop comparison" width="94%"><br/>
+      <sub><b>Paired 1-loop gain</b> (+17.2 / +10.8 on 800 requests)</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="paper/figs/fig_equal.png" alt="Ouro-2.6B-Thinking 4/2 per benchmark" width="98%"><br/>
+      <sub><b>Ouro-2.6B-Thinking 4/2</b> across 8 benchmarks</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="paper/figs/fig_lev.png" alt="Lev looped decision models" width="98%"><br/>
+      <sub><b>Lev decision models</b> (+4.4 to +7.5 at 1 decision loop)</sub>
+    </td>
+  </tr>
+</table>
+</details>
+
+---
+
+## Quick Start
+
+### 1. Code-only clone (`< 5 MB`)
+
+The full repository (~1.0 GB) bundles per-item scores and provenance logs so every paper number can be verified offline. If you only want the code and paper:
 
 ```bash
 git clone --filter=blob:none --no-checkout https://github.com/yanghu819/loopbridge
 cd loopbridge && git sparse-checkout set --no-cone '/*' '!ouro/results' && git checkout paper-arxiv
 ```
 
-The tag `paper-arxiv` points to the exact commit the arXiv version and all figures/tables were built from. [`ARCHIVE.md`](ARCHIVE.md) says where the training checkpoints, raw evaluation outputs and prepared
-data went, and [`DEPRECATED.md`](DEPRECATED.md) which modules and training arms the paper does not use.
+### 2. Verify every paper number & figure on a CPU (~30s, no GPU needed)
 
-## Key findings (Ouro-2.6B unless stated)
+```bash
+git clone https://github.com/yanghu819/loopbridge && cd loopbridge
 
-1. **Generation is almost all decoding.** At batch 1, prefill takes 0.3–2.6% of the wall time on chain-of-thought tasks
-   (0.1–0.3% on Thinking models).
-2. **Same decode loops, much higher accuracy.** At one decode loop, LoopBridge 4/1 lifts the 11-benchmark average from
-   44.2 (Original 1/1) to **58.2** (three-seed mean 58.3 ± 0.1), nearly 9 points above tied-loop distillation on the
-   same data (49.5; rank 80: 49.3); at two decode loops, 63.7 → **69.1** (vs. 66.2 for Distilled 2/2). LoopBridge 4/1
-   beats Original 1/1 on all 11 benchmarks. MATH-500 is scored zero-shot (Minerva prompt without exemplars).
-3. **Higher accuracy at higher throughput (tokens/s).** On 800 timed chain-of-thought requests at batch 1, LoopBridge
-   4/1 reaches **45.0%** (+17.2 over Original 1/1, +10.8 over Distilled 1/1) at **27.7 tokens/s** (vs. 28.3 for
-   Original 1/1) and stays **+10.5 points** above a time-matched Original 1/1–2/2 mix. At two decode loops, LoopBridge
-   4/2 reaches **62.5%** at **14.3 tokens/s** (**2.1×** the 6.7 tokens/s of Original 4/4) in 0.94–0.99× the wall time of
-   Original 2/2 and Distilled 2/2. At batch 32 continuous batching, LoopBridge 4/1 keeps +18.5 / +11.3 points over
-   Original 1/1 and Distilled 1/1 in 1.18× / 1.19× their time.
-4. **A few prefill loops suffice.** Gains peak within two to five prefill loops (also for an adapter trained up to 16
-   loops, across seeds, and when the prefill loops themselves are trained).
-5. **It transfers across scales and model families** to Ouro-1.4B (44.5 at 4/1, 44.2 ± 0.2 over three seeds, vs. 40.5
-   distilled and 34.7 original), Ouro-2.6B-Thinking (LoopBridge 4/2 within 0.8 points of Original 4/4 on average across
-   8 benchmarks, 1.1 ± 0.3 over three seeds, and +3.1 above Distilled 2/2; in batched serving, matches Original 4/4 on
-   all 1,319 GSM8K problems—94.6% vs. 94.2–94.3%—at **2.0× end-to-end throughput** and 0.47–0.57× wall time), and
-   looped decision models (Lev, +4.4 to +7.5 at one decision loop).
-6. **LoopBridge's key and value maps preserve 16K-token retrieval** when one adapter serves every *(m, n)* pair
-   (RULER-16K at 4/1 over three seeds: **63.9 ± 1.0** vs. 57.6 ± 1.6 for a parameter-matched rank-80 LoRA and
-   44.7 ± 4.4 at rank 16).
-7. **The baselines are not under-tuned:** the distilled controls move by at most 0.9 points over a 0.3×–3×
-   learning-rate range (0.7 at rank 16, 0.9 at rank 80); LoopBridge's weakest learning rate (56.8) still stays well ahead of the best
-   distilled baseline (49.5).
+# Recompute every table cell, paired bootstrap 95% CI, timing ratio & throughput from raw per-item scores
+uv run --with numpy --with math-verify python ouro/scripts/paper_numbers.py compute
+# Expected final line: wrote ouro/results/paper_numbers.json; 0 printed values differ (0 in the paired comparisons)
 
-![Higher accuracy at higher throughput (tokens/s)](paper/figs/fig_tps_teaser.png)
+# Redraw all 14 paper figures & generated LaTeX tables
+uv run --with numpy --with matplotlib python ouro/scripts/paper_figs.py
+```
 
-![All prefill and decode pairs (m, n in 1..4)](paper/figs/fig_taskmap.png)
+### 3. Train & evaluate on GPUs
 
-![Prefill is a sliver of the time](paper/figs/fig_time.png)
+```bash
+cd environments/ouro && uv sync && cd ../..
+```
 
-![A few more prefill loops buy a lot of accuracy](paper/figs/fig_depth_main.png)
+See **[`REPRODUCE.md`](REPRODUCE.md)** for the full table/figure-to-script mapping, data preparation, training launchers, evaluation commands, and continuous-batching benchmarks.
 
-![Same time, much higher accuracy](paper/figs/fig_sametime.png)
+---
 
-## When to use it, and when not
+## Repository Layout
 
-- Use more prefill loops when decoding must stay at one loop; with more time, a second decode loop buys more
-  on long chain-of-thought answers.
-- Two to five prefill loops are enough on most tasks; more can hurt. The best count depends on the task and the prompt
-  format; it is chosen per setting, not per prompt.
+```text
+loopbridge/
+├── ouro/
+│   ├── adapter_model.py        # LoopBridge adapter (RoPE-commuting key scales, value maps, decoder LoRA)
+│   ├── single_bank.py          # Folded-cache & exact LSE-merged single-bank inference runners
+│   ├── batched.py              # Batched forward KL distillation (LoopBridge & Distilled n/n baselines)
+│   ├── train_batched.py        # Multi-GPU DDP training entrypoint
+│   ├── model.py                # Frozen Ouro looped backbone & cache wrappers
+│   ├── evaluate_bench.py       # RULER & HELMET evaluation runner
+│   ├── lmeval_ouro.py          # lm-evaluation-harness integration & zero-shot Thinking tasks
+│   ├── lev/                    # Lev looped decision-model untied training & LevBench evaluation
+│   ├── scripts/                # paper_numbers.py, paper_figs.py, batch_requests.py, time_requests.py, provenance.py
+│   ├── runs_scripts/           # Exact training & evaluation launchers for every run in the paper
+│   └── results/                # Per-item scores (items/), timing (e2e/, throughput-sb4/), lev/, provenance/
+├── paper/
+│   ├── loopbridge.pdf          # Compiled 26-page arXiv preprint
+│   ├── latex/                  # Single-source ACL LaTeX & bibliography
+│   ├── figs/                   # All 14 paper figures (PDF/PNG) & generated LaTeX table fragments
+│   └── build_arxiv.py          # Reproducible arXiv tarball & PDF builder
+├── environments/ouro/          # Pinned uv environment (pyproject.toml, uv.lock)
+├── third_party/ouro/           # Ouro modeling code (Apache-2.0)
+├── docs/                       # Cold-archive notes (ARCHIVE.md), legacy arms (DEPRECATED.md), README assets
+└── REPRODUCE.md                # End-to-end reproduction guide
+```
 
-## Repository map
+> The tag `paper-arxiv` points to the exact commit that built [`paper/loopbridge.pdf`](paper/loopbridge.pdf) and all figures/tables. Details on cold-archived checkpoints and remaining optional legacy branches are in [`docs/ARCHIVE.md`](docs/ARCHIVE.md) and [`docs/DEPRECATED.md`](docs/DEPRECATED.md).
 
-| path | what |
-|---|---|
-| `REPRODUCE.md` | every table and figure → script → result file; training and evaluation commands |
-| `ouro/scripts/paper_numbers.py`, `ouro/results/items/` | per-item scores of every run the paper uses; recomputes every number |
-| `ouro/model.py`, `ouro/adapter_model.py`, `ouro/batched.py`, `ouro/train_batched.py` | frozen Ouro backbone, LoopBridge adapter, batched KL distillation from Original 4/4 |
-| `ouro/single_bank.py`, `ouro/bench_throughput.py` | exact single-bank decoding (two flash-attention calls merged by log-sum-exp), Original baselines, throughput |
-| `ouro/evaluate_bench.py`, `ouro/lmeval_ouro.py`, `ouro/run_lmeval.py`, `ouro/lmeval_tasks/` | evaluation (RULER, HELMET; lm-evaluation-harness wrapper and zero-shot thinking tasks) |
-| `ouro/lev/` | Lev looped decision-model scripts (`lev_rdws_eval.py`, `levbench_compare.py`, training/eval wrappers) |
-| `ouro/scripts/` | paper numbers, figures, batched serving, end-to-end latency, provenance |
-| `ouro/runs_scripts/` | the launchers used for every run |
-| `third_party/ouro/` | Ouro modeling code (Apache-2.0, see its LICENSE) |
-| `environments/ouro/` | the pinned environment every run used (`pyproject.toml`, `uv.lock`) |
-| `paper/` | PDF, LaTeX source, figures, arXiv build script |
-| `ARCHIVE.md`, `DEPRECATED.md` | where the heavy artifacts are kept; legacy training arms not used by the paper |
+---
 
 ## Citation
 
@@ -95,6 +218,10 @@ data went, and [`DEPRECATED.md`](DEPRECATED.md) which modules and training arms 
   title  = {LoopBridge: Should Prefill and Decode Loop Equally?},
   author = {Hu, Yang},
   year   = {2026},
-  note   = {https://github.com/yanghu819/loopbridge}
+  url    = {https://github.com/yanghu819/loopbridge}
 }
 ```
+
+## License
+
+Code is released under the [MIT License](LICENSE). Third-party modeling and benchmark code under `third_party/ouro/` and `ouro/licenses/` retain their respective upstream licenses (Apache-2.0 / MIT).

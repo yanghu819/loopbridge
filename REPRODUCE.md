@@ -1,5 +1,7 @@
 # Reproducing the paper
 
+> **Quick jump:** [Main-text map](#main-text-results-and-where-they-come-from) · [Environment & data](#environment-models-data) · [Provenance](#provenance) · [Training](#training-one-b300-node-18-gpus-per-run) · [Evaluation](#evaluation) · [Appendix map](#appendix-elements--source)
+
 The paper's numbers come from these places, all in this commit:
 
 1. **Per-item scores** (`ouro/results/items/`): one file per evaluation run used by the paper (item id → score).
@@ -131,7 +133,7 @@ mismatch with `!!` (must end with `0 printed values differ`).
 lm-evaluation-harness job), `bench3.sh` (RULER / HELMET shards), `run_mix2.sh` (training), `mk_code_local.py` and
 `mk_gpqa_local.py` (local task files), `ouro/lev/levbench_compare.py` (Lev comparisons), `launch_think_o.sh` (shared
 answer KV, Thinking). Queue files recording the grid runs are in `ouro/runs_scripts/queues/`, and remaining legacy
-training-arm branches are documented in [`DEPRECATED.md`](DEPRECATED.md).
+training-arm branches are documented in [`docs/DEPRECATED.md`](docs/DEPRECATED.md).
 
 ## What is not here
 

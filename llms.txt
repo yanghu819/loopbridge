@@ -34,6 +34,6 @@ family (Ouro, up to 3B and four loops, greedy Thinking evaluation); English benc
 - paper/loopbridge.pdf: the paper
 - ouro/results/items/: per-item scores of every run the paper uses; ouro/results/paper_numbers.json: the recomputed statistics
 - ouro/results/provenance/: run manifests, logs, and per-item outputs, plus training configs and checkpoint hashes for the main and ablation models
-- ARCHIVE.md: where the training checkpoints, raw evaluation outputs and prepared data are kept (private archive)
-- DEPRECATED.md: the modules and training arms the paper does not use
+- docs/ARCHIVE.md: where the training checkpoints, raw evaluation outputs and prepared data are kept (private archive)
+- docs/DEPRECATED.md: the modules and training arms the paper does not use
 - The tag paper-arxiv points to the exact commit the arXiv PDF and all figures/tables were built from.

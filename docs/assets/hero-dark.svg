@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 220" width="960" height="220" role="img" aria-label="LoopBridge: Should Prefill and Decode Loop Equally?">
+  <defs>
+    <pattern id="dots-dark" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#475569" opacity="0.45"/>
+    </pattern>
+    <linearGradient id="bg-dark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0D1117"/>
+      <stop offset="100%" stop-color="#141B24"/>
+    </linearGradient>
+    <marker id="arr-d" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 9 5 L 1 8 z" fill="#F27A49"/>
+    </marker>
+  </defs>
+
+  <!-- Card -->
+  <rect x="1" y="1" width="958" height="218" rx="16" fill="url(#bg-dark)" stroke="#263040" stroke-width="1.2"/>
+  <rect x="506" y="14" width="438" height="192" rx="12" fill="url(#dots-dark)"/>
+  <line x1="498" y1="28" x2="498" y2="192" stroke="#263040" stroke-width="1"/>
+
+  <!-- Left Typography -->
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="44" y="50" font-size="11" font-weight="600" letter-spacing="1.6" fill="#94A3B8">LOOPED LANGUAGE MODELS  ·  ASYMMETRIC DEPTH</text>
+    <text x="42" y="106" font-size="48" font-weight="800" letter-spacing="-1.4" fill="#F8FAFC">Loop<tspan fill="#F27A49">Bridge</tspan></text>
+    <text x="44" y="140" font-size="18" font-weight="500" fill="#CBD5E1">Should Prefill and Decode Loop Equally?</text>
+
+    <!-- Feature pills -->
+    <g transform="translate(44, 162)" font-size="11.5" font-weight="600">
+      <rect x="0" y="0" width="94" height="26" rx="13" fill="#2A1812" stroke="#9A3412" stroke-width="1"/>
+      <text x="47" y="17" text-anchor="middle" fill="#FDBA74">2.4% params</text>
+
+      <rect x="104" y="0" width="164" height="26" rx="13" fill="#1B2330" stroke="#334155" stroke-width="1"/>
+      <text x="186" y="17" text-anchor="middle" fill="#CBD5E1">RoPE-commuting maps</text>
+
+      <rect x="278" y="0" width="150" height="26" rx="13" fill="#1B2330" stroke="#334155" stroke-width="1"/>
+      <text x="353" y="17" text-anchor="middle" fill="#CBD5E1">Folded once at prefill</text>
+    </g>
+  </g>
+
+  <!-- Right Minimal Diagram: 4 prefill loops -> LoopBridge -> 2 decode loops -->
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <!-- Column titles -->
+    <text x="582" y="34" text-anchor="middle" font-size="11.5" font-weight="700" fill="#E2E8F0">Prefill (m = 4)</text>
+    <text x="726" y="34" text-anchor="middle" font-size="11.5" font-weight="700" fill="#F27A49">LoopBridge</text>
+    <text x="868" y="34" text-anchor="middle" font-size="11.5" font-weight="700" fill="#E2E8F0">Decode (n = 2)</text>
+
+    <!-- Prefill stack (4 loops) -->
+    <rect x="528" y="48" width="108" height="24" rx="6" fill="#2A1812" stroke="#F27A49" stroke-width="1.2"/>
+    <text x="582" y="64" text-anchor="middle" font-size="11" font-weight="600" fill="#FDBA74">prefill loop 4</text>
+
+    <rect x="528" y="80" width="108" height="24" rx="6" fill="#2A1812" stroke="#F27A49" stroke-width="1.2"/>
+    <text x="582" y="96" text-anchor="middle" font-size="11" font-weight="600" fill="#FDBA74">prefill loop 3</text>
+
+    <rect x="528" y="112" width="108" height="24" rx="6" fill="#161D27" stroke="#334155" stroke-width="1.1"/>
+    <text x="582" y="128" text-anchor="middle" font-size="11" font-weight="500" fill="#94A3B8">prefill loop 2</text>
+
+    <rect x="528" y="144" width="108" height="24" rx="6" fill="#161D27" stroke="#334155" stroke-width="1.1"/>
+    <text x="582" y="160" text-anchor="middle" font-size="11" font-weight="500" fill="#94A3B8">prefill loop 1</text>
+
+    <!-- Connectors into LoopBridge -->
+    <path d="M 638 60 C 658 60, 662 72, 678 72" fill="none" stroke="#F27A49" stroke-width="1.8"/>
+    <path d="M 638 92 C 658 92, 662 96, 678 96" fill="none" stroke="#F27A49" stroke-width="1.8"/>
+
+    <!-- Center LoopBridge map block -->
+    <rect x="678" y="57" width="96" height="54" rx="10" fill="#EB6834"/>
+    <text x="726" y="79" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">cₖ ⊙ K, WₖV</text>
+    <text x="726" y="98" text-anchor="middle" font-size="10" font-weight="500" fill="#FFEDD5">folded once</text>
+
+    <!-- Connectors out of LoopBridge to Decode -->
+    <path d="M 774 72 C 790 72, 792 75, 809 75" fill="none" stroke="#F27A49" stroke-width="1.8" marker-end="url(#arr-d)"/>
+    <path d="M 774 96 C 790 96, 792 115, 809 115" fill="none" stroke="#F27A49" stroke-width="1.8" marker-end="url(#arr-d)"/>
+
+    <!-- Decode stack (2 loops) -->
+    <rect x="814" y="61" width="108" height="28" rx="6" fill="#161D27" stroke="#F27A49" stroke-width="1.4"/>
+    <text x="868" y="79" text-anchor="middle" font-size="11" font-weight="600" fill="#F8FAFC">decode 2 + LoRA</text>
+
+    <rect x="814" y="101" width="108" height="28" rx="6" fill="#161D27" stroke="#F27A49" stroke-width="1.4"/>
+    <text x="868" y="119" text-anchor="middle" font-size="11" font-weight="600" fill="#F8FAFC">decode 1 + LoRA</text>
+
+    <!-- Bottom timing tags -->
+    <text x="582" y="191" text-anchor="middle" font-size="10.5" font-weight="600" fill="#94A3B8">parallel · &lt;3% time</text>
+    <text x="868" y="151" text-anchor="middle" font-size="10.5" font-weight="600" fill="#94A3B8">sequential · &gt;97% time</text>
+    <rect x="818" y="164" width="100" height="24" rx="12" fill="#2A1812" stroke="#9A3412" stroke-width="1"/>
+    <text x="868" y="180" text-anchor="middle" font-size="10.5" font-weight="700" fill="#FDBA74">2.0–2.1× TPS</text>
+  </g>
+</svg>
