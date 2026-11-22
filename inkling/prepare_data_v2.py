@@ -426,7 +426,10 @@ def export_onpolicy_prompts(args, tok, eval_fps: set[str]):
         for idx, l in enumerate(la_lines):
             if n_la >= 300:
                 break
-            r = json.loads(l)
+            try:
+                r = json.loads(l)
+            except Exception:
+                continue
             ms = r.get("messages") or []
             if len(ms) < 2 or ms[0].get("role") != "user":
                 continue
@@ -621,7 +624,10 @@ def build_train_v2(args, tok, eval_fps: set[str]):
         for l in la_lines:
             if tok_counts["long"] >= budgets["long"]:
                 break
-            r = json.loads(l)
+            try:
+                r = json.loads(l)
+            except Exception:
+                continue
             ms = r.get("messages") or []
             if len(ms) < 2:
                 continue
