@@ -208,7 +208,7 @@ def _apply_delta_to_vllm_model(
 
         kv_bundle = {
             "cross_pass": cross_pass,
-            "max_prefill_passes": int(model.config.num_loop_passes),
+            "max_prefill_passes": int(model.config.loop_config["num_passes"]),
             "loop_layers": loop_layers,
             "post_layers": post_layers,
             "k_loop": {},
@@ -726,7 +726,8 @@ def main() -> None:
         "--gpu-memory-utilization",
         str(args.gpu_memory_utilization),
     ]
-    if args.mode == "distilled":
+    if args.mode == "distilled" or args.m < 3:
+        passes = args.n if args.mode == "distilled" else args.m
         overrides = json.dumps(
             {
                 "text_config": {
@@ -737,12 +738,12 @@ def main() -> None:
                         "gate_rank": 64,
                         "is_varloop": True,
                     },
-                    "loop_num_passes": args.n,
+                    "loop_num_passes": passes,
                 }
             }
         )
         cmd += ["--hf-overrides", overrides]
-    else:
+    if args.mode != "distilled":
         # Pure prefill (1 shot) + pure decode (full CUDA graphs) -> 100% exact post-prefill KV fold!
         cmd += [
             "--no-enable-chunked-prefill",
