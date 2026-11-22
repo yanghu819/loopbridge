@@ -99,7 +99,7 @@ def main():
                 [{"role": "user", "content": prompt}],
                 tokenize=False,
                 add_generation_prompt=True,
-                reasoning_effort="medium",
+                reasoning_effort="low",
             )
             rows.append(
                 {
@@ -107,7 +107,7 @@ def main():
                     "task": r.get("domain", "science"),
                     "prompt_ids": tok.encode(s, add_special_tokens=False),
                     "answer": gold,
-                    "max_new_tokens": 4096,
+                    "max_new_tokens": 8192,
                     "until": [],
                 }
             )
@@ -147,7 +147,7 @@ def main():
                 [{"role": "user", "content": prompt}],
                 tokenize=False,
                 add_generation_prompt=True,
-                reasoning_effort="medium",
+                reasoning_effort="low",
             )
             rows.append(
                 {
@@ -157,7 +157,7 @@ def main():
                     "prompt_ids": tok.encode(s, add_special_tokens=False),
                     "test_cases": tests,
                     "fn_name": fn_name,
-                    "max_new_tokens": 4096,
+                    "max_new_tokens": 8192,
                     "until": [],
                 }
             )
