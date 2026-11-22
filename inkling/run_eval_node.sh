@@ -27,7 +27,7 @@ for g in 0 1 2 3 4 5 6 7; do
   SHARD=$((OFFSET + g))
   CUDA_VISIBLE_DEVICES=$g PYTHONPATH=. python3 -u -m inkling.eval_inkling \
     --model-path /dev/shm/inkling/model \
-    --data /dev/shm/inkling/data/eval_inkling \
+    --data "${DATA_DIR:-/dev/shm/inkling/data/eval_inkling}" \
     --output "$OUT" \
     --benches "${BENCHES[@]}" \
     --mode "$MODE" --m "$M" --n "$N" \
