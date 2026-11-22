@@ -75,7 +75,10 @@ def main():
     parser.add_argument("--cell-weights", default="", help="Optional comma-separated sampling weights matching --cells")
     parser.add_argument("--lora-rank", type=int, default=64)
     parser.add_argument("--freeze-maps", action="store_true")
-    parser.add_argument("--adapt-pre-loop", action="store_true")
+    parser.add_argument("--kv-map-layers", choices=("all", "global"), default="global",
+                        help="Prompt KV map placement: 'global' (L11,L17,L23 only — 6x fewer params/fold) or 'all' (18 layers)")
+    parser.add_argument("--adapt-pre-loop", action="store_true",
+                        help="Adapt pre-loop layers 0..5 (automatically enabled for mode='distilled' to keep param count fair)")
     parser.add_argument("--no-router", action="store_true")
     parser.add_argument("--no-attnres", action="store_true")
     parser.add_argument("--micro", type=int, default=4)
@@ -114,14 +117,21 @@ def main():
     pad_id = 199999  # Inkling-2-Mini pad_token_id
 
     base = load_inkling_model(args.model_path, device=device)
+    if args.gradient_checkpointing and args.mode == "loopbridge":
+        raise ValueError(
+            "--gradient-checkpointing is incompatible with mode='loopbridge' because recomputation "
+            "mutates DynamicCache KV/conv states in-place (supported for mode='distilled' use_cache=False only)."
+        )
+    adapt_pre = True if args.mode == "distilled" else args.adapt_pre_loop
     sys_cfg = SystemConfig(
         mode=args.mode,
         decode_depths=decode_depths,
         lora_rank=args.lora_rank,
         freeze_maps=args.freeze_maps,
+        kv_map_layers=args.kv_map_layers,
         adapt_router=not args.no_router,
         adapt_attnres=not args.no_attnres,
-        adapt_pre_loop=args.adapt_pre_loop,
+        adapt_pre_loop=adapt_pre,
     )
     system = InklingLoopBridgeSystem(base, sys_cfg)
     if args.gradient_checkpointing:
@@ -222,21 +232,37 @@ def main():
         optimizer.zero_grad(set_to_none=True)
 
         stats = torch.zeros(4, device=device, dtype=torch.float64)
-        # Distribute sorted length buckets evenly across ranks via strided slicing
-        local_rows = batch_rows[rank::world]
-        chunks = [local_rows[k : k + args.micro] for k in range(0, len(local_rows), args.micro)]
+        # Partition length-sorted global batch into equal-length blocks before striding across ranks
+        # so every microbatch across all ranks has tight length balance and minimal padding waste.
+        step_size = world * args.micro
+        chunks = [
+            batch_rows[b + rank : min(b + step_size, len(batch_rows)) : world]
+            for b in range(0, len(batch_rows), step_size)
+        ]
+        chunks = [c for c in chunks if c]
 
+        # Multi-depth DDP safety: when len(decode_depths) > 1, PyTorch DDP find_unused_parameters
+        # only traverses the final synced microbatch and would skip all_reduce for depth-specific
+        # parameters touched in earlier no_sync() microbatches. Run all microbatches under no_sync()
+        # and explicitly all_reduce(AVG) every trainable parameter so all ranks stay bit-identical.
+        manual_sync = world > 1 and len(decode_depths) > 1
         for micro_idx, chunk in enumerate(chunks):
-            # Pick cell (m, n) deterministically per (update, micro_idx) — same across ranks for clean DDP sync
+            # Pick cell (m, n) deterministically per (update, micro_idx) — same across ranks
             rng_cell = random.Random(args.seed * 1315423911 + update * 997 + micro_idx)
             m, n = rng_cell.choices(cells, weights=cell_weights, k=1)[0]
-            syncing = micro_idx == len(chunks) - 1
+            syncing = (not manual_sync) and (micro_idx == len(chunks) - 1)
             ctx = nullcontext() if (syncing or world == 1) else model.no_sync()
             with ctx:
                 loss_sum, metrics = model(chunk, m, n)
                 (loss_sum * world / block_tokens).backward()
             stats += metrics.to(torch.float64)
             del loss_sum, metrics
+
+        if manual_sync:
+            for p in trainable:
+                if p.grad is None:
+                    p.grad = torch.zeros_like(p)
+                dist.all_reduce(p.grad, op=dist.ReduceOp.AVG)
 
         grad_norm = torch.nn.utils.clip_grad_norm_(trainable, 1.0)
         if torch.isfinite(grad_norm):

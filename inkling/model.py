@@ -173,16 +173,48 @@ class InklingKVMapAdapter(nn.Module):
     Because Inkling-2-Mini is NoPE (additive relative position bias + attention sinks),
     full (head_dim x head_dim) linear key and value maps M^K = I + Delta^K, M^V = I + Delta^V
     fold once into the prompt KV cache right after prefill with zero decode-step overhead.
+
+    Supports:
+      - kv_map_layers="all"    : all 12 looped + 6 post-loop layers (legacy / All-18 ablation)
+      - kv_map_layers="global" : ONLY full-attention layers inside/after the loop (L11, L17, L23),
+                                 cutting KV-map parameters & fold latency by 6x.
     """
 
-    def __init__(self, config, device: torch.device, decode_depths: tuple[int, ...] = (1,)):
+    def __init__(
+        self,
+        config,
+        device: torch.device,
+        decode_depths: tuple[int, ...] = (1,),
+        kv_map_layers: str = "all",
+    ):
         super().__init__()
+        assert kv_map_layers in ("all", "global"), f"Unsupported kv_map_layers={kv_map_layers}"
         self.config = config
         self.decode_depths = tuple(sorted(set(decode_depths)))
+        self.kv_map_layers = kv_map_layers
         self.loop_start = config.loop_layer_index_start
         self.loop_end = config.loop_layer_index_end
-        self.num_loop = self.loop_end - self.loop_start
-        self.num_post = config.num_hidden_layers - self.loop_end
+        layer_types = getattr(config, "layer_types", None)
+
+        if kv_map_layers == "global" and layer_types is not None:
+            self.loop_offsets = tuple(
+                l - self.loop_start
+                for l in range(self.loop_start, self.loop_end)
+                if layer_types[l] == "full_attention"
+            )
+            self.post_offsets = tuple(
+                l - self.loop_end
+                for l in range(self.loop_end, config.num_hidden_layers)
+                if layer_types[l] == "full_attention"
+            )
+        else:
+            self.loop_offsets = tuple(range(self.loop_end - self.loop_start))
+            self.post_offsets = tuple(range(config.num_hidden_layers - self.loop_end))
+
+        self.loop_offset_to_idx = {off: idx for idx, off in enumerate(self.loop_offsets)}
+        self.post_offset_to_idx = {off: idx for idx, off in enumerate(self.post_offsets)}
+        self.num_loop = len(self.loop_offsets)
+        self.num_post = len(self.post_offsets)
         hkv = config.num_key_value_heads
         hd = config.head_dim
 
@@ -212,13 +244,19 @@ class InklingKVMapAdapter(nn.Module):
         return (x.float() + res).to(x.dtype)
 
     def map_loop(self, n: int, k: int, loop_layer_offset: int, keys: torch.Tensor, values: torch.Tensor):
-        kd = self.k_loop[str(n)][k, loop_layer_offset]
-        vd = self.v_loop[str(n)][k, loop_layer_offset]
+        idx = self.loop_offset_to_idx.get(loop_layer_offset)
+        if idx is None:
+            return keys, values
+        kd = self.k_loop[str(n)][k, idx]
+        vd = self.v_loop[str(n)][k, idx]
         return self._apply_linear(keys, kd), self._apply_linear(values, vd)
 
     def map_post(self, n: int, post_layer_offset: int, keys: torch.Tensor, values: torch.Tensor):
-        kd = self.k_post[str(n)][post_layer_offset]
-        vd = self.v_post[str(n)][post_layer_offset]
+        idx = self.post_offset_to_idx.get(post_layer_offset)
+        if idx is None:
+            return keys, values
+        kd = self.k_post[str(n)][idx]
+        vd = self.v_post[str(n)][idx]
         return self._apply_linear(keys, kd), self._apply_linear(values, vd)
 
 
@@ -409,6 +447,7 @@ class SystemConfig:
     decode_depths: tuple[int, ...] = (1,)
     lora_rank: int = 64
     freeze_maps: bool = False
+    kv_map_layers: str = "all"  # "all" (18 layers) or "global" (L11, L17, L23 only — 6x fewer params/fold time)
     adapt_router: bool = True
     adapt_attnres: bool = True
     adapt_pre_loop: bool = False  # True for param-matched distilled controls
@@ -466,7 +505,12 @@ class InklingLoopBridgeSystem(nn.Module):
 
         # 5. Prompt KV maps (LoopBridge only)
         if cfg.mode == "loopbridge" and not cfg.freeze_maps:
-            self.kv_maps = InklingKVMapAdapter(self.config, self.device, decode_depths=cfg.decode_depths)
+            self.kv_maps = InklingKVMapAdapter(
+                self.config,
+                self.device,
+                decode_depths=cfg.decode_depths,
+                kv_map_layers=cfg.kv_map_layers,
+            )
 
     def trainable_parameters(self) -> list[nn.Parameter]:
         return [p for p in self.parameters() if p.requires_grad]

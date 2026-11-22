@@ -17,30 +17,15 @@ from inkling.model import concat_caches, load_inkling_runner, select_cache_rows
 from inkling.scoring import (
     bbh_answer,
     bfcl_score,
+    extract_visible_text,
     graphwalks_f1,
     helmet_score,
     lcb_score,
     minerva_norm,
     mrcr_score,
+    parse_mcq,
     ruler_score,
 )
-
-
-def extract_visible_text(raw: str) -> str:
-    """Extract Inkling-2-Mini's final assistant text after <|content_text|>.
-
-    If generation truncated inside <|content_thinking|> without ever emitting <|content_text|>,
-    return empty string so unfinished reasoning traces are never falsely parsed as final answers.
-    """
-    if "<|content_text|>" in raw:
-        txt = raw.rsplit("<|content_text|>", 1)[-1]
-    elif "<|content_thinking|>" in raw:
-        return ""
-    else:
-        txt = raw
-    for tag in ("<|content_model_end_sampling|>", "<|end_message|>", "<|message_model|>", "<|content_thinking|>"):
-        txt = txt.replace(tag, "")
-    return txt.strip()
 
 
 def extract_boxed(text: str) -> str | None:
@@ -104,21 +89,6 @@ def score_math500(text: str, gold_norm: str) -> tuple[str, bool]:
     except Exception:
         pass
     return pred_norm, False
-
-
-def parse_mcq(text: str, valid_letters: str = "ABCD") -> str:
-    # Check explicit "Answer: (X)" / "\boxed{X}" case-insensitively, then standalone uppercase letters ONLY
-    pats = [
-        (rf"(?:the\s+correct\s+answer\s+is|final\s+answer\s+is|answer\s*(?:is|:))\s*\(?\s*([{valid_letters}])\s*\)?", re.I),
-        (rf"\\boxed\{{\s*\(?\s*([{valid_letters}])\s*\)?\s*\}}", re.I),
-        (rf"\(\s*([{valid_letters}])\s*\)", 0),
-        (rf"\b([{valid_letters}])\b", 0),
-    ]
-    for pat, flags in pats:
-        ms = re.findall(pat, text, flags)
-        if ms:
-            return ms[-1].upper()
-    return "[invalid]"
 
 
 def score_bbh(text: str, gold: str) -> tuple[str, bool]:

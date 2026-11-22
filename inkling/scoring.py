@@ -1,4 +1,4 @@
-"""Self-contained exact benchmark scorers (identical to ouro/score.py & ouro/evaluate_bench.py)."""
+"""Self-contained exact benchmark scorers for Inkling-2-Mini evaluations."""
 
 from __future__ import annotations
 
@@ -15,8 +15,61 @@ import tempfile
 
 RULER_TASKS = ("niah_single_1", "niah_multikey_2", "vt", "cwe")
 
+
+def extract_visible_text(raw: str) -> str:
+    """Extract Inkling-2-Mini's final assistant text after <|content_text|>.
+
+    If generation truncated inside <|content_thinking|> without ever emitting <|content_text|>,
+    return empty string so unfinished reasoning traces are never falsely parsed as final answers.
+    """
+    if "<|content_text|>" in raw:
+        txt = raw.rsplit("<|content_text|>", 1)[-1]
+    elif "<|content_thinking|>" in raw:
+        return ""
+    else:
+        txt = raw
+    for tag in ("<|content_model_end_sampling|>", "<|end_message|>", "<|message_model|>", "<|content_thinking|>"):
+        txt = txt.replace(tag, "")
+    return txt.strip()
+
+
+def parse_mcq(text: str, valid_letters: str = "ABCD") -> str:
+    """Extract final MCQ choice letter with strict priority: \\boxed{} > explicit answer phrase > standalone uppercase."""
+    if not text or not text.strip():
+        return "[invalid]"
+    # 1. Explicit \boxed{\text{X}} or \boxed{(X)} (highest priority — cannot be hijacked by earlier prose)
+    ms = re.findall(
+        rf"\\boxed\{{\s*(?:\\(?:text|textbf|mathrm)\{{\s*)?\(?\s*([{valid_letters}])\s*\)?(?:\s*\}})?\s*\}}",
+        text,
+        re.I,
+    )
+    if ms:
+        return ms[-1].upper()
+    # 2. Explicit answer header (supports Markdown bold **Answer:** and requires boundary after letter)
+    explicit_pat = (
+        rf"(?:the\s+correct\s+answer\s+is|final\s+answer\s+is|(?:\*\*)?answer(?:\*\*)?\s*(?:is|:))\s*"
+        rf"(?:\*\*)?\s*\(?\s*([{valid_letters}])\s*\)?(?:\*\*)?(?=\s|$|[.,;:\)\]\*])"
+    )
+    ms = re.findall(explicit_pat, text, re.I)
+    if ms:
+        return ms[-1].upper()
+    # 3. Parenthesized uppercase option (X)
+    ms = re.findall(rf"\(\s*([{valid_letters}])\s*\)", text)
+    if ms:
+        return ms[-1].upper()
+    # 4. Standalone uppercase letter on the final non-empty line only (never match prose "I" or lowercase "a")
+    lines = [ln.strip() for ln in text.strip().splitlines() if ln.strip()]
+    if lines:
+        last_line = lines[-1]
+        ms = re.findall(rf"(?<![A-Za-z0-9_])([{valid_letters}])(?![A-Za-z0-9_])", last_line)
+        if "I" in valid_letters and ms:
+            ms = [m for m in ms if not (m == "I" and re.search(r"\bI\s+[a-z]", last_line))]
+        if ms:
+            return ms[-1].upper()
+    return "[invalid]"
+
 SUBSTITUTIONS = [
-    ("an ", ""), ("a ", ""), (".$", "$"), ("\\$", ""), (r"\ ", ""), (" ", ""),
+    ("an ", ""), (".$", "$"), ("\\$", ""), (r"\ ", ""), (" ", ""),
     ("mbox", "text"), (",\\text{and}", ","), ("\\text{and}", ","), ("\\text{m}", "\\text{}"),
 ]
 REMOVED = [
@@ -125,21 +178,15 @@ def ruler_score(task: str, prediction: str, answers: list[str]) -> float:
 
 
 def graphwalks_f1(response: str, answer_nodes: list[str]) -> float:
-    """Official OpenAI GraphWalks node-set F1 scorer (openai/graphwalks README)."""
-    lines = [ln.strip() for ln in response.strip().splitlines() if ln.strip()]
-    line = lines[-1] if lines else ""
-    if "Final Answer:" not in line:
-        # Fallback: scan backwards for the last Final Answer: line in case of trailing markdown
-        for ln in reversed(lines):
-            if "Final Answer:" in ln:
-                line = ln
-                break
-        else:
-            return 0.0
-    m = re.search(r"\[.*\]", line)
-    if not m:
+    """Official OpenAI GraphWalks node-set F1 scorer (handles both same-line and newline Final Answer lists)."""
+    if not response or not response.strip():
         return 0.0
-    sampled = [item.strip().strip("'\"") for item in m.group(0).strip("[]").split(",") if item.strip()]
+    m = None
+    for cand in re.finditer(r"Final\s+Answer\s*:\s*(\[[^\]]*\])", response, re.I | re.S):
+        m = cand
+    if m is None:
+        return 0.0
+    sampled = [item.strip().strip("'\"") for item in m.group(1).strip("[]").split(",") if item.strip()]
     sampled_set = set(sampled)
     truth_set = set(answer_nodes)
     n_golden = len(truth_set)
@@ -239,6 +286,9 @@ def bfcl_score(raw_text: str, ground_truth: list[dict] | None, category: str) ->
     """Exact AST/JSON grader for BFCL v3 Live categories using native Inkling tool invocations."""
     calls = extract_inkling_tool_calls(raw_text)
     if "irrelevance" in category:
+        # Never reward truncated thinking traces that never emitted a visible <|content_text|> response
+        if "<|content_thinking|>" in raw_text and "<|content_text|>" not in raw_text and not calls:
+            return calls, 0.0
         return calls, (1.0 if len(calls) == 0 else 0.0)
     if not ground_truth or len(calls) != len(ground_truth):
         return calls, 0.0
@@ -267,8 +317,30 @@ def extract_python_code(text: str) -> str:
 
 
 _LCB_HARNESS = r'''
-import io, json, signal, sys, traceback
+import bisect, collections, functools, heapq, io, itertools, json, math, operator, re, signal, string, sys, traceback, typing
+from bisect import bisect_left, bisect_right, insort
+from collections import Counter, defaultdict, deque, OrderedDict
 from contextlib import redirect_stdout
+from functools import cache, cmp_to_key, lru_cache, reduce
+from heapq import heapify, heappop, heappush, heappushpop, heapreplace, nlargest, nsmallest
+from itertools import accumulate, combinations, groupby, permutations, product
+from math import ceil, comb, floor, gcd, inf, isqrt, lcm, log, log2, perm, sqrt
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple, Union
+
+_STD_PRELUDE = {
+    "bisect": bisect, "bisect_left": bisect_left, "bisect_right": bisect_right, "insort": insort,
+    "collections": collections, "Counter": Counter, "defaultdict": defaultdict, "deque": deque, "OrderedDict": OrderedDict,
+    "functools": functools, "cache": cache, "cmp_to_key": cmp_to_key, "lru_cache": lru_cache, "reduce": reduce,
+    "heapq": heapq, "heapify": heapify, "heappop": heappop, "heappush": heappush, "heappushpop": heappushpop,
+    "heapreplace": heapreplace, "nlargest": nlargest, "nsmallest": nsmallest,
+    "itertools": itertools, "accumulate": accumulate, "combinations": combinations, "groupby": groupby,
+    "permutations": permutations, "product": product,
+    "math": math, "ceil": ceil, "comb": comb, "floor": floor, "gcd": gcd, "inf": inf, "isqrt": isqrt,
+    "lcm": lcm, "log": log, "log2": log2, "perm": perm, "sqrt": sqrt,
+    "operator": operator, "re": re, "string": string, "sys": sys, "typing": typing,
+    "Any": Any, "Callable": Callable, "Dict": Dict, "Iterable": Iterable, "List": List,
+    "Optional": Optional, "Sequence": Sequence, "Set": Set, "Tuple": Tuple, "Union": Union,
+}
 
 def _alarm(signum, frame):
     raise TimeoutError("timeout")
@@ -291,7 +363,7 @@ for tc in tests:
     signal.alarm(2)
     try:
         if ttype == "functional" and fn_name:
-            ns = {}
+            ns = dict(_STD_PRELUDE)
             exec(compile(code, "<sol>", "exec"), ns)
             fn = None
             if "Solution" in ns and hasattr(ns["Solution"], fn_name):
