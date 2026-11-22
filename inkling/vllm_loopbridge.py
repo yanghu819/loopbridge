@@ -646,16 +646,30 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
                 return out
             # Waiting prompt couldn't fit free KV blocks right now -> run pure-decode to free blocks
 
-        if not self.running:
+        if not dec_reqs:
             return orig_schedule(self, throttle_prefills=throttle_prefills)
 
-        # Pure-decode step: cap max_num_running_reqs to len(self.running) so waiting queue is untouched
-        saved_max = self.max_num_running_reqs
-        self.max_num_running_reqs = len(self.running)
+        # Pure-decode step: hide waiting queues & active prefill chunks without mutating max_num_running_reqs
+        saved_waiting = self.waiting
+        saved_kv_hold = self.kv_holding_waiting
+        saved_async_kv = self.async_kv_waiting
+        self.waiting = sched_mod.create_request_queue(self.policy)
+        self.kv_holding_waiting = sched_mod.create_request_queue(self.policy)
+        self.async_kv_waiting = sched_mod.create_request_queue(self.policy)
+        self.running = dec_reqs
+        remaining_dec = dec_reqs
         try:
-            return orig_schedule(self, throttle_prefills=True)
+            out = orig_schedule(self, throttle_prefills=True)
+            remaining_dec = self.running
+            return out
         finally:
-            self.max_num_running_reqs = saved_max
+            # Merge any preempted dec_reqs back into the real waiting queue in original order
+            if self.waiting:
+                saved_waiting.prepend_requests(self.waiting)
+            self.waiting = saved_waiting
+            self.kv_holding_waiting = saved_kv_hold
+            self.async_kv_waiting = saved_async_kv
+            self.running = remaining_dec + pre_reqs
 
     sched_mod.Scheduler.schedule = _patched_schedule
 
