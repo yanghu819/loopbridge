@@ -511,6 +511,15 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
         is_pure_decode, has_prefill = _is_pure_decode_batch(self, attn_metadata)
 
         if not is_pure_decode:
+            # Verify pure-prefill when real attn_metadata is active (prevents stale pass-0/1 KV holes on decode tokens)
+            if has_prefill and isinstance(attn_metadata, dict):
+                md0 = attn_metadata.get(self.layers[0].attn.prefix)
+                n_dec0 = getattr(md0, "num_decode_tokens", 0) if md0 is not None else 0
+                if n_dec0 > 0:
+                    raise RuntimeError(
+                        f"[LoopBridge-vLLM] Unexpected mixed prefill+decode batch (n_dec={n_dec0})! "
+                        "Pure-phase scheduler separation must be active."
+                    )
             # Prefill (or dummy warmup with attn_metadata=None): frozen base m-pass forward
             _state["decode_mode"] = False
             out = orig_loop_forward(self, positions, inputs_embeds)
@@ -607,6 +616,48 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
             _state["decode_mode"] = False
 
     ink_loop_mod.Inkling2LoopModel.forward = _patched_loop_forward
+
+    # --- 3. Patch vLLM V1 Scheduler to enforce strict Pure-Prefill / Pure-Decode batch separation ---
+    # Guarantees decode tokens NEVER co-batch with prefill tokens (eliminating stale pass-0/1 KV holes
+    # and enabling 100% pure-decode Blackwell CUDA Graph replay at any concurrency B=1..128).
+    from vllm.v1.core.sched import scheduler as sched_mod
+
+    orig_schedule = sched_mod.Scheduler.schedule
+
+    def _patched_schedule(self, throttle_prefills: bool = False):
+        dec_reqs = [r for r in self.running if not r.is_prefill_chunk]
+        pre_reqs = [r for r in self.running if r.is_prefill_chunk]
+        has_waiting = bool(self.waiting)
+        free_slots = self.max_num_running_reqs - len(dec_reqs)
+
+        # Prefer a pure-prefill step whenever new prompts wait and capacity exists (or a prefill chunk is active)
+        if pre_reqs or (has_waiting and free_slots > 0 and not throttle_prefills):
+            saved_max = self.max_num_running_reqs
+            newly_started = pre_reqs
+            self.running = pre_reqs
+            self.max_num_running_reqs = max(len(pre_reqs), free_slots)
+            try:
+                out = orig_schedule(self, throttle_prefills=False)
+                newly_started = self.running
+            finally:
+                self.running = dec_reqs + newly_started
+                self.max_num_running_reqs = saved_max
+            if out.total_num_scheduled_tokens > 0 or not dec_reqs:
+                return out
+            # Waiting prompt couldn't fit free KV blocks right now -> run pure-decode to free blocks
+
+        if not self.running:
+            return orig_schedule(self, throttle_prefills=throttle_prefills)
+
+        # Pure-decode step: cap max_num_running_reqs to len(self.running) so waiting queue is untouched
+        saved_max = self.max_num_running_reqs
+        self.max_num_running_reqs = len(self.running)
+        try:
+            return orig_schedule(self, throttle_prefills=True)
+        finally:
+            self.max_num_running_reqs = saved_max
+
+    sched_mod.Scheduler.schedule = _patched_schedule
     _INSTALLED = True
 
 
