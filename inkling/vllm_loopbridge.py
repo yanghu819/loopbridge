@@ -230,15 +230,23 @@ def _apply_delta_to_vllm_model(
 
 
 @torch.no_grad()
-def _fold_prefill_kv_maps(
+def _fold_request_kv_maps(
     model,
     kv_bundle: dict,
     m: int,
     n: int,
-    attn_metadata: dict,
+    block_tables,
+    layer_to_gid: dict[str, int],
+    req_idx: int,
+    prompt_len: int,
 ) -> None:
-    """Apply LoopBridge prompt KV maps ONCE in-place to prefilled PagedAttention KV slots."""
-    if kv_bundle is None or n not in kv_bundle["k_loop"]:
+    """Apply LoopBridge Cross-Pass Global-3 KV Fusion ONCE for a request right after its final prefill chunk.
+
+    Operates over ALL prompt token positions 0..prompt_len-1 via the request's physical block table,
+    so chunked prefill works with 100% mathematical exactness for any prompt length (1..1M tokens)
+    and zero CUDA Graph interference.
+    """
+    if kv_bundle is None or n not in kv_bundle["k_loop"] or prompt_len <= 0:
         return
 
     cross_pass = kv_bundle["cross_pass"]
@@ -248,38 +256,38 @@ def _fold_prefill_kv_maps(
     kd_post = kv_bundle["k_post"][n]
     vd_post = kv_bundle["v_post"][n]
 
+    def _get_blk_off(layer_name: str, block_size: int, dev: torch.device) -> tuple[torch.Tensor, torch.Tensor] | None:
+        gid = layer_to_gid.get(layer_name)
+        if gid is None:
+            return None
+        num_blks = (prompt_len + block_size - 1) // block_size
+        bt = block_tables.block_tables[gid].gpu[req_idx, :num_blks].long()
+        blk = bt.unsqueeze(1).expand(num_blks, block_size).reshape(-1)[:prompt_len]
+        off = torch.arange(block_size, device=dev, dtype=torch.long).unsqueeze(0).expand(num_blks, block_size).reshape(-1)[:prompt_len]
+        return blk, off
+
     # 1. Core loop layers (e.g. L11, L17 for Global-3)
     for idx, layer_id in enumerate(kv_bundle["loop_layers"]):
         attn = model.layers[layer_id].attn
         p0_name, p0_cache = attn._pass_cache(0)
-        if p0_cache.numel() == 0 or p0_name not in attn_metadata:
+        if p0_cache.numel() == 0:
             continue
-        md = attn_metadata[p0_name]
-        n_dec = getattr(md, "num_decode_tokens", 0)
-        n_pre = getattr(md, "num_prefill_tokens", 0)
-        if n_pre <= 0:
-            continue
-        slots = md.slot_mapping[n_dec : n_dec + n_pre]
-        slots = slots[slots >= 0]
-        if slots.numel() == 0:
-            continue
-
-        # Gather prefill KV across needed passes BEFORE mutating any target pass cache
         k_caches = []
         v_caches = []
-        block_size = None
+        block_size = 0
         for p in range(m):
             _, pc = attn._pass_cache(p)
             kc, vc = attn._split_kv_cache(pc)  # [num_blocks, block_size, H_kv, D]
             block_size = kc.shape[1]
             k_caches.append(kc)
             v_caches.append(vc)
-
-        blk = torch.div(slots, block_size, rounding_mode="floor")
-        off = slots - blk * block_size
+        bo = _get_blk_off(p0_name, block_size, k_caches[0].device)
+        if bo is None:
+            continue
+        blk, off = bo
 
         if cross_pass:
-            k_src = [k_caches[p][blk, off].float() for p in range(m)]  # each [T, H_kv, D]
+            k_src = [k_caches[p][blk, off].float() for p in range(m)]
             v_src = [v_caches[p][blk, off].float() for p in range(m)]
             slot_offset = max_m - m
             out_pairs = []
@@ -309,21 +317,13 @@ def _fold_prefill_kv_maps(
     for idx, layer_id in enumerate(kv_bundle["post_layers"]):
         attn = model.layers[layer_id].attn
         p0_name, p0_cache = attn._pass_cache(0)
-        if p0_cache.numel() == 0 or p0_name not in attn_metadata:
-            continue
-        md = attn_metadata[p0_name]
-        n_dec = getattr(md, "num_decode_tokens", 0)
-        n_pre = getattr(md, "num_prefill_tokens", 0)
-        if n_pre <= 0:
-            continue
-        slots = md.slot_mapping[n_dec : n_dec + n_pre]
-        slots = slots[slots >= 0]
-        if slots.numel() == 0:
+        if p0_cache.numel() == 0:
             continue
         kc, vc = attn._split_kv_cache(p0_cache)
-        block_size = kc.shape[1]
-        blk = torch.div(slots, block_size, rounding_mode="floor")
-        off = slots - blk * block_size
+        bo = _get_blk_off(p0_name, kc.shape[1], kc.device)
+        if bo is None:
+            continue
+        blk, off = bo
         ks = kc[blk, off].float()
         vs = vc[blk, off].float()
         k_out = ks + torch.einsum("nhi,hoi->nho", ks, kd_post[idx])
@@ -394,9 +394,9 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
         _INSTALLED = True
         return
 
-    # --- 2. For LoopBridge / Training-Free: patch Attention, MoE, Blend, and LoopModel.forward ---
-    # Thread-safe module-level flag read during forward (static during CUDA graph capture!)
-    _state = {"decode_mode": False}
+    # --- 2. For LoopBridge / Training-Free: patch Attention, MoE, Blend, LoopModel.forward, and ModelRunner ---
+    # `_state["step_is_decode"]` is set by GPUModelRunner.execute_model BEFORE forward/CUDA-graph capture.
+    _state = {"decode_mode": False, "step_is_decode": False}
 
     orig_attn_project = ink_attn_mod.Inkling2Attention._project
     orig_attn_forward = ink_attn_mod.Inkling2Attention.forward
@@ -509,8 +509,10 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
     ) -> torch.Tensor | tuple[torch.Tensor, list[torch.Tensor]]:
         attn_metadata = get_forward_context().attn_metadata
         is_pure_decode, has_prefill = _is_pure_decode_batch(self, attn_metadata)
+        # During FULL decode CUDA graph capture or pure-decode execution, execute_model sets step_is_decode=True
+        use_decode_path = is_pure_decode or _state["step_is_decode"]
 
-        if not is_pure_decode:
+        if not use_decode_path:
             # Verify pure-prefill when real attn_metadata is active (prevents stale pass-0/1 KV holes on decode tokens)
             if has_prefill and isinstance(attn_metadata, dict):
                 md0 = attn_metadata.get(self.layers[0].attn.prefix)
@@ -520,12 +522,9 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
                         f"[LoopBridge-vLLM] Unexpected mixed prefill+decode batch (n_dec={n_dec0})! "
                         "Pure-phase scheduler separation must be active."
                     )
-            # Prefill (or dummy warmup with attn_metadata=None): frozen base m-pass forward
+            # Prefill (or prefill profile/piecewise capture): frozen base m-pass forward
             _state["decode_mode"] = False
-            out = orig_loop_forward(self, positions, inputs_embeds)
-            if has_prefill and self._lb_kv_bundle is not None:
-                _fold_prefill_kv_maps(self, self._lb_kv_bundle, self._lb_m, self._lb_n, attn_metadata)
-            return out
+            return orig_loop_forward(self, positions, inputs_embeds)
 
         # --- PURE DECODE PATH (CUDA Graph captured & replayed at native n-pass speed!) ---
         _state["decode_mode"] = True
@@ -658,6 +657,102 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
             self.max_num_running_reqs = saved_max
 
     sched_mod.Scheduler.schedule = _patched_schedule
+
+    # --- 4. Patch GPUModelRunner.execute_model for exact chunked-prefill KV folding & decode CG dispatch ---
+    from vllm.v1.worker.gpu import model_runner as mr_mod
+
+    orig_execute_model = mr_mod.GPUModelRunner.execute_model
+
+    def _patched_execute_model(
+        self,
+        scheduler_output,
+        intermediate_tensors=None,
+        dummy_run: bool = False,
+        skip_attn_for_dummy_run: bool = False,
+        is_profile: bool = False,
+        context_len: int = 0,
+        valid_dummy_state_slots: bool = False,
+        randomize_inputs: bool = False,
+    ):
+        if not hasattr(self, "_lb_req_prompt_len"):
+            self._lb_req_prompt_len = {}
+            self._lb_req_computed = {}
+            self._lb_layer_to_gid = None
+
+        completed_prefills: list[tuple[str, int]] = []
+        if dummy_run:
+            max_q = max(scheduler_output.num_scheduled_tokens.values(), default=0)
+            # Decode CUDA graph capture runs dummy_run with uniform 1 token/req and prepared attn metadata
+            step_is_decode = (not is_profile) and (not skip_attn_for_dummy_run) and (max_q == 1)
+        else:
+            for rid in scheduler_output.finished_req_ids:
+                self._lb_req_prompt_len.pop(rid, None)
+                self._lb_req_computed.pop(rid, None)
+            for new_req in scheduler_output.scheduled_new_reqs:
+                self._lb_req_prompt_len[new_req.req_id] = len(new_req.prompt_token_ids)
+                self._lb_req_computed[new_req.req_id] = int(new_req.num_computed_tokens)
+
+            any_prefill = False
+            any_decode = False
+            for rid, n_sched in scheduler_output.num_scheduled_tokens.items():
+                plen = self._lb_req_prompt_len.get(rid)
+                prev_c = self._lb_req_computed.get(rid, 0)
+                if plen is not None and prev_c < plen:
+                    any_prefill = True
+                    new_c = prev_c + int(n_sched)
+                    self._lb_req_computed[rid] = new_c
+                    if new_c >= plen:
+                        completed_prefills.append((rid, plen))
+                else:
+                    any_decode = True
+                    if rid in self._lb_req_computed:
+                        self._lb_req_computed[rid] = prev_c + int(n_sched)
+            step_is_decode = any_decode and (not any_prefill)
+
+        prev_flag = _state["step_is_decode"]
+        _state["step_is_decode"] = step_is_decode
+        try:
+            ret = orig_execute_model(
+                self,
+                scheduler_output,
+                intermediate_tensors=intermediate_tensors,
+                dummy_run=dummy_run,
+                skip_attn_for_dummy_run=skip_attn_for_dummy_run,
+                is_profile=is_profile,
+                context_len=context_len,
+                valid_dummy_state_slots=valid_dummy_state_slots,
+                randomize_inputs=randomize_inputs,
+            )
+        finally:
+            _state["step_is_decode"] = prev_flag
+
+        if completed_prefills and not dummy_run:
+            # Unwrap Inkling2LoopModel from Inkling2LoopForConditionalGeneration
+            inner = getattr(self.model, "model", self.model)
+            kv_bundle = getattr(inner, "_lb_kv_bundle", None)
+            if kv_bundle is not None:
+                if self._lb_layer_to_gid is None:
+                    l2g = {}
+                    for gid, grp in enumerate(self.kv_cache_config.kv_cache_groups):
+                        for lname in grp.layer_names:
+                            l2g[lname] = gid
+                    self._lb_layer_to_gid = l2g
+                for rid, plen in completed_prefills:
+                    req_idx = self.req_states.req_id_to_index.get(rid)
+                    if req_idx is not None:
+                        _fold_request_kv_maps(
+                            inner,
+                            kv_bundle,
+                            inner._lb_m,
+                            inner._lb_n,
+                            self.block_tables,
+                            self._lb_layer_to_gid,
+                            req_idx,
+                            plen,
+                        )
+        return ret
+
+    mr_mod.GPUModelRunner.execute_model = _patched_execute_model
     _INSTALLED = True
 
 
@@ -744,12 +839,12 @@ def main() -> None:
         )
         cmd += ["--hf-overrides", overrides]
     if args.mode != "distilled":
-        # Pure-phase scheduler patch guarantees strict pure-prefill / pure-decode batches;
-        # large max_num_batched_tokens prefills every <=128K prompt in 1 shot without disabling V1 chunked-prefill support.
+        # Pure-phase scheduler + post-final-chunk block-table KV folding supports arbitrary prompt lengths
+        # up to 1M tokens with standard <=16K chunk size (stays well within CUDA gridDim.y <= 65535).
         cmd += [
             "--no-enable-prefix-caching",
             "--max-num-batched-tokens",
-            str(min(args.max_model_len, 131072)),
+            "16384",
         ]
     if args.extra_args:
         cmd += args.extra_args
