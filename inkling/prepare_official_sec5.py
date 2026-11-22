@@ -38,13 +38,14 @@ def main():
     parser.add_argument("--output", type=Path, default=Path("/dev/shm/inkling/data/eval_sec5"))
     parser.add_argument("--mrcr-max-tokens", type=int, default=65536)
     parser.add_argument("--lb2-max-tokens", type=int, default=131072)
+    parser.add_argument("--effort", default="high", help="Inkling-2-Mini reasoning_effort (official chat_template default: high=0.9)")
     args = parser.parse_args()
 
     tok = AutoTokenizer.from_pretrained(str(args.model_path), local_files_only=True)
     args.output.mkdir(parents=True, exist_ok=True)
     summary = {}
 
-    # 1. LongBench v2 (full 128K context + thinking effort=low)
+    # 1. LongBench v2 (full 128K context + official default thinking effort)
     lb2_in = args.eval_raw / "longbench_v2.jsonl"
     if lb2_in.exists():
         rows = []
@@ -61,7 +62,7 @@ def main():
                 f"(D) {r['choice_D']}\n\n"
                 'Format your response as follows: "The correct answer is (insert answer here)".'
             )
-            ids = _chat_ids(tok, [{"role": "user", "content": body}], effort="low")
+            ids = _chat_ids(tok, [{"role": "user", "content": body}], effort=args.effort)
             if len(ids) > args.lb2_max_tokens:
                 half = args.lb2_max_tokens // 2
                 ids = ids[:half] + ids[-(args.lb2_max_tokens - half) :]
@@ -73,13 +74,14 @@ def main():
                     "difficulty": r["difficulty"],
                     "prompt_ids": ids,
                     "answer": r["answer"].strip().upper(),
-                    "max_new_tokens": 2048,
+                    "max_new_tokens": 8192,
                     "until": [],
                 }
             )
         (args.output / "longbench_v2_128k.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
         summary["longbench_v2_128k"] = {
             "n": len(rows),
+            "effort": args.effort,
             "max_prompt_tok": max(len(r["prompt_ids"]) for r in rows),
         }
 
@@ -91,20 +93,21 @@ def main():
         for idx, r in enumerate(tbl):
             if r["problem_type"] != "bfs":
                 continue
-            ids = _chat_ids(tok, [{"role": "user", "content": r["prompt"]}], effort="low")
+            ids = _chat_ids(tok, [{"role": "user", "content": r["prompt"]}], effort=args.effort)
             rows.append(
                 {
                     "id": f"graphwalks_bfs/{idx}",
                     "task": "bfs",
                     "prompt_ids": ids,
                     "answer_nodes": list(r["answer_nodes"]),
-                    "max_new_tokens": 2048,
+                    "max_new_tokens": 8192,
                     "until": [],
                 }
             )
         (args.output / "graphwalks_bfs.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
         summary["graphwalks_bfs"] = {
             "n": len(rows),
+            "effort": args.effort,
             "median_prompt_tok": sorted(len(r["prompt_ids"]) for r in rows)[len(rows) // 2],
             "max_prompt_tok": max(len(r["prompt_ids"]) for r in rows),
         }
@@ -122,7 +125,7 @@ def main():
                 msgs = json.loads(r["prompt"])
                 # Normalize assistant role names if needed
                 norm_msgs = [{"role": m["role"], "content": m["content"]} for m in msgs]
-                ids = _chat_ids(tok, norm_msgs, effort="none")
+                ids = _chat_ids(tok, norm_msgs, effort=args.effort)
                 if len(ids) > args.mrcr_max_tokens:
                     continue
                 rows.append(
@@ -132,13 +135,14 @@ def main():
                         "prompt_ids": ids,
                         "answer": r["answer"],
                         "random_string_to_prepend": r["random_string_to_prepend"],
-                        "max_new_tokens": 1024,
+                        "max_new_tokens": 4096,
                         "until": [],
                     }
                 )
         (args.output / "mrcr_8n.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
         summary["mrcr_8n"] = {
             "n": len(rows),
+            "effort": args.effort,
             "median_prompt_tok": sorted(len(r["prompt_ids"]) for r in rows)[len(rows) // 2] if rows else 0,
             "max_prompt_tok": max((len(r["prompt_ids"]) for r in rows), default=0),
         }
@@ -154,14 +158,14 @@ def main():
                 "Put your final answer inside \\boxed{}.\n\n"
                 f"{r['problem'].strip()}"
             )
-            ids = _chat_ids(tok, [{"role": "user", "content": prompt}], effort="medium")
+            ids = _chat_ids(tok, [{"role": "user", "content": prompt}], effort=args.effort)
             rows.append(
                 {
                     "id": f"apex_2025/{r['problem_idx']}",
                     "task": r.get("source", "apex_2025"),
                     "prompt_ids": ids,
                     "answer": minerva_norm(str(r["answer"])),
-                    "max_new_tokens": 8192,
+                    "max_new_tokens": 16384,
                     "until": [],
                 }
             )

@@ -192,8 +192,15 @@ def score_row(bench: str, row: dict, raw_text: str, gen_tokens: int, reason: str
 
 
 @torch.inference_mode()
-def greedy_batch(runner, tok, batch: list[dict], device: torch.device) -> list[tuple[str, int, str]]:
-    """Left-padded batched greedy decoding with dynamic compaction when rows finish."""
+def greedy_batch(
+    runner,
+    tok,
+    batch: list[dict],
+    device: torch.device,
+    temperature: float = 0.0,
+    gen_rng: torch.Generator | None = None,
+) -> list[tuple[str, int, str]]:
+    """Left-padded batched decoding (greedy when temperature<=0, or multinomial sampling at temperature>0)."""
     n = len(batch)
     width = max(len(r["prompt_ids"]) for r in batch)
     pad = tok.pad_token_id if tok.pad_token_id is not None else tok.eos_token_id
@@ -214,7 +221,11 @@ def greedy_batch(runner, tok, batch: list[dict], device: torch.device) -> list[t
     max_steps = max(r["max_new_tokens"] for r in batch)
 
     for _ in range(max_steps):
-        tokens = logits.argmax(dim=-1)
+        if temperature > 0.0:
+            probs = torch.softmax(logits.float() / temperature, dim=-1)
+            tokens = torch.multinomial(probs, num_samples=1, generator=gen_rng).squeeze(-1)
+        else:
+            tokens = logits.argmax(dim=-1)
         for j, i in enumerate(active):
             t = int(tokens[j])
             if t == eos_id:
@@ -257,6 +268,9 @@ def main():
                         help="Append <|message_model|><|content_text|> so effort=none answers directly without thinking")
     parser.add_argument("--max-new-tokens-map", default="",
                         help="Optional comma-separated bench=N overrides, e.g. gsm8k=2048,math500=4096")
+    parser.add_argument("--temperature", type=float, default=0.0,
+                        help="Decoding temperature (0.0=greedy; 1.0=Inkling-2-Mini official generation_config.json)")
+    parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     max_tok_overrides: dict[str, int] = {}
@@ -266,6 +280,7 @@ def main():
             max_tok_overrides[k.strip()] = int(v.strip())
 
     device = torch.device("cuda:0")
+    gen_rng = torch.Generator(device=device).manual_seed(args.seed + args.shard_index) if args.temperature > 0.0 else None
     tok = AutoTokenizer.from_pretrained(args.model_path, local_files_only=True)
     text_hdr = tok.encode("<|message_model|><|content_text|>", add_special_tokens=False) if args.force_text_header else []
     runner = load_inkling_runner(
@@ -319,7 +334,7 @@ def main():
                 batch = todo[i : i + bs]
                 torch.cuda.synchronize(device)
                 tb0 = perf_counter()
-                outs = greedy_batch(runner, tok, batch, device)
+                outs = greedy_batch(runner, tok, batch, device, temperature=args.temperature, gen_rng=gen_rng)
                 torch.cuda.synchronize(device)
                 batch_wall = (perf_counter() - tb0) / max(len(batch), 1)
                 for row, (raw_txt, n_gen, reason) in zip(batch, outs):
