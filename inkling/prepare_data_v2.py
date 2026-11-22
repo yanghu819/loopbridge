@@ -359,7 +359,9 @@ def export_onpolicy_prompts(args, tok, eval_fps: set[str]):
             except Exception:
                 continue
             p_ids = tok.encode(p_str, add_special_tokens=False)
-            if 32 <= len(p_ids) <= 4096:
+            if len(p_ids) > 6144:
+                p_ids = p_ids[:2048] + p_ids[-(6144 - 2048) :]
+            if len(p_ids) >= 32:
                 prompts.append(
                     {"id": f"op_apigen/{idx}", "source": "tool_apigen", "effort": "low", "prompt_ids": p_ids, "max_new_tokens": 512}
                 )
@@ -440,7 +442,9 @@ def export_onpolicy_prompts(args, tok, eval_fps: set[str]):
                 reasoning_effort="low",
             )
             p_ids = tok.encode(p_str, add_special_tokens=False)
-            if 2048 <= len(p_ids) <= 6144:
+            if len(p_ids) > 5120:
+                p_ids = p_ids[:256] + p_ids[-(5120 - 256) :]
+            if len(p_ids) >= 2048:
                 prompts.append(
                     {"id": f"op_long/{idx}", "source": "long_doc", "effort": "low", "prompt_ids": p_ids, "max_new_tokens": 512}
                 )
@@ -541,7 +545,7 @@ def build_train_v2(args, tok, eval_fps: set[str]):
             rng.shuffle(asst_idxs)
             for t in asst_idxs[:3]:
                 eff = rng.choice(["low", "medium"])
-                pair = _split_turn_exact(tok, msgs, tools, eff, t, max_prefix=4096, max_target=1024)
+                pair = _split_turn_exact(tok, msgs, tools, eff, t, max_prefix=args.max_prefix, max_target=1024)
                 if pair:
                     add_row("tool", "apigen_mt", eff, pair[0], pair[1])
 
