@@ -749,7 +749,7 @@ def main() -> None:
             "--no-enable-chunked-prefill",
             "--no-enable-prefix-caching",
             "--max-num-batched-tokens",
-            str(min(args.max_model_len, 131072)),
+            str(args.max_model_len),
         ]
     if args.extra_args:
         cmd += args.extra_args
