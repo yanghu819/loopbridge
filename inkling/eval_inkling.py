@@ -327,7 +327,16 @@ def main():
                 while bs > 1:
                     max_plen = max(len(r["prompt_ids"]) for r in todo[i : i + bs])
                     max_span = max(len(r["prompt_ids"]) + r["max_new_tokens"] for r in todo[i : i + bs])
-                    cap = 1 if max_plen > 24000 else (2 if max_plen > 12000 else (4 if max_plen > 6000 else (8 if max_plen > 2048 else (16 if max_plen > 1024 else (48 if max_plen > 512 else 96)))))
+                    # Exact 288GB B300 eager-attention budget (chunk_size=1024, fp32 softmax ~8 B/elem, 4 full-attn layers)
+                    cap = (
+                        3 if max_plen > 65536 else
+                        6 if max_plen > 32768 else
+                        12 if max_plen > 16384 else
+                        20 if max_plen > 8192 else
+                        32 if max_plen > 4096 else
+                        48 if max_plen > 1024 else
+                        96
+                    )
                     if bs <= cap and bs * max_span <= args.batch_tokens:
                         break
                     bs = min(bs - 1, cap)
