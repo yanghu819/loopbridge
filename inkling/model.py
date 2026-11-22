@@ -175,9 +175,15 @@ class InklingKVMapAdapter(nn.Module):
     fold once into the prompt KV cache right after prefill with zero decode-step overhead.
 
     Supports:
-      - kv_map_layers="all"    : all 12 looped + 6 post-loop layers (legacy / All-18 ablation)
       - kv_map_layers="global" : ONLY full-attention layers inside/after the loop (L11, L17, L23),
-                                 cutting KV-map parameters & fold latency by 6x.
+                                 cutting KV-map fold latency by 6x.
+      - kv_map_layers="all"    : all 12 looped + 6 post-loop layers (legacy / All-18 ablation).
+      - kv_map_cross_pass=True : Cross-Pass Global KV Fusion — for each decode pass k, linearly
+                                 fuses ALL m prefill passes' KV caches at the mapped core layers
+                                 (e.g., Pass 0 surface-copying keys/values + Pass 1/2 semantic
+                                 keys/values) into decode pass k's single KV cache slot:
+                                     K_bridge[k] = K_pre[j(k)] + sum_{p=0}^{m-1} Delta^K_{k,p} K_pre[p]
+                                 Exact zero-init identity at step 0; zero extra decode memory/FLOPs.
     """
 
     def __init__(
@@ -185,27 +191,37 @@ class InklingKVMapAdapter(nn.Module):
         config,
         device: torch.device,
         decode_depths: tuple[int, ...] = (1,),
-        kv_map_layers: str = "all",
+        kv_map_layers: str = "global",
+        cross_pass: bool = False,
     ):
         super().__init__()
         assert kv_map_layers in ("all", "global"), f"Unsupported kv_map_layers={kv_map_layers}"
         self.config = config
         self.decode_depths = tuple(sorted(set(decode_depths)))
         self.kv_map_layers = kv_map_layers
+        self.cross_pass = cross_pass
+        self.max_prefill_passes = int(getattr(config, "loop_num_passes", 3))
         self.loop_start = config.loop_layer_index_start
         self.loop_end = config.loop_layer_index_end
         layer_types = getattr(config, "layer_types", None)
 
-        if kv_map_layers == "global" and layer_types is not None:
+        if kv_map_layers == "global":
+            if layer_types is None:
+                raise ValueError("kv_map_layers='global' requires config.layer_types")
+            # Inkling-2-Mini uses 'hybrid' for full global layers (L5, L11, L17, L23) and 'hybrid_sliding' for SWA.
             self.loop_offsets = tuple(
                 l - self.loop_start
                 for l in range(self.loop_start, self.loop_end)
-                if layer_types[l] == "full_attention"
+                if layer_types[l] in ("hybrid", "full_attention")
             )
             self.post_offsets = tuple(
                 l - self.loop_end
                 for l in range(self.loop_end, config.num_hidden_layers)
-                if layer_types[l] == "full_attention"
+                if layer_types[l] in ("hybrid", "full_attention")
+            )
+            assert self.loop_offsets and self.post_offsets, (
+                f"Expected global layers inside and after loop, got loop={self.loop_offsets}, "
+                f"post={self.post_offsets} from layer_types={layer_types}"
             )
         else:
             self.loop_offsets = tuple(range(self.loop_end - self.loop_start))
@@ -224,12 +240,12 @@ class InklingKVMapAdapter(nn.Module):
         self.v_post = nn.ParameterDict()
 
         for n in self.decode_depths:
-            self.k_loop[str(n)] = nn.Parameter(
-                torch.zeros(n, self.num_loop, hkv, hd, hd, device=device, dtype=torch.float32)
-            )
-            self.v_loop[str(n)] = nn.Parameter(
-                torch.zeros(n, self.num_loop, hkv, hd, hd, device=device, dtype=torch.float32)
-            )
+            if cross_pass:
+                loop_shape = (n, self.num_loop, self.max_prefill_passes, hkv, hd, hd)
+            else:
+                loop_shape = (n, self.num_loop, hkv, hd, hd)
+            self.k_loop[str(n)] = nn.Parameter(torch.zeros(*loop_shape, device=device, dtype=torch.float32))
+            self.v_loop[str(n)] = nn.Parameter(torch.zeros(*loop_shape, device=device, dtype=torch.float32))
             self.k_post[str(n)] = nn.Parameter(
                 torch.zeros(self.num_post, hkv, hd, hd, device=device, dtype=torch.float32)
             )
@@ -250,6 +266,31 @@ class InklingKVMapAdapter(nn.Module):
         kd = self.k_loop[str(n)][k, idx]
         vd = self.v_loop[str(n)][k, idx]
         return self._apply_linear(keys, kd), self._apply_linear(values, vd)
+
+    def map_loop_cross(
+        self,
+        n: int,
+        k: int,
+        base_pass: int,
+        loop_layer_offset: int,
+        keys_all: list[torch.Tensor],
+        values_all: list[torch.Tensor],
+    ):
+        idx = self.loop_offset_to_idx.get(loop_layer_offset)
+        if idx is None:
+            return keys_all[base_pass], values_all[base_pass]
+        m_cur = len(keys_all)
+        dtype = keys_all[base_pass].dtype
+        k_out = keys_all[base_pass].float()
+        v_out = values_all[base_pass].float()
+        kd_all = self.k_loop[str(n)][k, idx]  # [max_m, H_kv, D, D]
+        vd_all = self.v_loop[str(n)][k, idx]
+        slot_offset = self.max_prefill_passes - m_cur
+        for p in range(m_cur):
+            slot = max(0, min(self.max_prefill_passes - 1, slot_offset + p))
+            k_out = k_out + torch.einsum("bhti,hoi->bhto", keys_all[p].float(), kd_all[slot])
+            v_out = v_out + torch.einsum("bhti,hoi->bhto", values_all[p].float(), vd_all[slot])
+        return k_out.to(dtype), v_out.to(dtype)
 
     def map_post(self, n: int, post_layer_offset: int, keys: torch.Tensor, values: torch.Tensor):
         idx = self.post_offset_to_idx.get(post_layer_offset)
@@ -364,7 +405,12 @@ def build_aligned_decode_cache(
             dst_slot = cache_slot(k, l, config)
             src_layer = prefill_cache.layers[src_slot]
             if kv_maps is not None:
-                mk, mv = kv_maps.map_loop(n, k, l - loop_start, src_layer.keys.detach(), src_layer.values.detach())
+                if kv_maps.cross_pass:
+                    keys_all = [prefill_cache.layers[cache_slot(p, l, config)].keys.detach() for p in range(m)]
+                    vals_all = [prefill_cache.layers[cache_slot(p, l, config)].values.detach() for p in range(m)]
+                    mk, mv = kv_maps.map_loop_cross(n, k, j, l - loop_start, keys_all, vals_all)
+                else:
+                    mk, mv = kv_maps.map_loop(n, k, l - loop_start, src_layer.keys.detach(), src_layer.values.detach())
                 decode_cache.layers[dst_slot] = _clone_cache_layer(src_layer, keys=mk, values=mv, training=training)
             else:
                 decode_cache.layers[dst_slot] = _clone_cache_layer(src_layer, training=training)
@@ -447,9 +493,11 @@ class SystemConfig:
     decode_depths: tuple[int, ...] = (1,)
     lora_rank: int = 64
     freeze_maps: bool = False
-    kv_map_layers: str = "all"  # "all" (18 layers) or "global" (L11, L17, L23 only — 6x fewer params/fold time)
+    kv_map_layers: str = "all"  # "global" (L11, L17, L23 only) or "all" (18 layers; legacy default for v2 ckpt compat)
+    kv_map_cross_pass: bool = False  # Cross-Pass Global KV Fusion across all m prefill passes
     adapt_router: bool = True
     adapt_attnres: bool = True
+    adapt_rel_sink: bool = False  # LoRA on relative_position_bias.linear & sink_proj (vLLM qkvr-compatible)
     adapt_pre_loop: bool = False  # True for param-matched distilled controls
 
 
@@ -471,7 +519,7 @@ class InklingLoopBridgeSystem(nn.Module):
         loop_start = self.config.loop_layer_index_start
         start_layer = 0 if cfg.adapt_pre_loop else loop_start
 
-        # 1. Attention projection LoRAs (q, k, v, o.linear, o.gate_proj)
+        # 1. Attention projection LoRAs (q, k, v, o.linear, o.gate_proj, plus optional r_proj & sink_proj)
         for layer_idx in range(start_layer, self.config.num_hidden_layers):
             layer = self.base.model.layers[layer_idx]
             attn = layer.self_attn
@@ -480,6 +528,11 @@ class InklingLoopBridgeSystem(nn.Module):
             attn.v_proj.linear = ToggleLoRALinear(attn.v_proj.linear, cfg.lora_rank, self.adapter_state)
             attn.o_proj.linear = ToggleLoRALinear(attn.o_proj.linear, cfg.lora_rank, self.adapter_state)
             attn.o_proj.gate_proj = ToggleLoRALinear(attn.o_proj.gate_proj, cfg.lora_rank, self.adapter_state)
+            if cfg.adapt_rel_sink:
+                attn.relative_position_bias.linear = ToggleLoRALinear(
+                    attn.relative_position_bias.linear, min(16, cfg.lora_rank), self.adapter_state
+                )
+                attn.sink_proj = ToggleLoRALinear(attn.sink_proj, min(8, cfg.lora_rank), self.adapter_state)
 
             # 2. Sparse-MoE Router delta (lets shortened decode re-route across all 128 frozen experts)
             if cfg.adapt_router:
@@ -510,6 +563,7 @@ class InklingLoopBridgeSystem(nn.Module):
                 self.device,
                 decode_depths=cfg.decode_depths,
                 kv_map_layers=cfg.kv_map_layers,
+                cross_pass=cfg.kv_map_cross_pass,
             )
 
     def trainable_parameters(self) -> list[nn.Parameter]:
@@ -543,7 +597,8 @@ class InklingLoopBridgeSystem(nn.Module):
         for layer in self.base.model.layers:
             attn = layer.self_attn
             for sub, attr in ((attn.q_proj, "linear"), (attn.k_proj, "linear"), (attn.v_proj, "linear"),
-                              (attn.o_proj, "linear"), (attn.o_proj, "gate_proj")):
+                              (attn.o_proj, "linear"), (attn.o_proj, "gate_proj"),
+                              (attn.relative_position_bias, "linear"), (attn, "sink_proj")):
                 child = getattr(sub, attr)
                 if isinstance(child, ToggleLoRALinear):
                     setattr(sub, attr, child.merged_linear())

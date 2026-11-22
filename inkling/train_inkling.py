@@ -77,10 +77,13 @@ def main():
     parser.add_argument("--freeze-maps", action="store_true")
     parser.add_argument("--kv-map-layers", choices=("all", "global"), default="global",
                         help="Prompt KV map placement: 'global' (L11,L17,L23 only — 6x fewer params/fold) or 'all' (18 layers)")
+    parser.add_argument("--no-cross-pass-kv", action="store_true",
+                        help="Disable Cross-Pass Global KV Fusion (ablation: map only aligned pass j=m-n+k)")
     parser.add_argument("--adapt-pre-loop", action="store_true",
                         help="Adapt pre-loop layers 0..5 (automatically enabled for mode='distilled' to keep param count fair)")
     parser.add_argument("--no-router", action="store_true")
     parser.add_argument("--no-attnres", action="store_true")
+    parser.add_argument("--no-rel-sink", action="store_true")
     parser.add_argument("--micro", type=int, default=4)
     parser.add_argument("--global-batch", type=int, default=32)
     parser.add_argument("--peak-lr", type=float, default=1.5e-4)
@@ -123,14 +126,17 @@ def main():
             "mutates DynamicCache KV/conv states in-place (supported for mode='distilled' use_cache=False only)."
         )
     adapt_pre = True if args.mode == "distilled" else args.adapt_pre_loop
+    cross_pass = (not args.no_cross_pass_kv) and (args.kv_map_layers == "global")
     sys_cfg = SystemConfig(
         mode=args.mode,
         decode_depths=decode_depths,
         lora_rank=args.lora_rank,
         freeze_maps=args.freeze_maps,
         kv_map_layers=args.kv_map_layers,
+        kv_map_cross_pass=cross_pass,
         adapt_router=not args.no_router,
         adapt_attnres=not args.no_attnres,
+        adapt_rel_sink=not args.no_rel_sink,
         adapt_pre_loop=adapt_pre,
     )
     system = InklingLoopBridgeSystem(base, sys_cfg)
