@@ -360,7 +360,7 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
         use_sm12x_bf16_ll_gemm,
     )
     from vllm.models.inkling2.nvidia.ops.loop import blend_rms_norm, pair_rms_norm
-    from vllm.models.inkling2.nvidia.ops.sconv import conv_metadata
+    from vllm.models.inkling2.nvidia.sconv import conv_metadata
 
     # --- 1. Patch process_weights_after_loading to load checkpoint deltas ---
     orig_process = ink_loop_mod.Inkling2LoopModel.process_weights_after_loading
@@ -744,12 +744,12 @@ def main() -> None:
         )
         cmd += ["--hf-overrides", overrides]
     if args.mode != "distilled":
-        # Pure prefill (1 shot) + pure decode (full CUDA graphs) -> 100% exact post-prefill KV fold!
+        # Pure-phase scheduler patch guarantees strict pure-prefill / pure-decode batches;
+        # large max_num_batched_tokens prefills every <=128K prompt in 1 shot without disabling V1 chunked-prefill support.
         cmd += [
-            "--no-enable-chunked-prefill",
             "--no-enable-prefix-caching",
             "--max-num-batched-tokens",
-            str(args.max_model_len),
+            str(min(args.max_model_len, 131072)),
         ]
     if args.extra_args:
         cmd += args.extra_args
