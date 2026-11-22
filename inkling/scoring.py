@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from difflib import SequenceMatcher
 import math
 import re
 import string
@@ -117,3 +118,41 @@ def ruler_score(task: str, prediction: str, answers: list[str]) -> float:
     if task in ("qasper", "hotpotqa", "2wikimqa"):
         return max(qa_f1_score(prediction, answer) for answer in answers)
     raise ValueError(f"Unsupported generation task: {task}")
+
+
+def graphwalks_f1(response: str, answer_nodes: list[str]) -> float:
+    """Official OpenAI GraphWalks node-set F1 scorer (openai/graphwalks README)."""
+    lines = [ln.strip() for ln in response.strip().splitlines() if ln.strip()]
+    line = lines[-1] if lines else ""
+    if "Final Answer:" not in line:
+        # Fallback: scan backwards for the last Final Answer: line in case of trailing markdown
+        for ln in reversed(lines):
+            if "Final Answer:" in ln:
+                line = ln
+                break
+        else:
+            return 0.0
+    m = re.search(r"\[.*\]", line)
+    if not m:
+        return 0.0
+    sampled = [item.strip().strip("'\"") for item in m.group(0).strip("[]").split(",") if item.strip()]
+    sampled_set = set(sampled)
+    truth_set = set(answer_nodes)
+    n_golden = len(truth_set)
+    n_sampled = len(sampled_set)
+    if n_golden == 0 and n_sampled == 0:
+        return 1.0
+    n_overlap = len(sampled_set & truth_set)
+    recall = n_overlap / n_golden if n_golden > 0 else 0.0
+    precision = n_overlap / n_sampled if n_sampled > 0 else 0.0
+    return 2.0 * recall * precision / (recall + precision) if (recall + precision) > 0 else 0.0
+
+
+def mrcr_score(response: str, answer: str, random_string_to_prepend: str) -> float:
+    """Official OpenAI MRCR v2 SequenceMatcher grader (openai/mrcr README)."""
+    resp = response.strip()
+    if not resp.startswith(random_string_to_prepend):
+        return 0.0
+    resp = resp.removeprefix(random_string_to_prepend)
+    ans = answer.removeprefix(random_string_to_prepend)
+    return float(SequenceMatcher(None, resp, ans).ratio())

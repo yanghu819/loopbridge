@@ -14,7 +14,7 @@ import torch
 from transformers import AutoTokenizer
 
 from inkling.model import load_inkling_runner, select_cache_rows
-from inkling.scoring import bbh_answer, helmet_score, minerva_norm, ruler_score
+from inkling.scoring import bbh_answer, graphwalks_f1, helmet_score, minerva_norm, mrcr_score, ruler_score
 
 
 def extract_visible_text(raw: str) -> str:
@@ -161,6 +161,15 @@ def score_row(bench: str, row: dict, raw_text: str, gen_tokens: int, reason: str
     if bench == "helmet":
         sc = float(helmet_score(row, vis))
         return {**base, "length": row["length"], "score": sc}
+    if bench.startswith("graphwalks"):
+        sc = float(graphwalks_f1(vis, row["answer_nodes"]))
+        return {**base, "prompt_tokens": len(row["prompt_ids"]), "score": sc}
+    if bench.startswith("mrcr"):
+        sc = float(mrcr_score(vis, row["answer"], row["random_string_to_prepend"]))
+        return {**base, "prompt_tokens": len(row["prompt_ids"]), "score": sc}
+    if bench.startswith("apex"):
+        pred, ok = score_math500(vis, row["answer"])
+        return {**base, "pred": pred, "gold": row["answer"], "correct": ok}
     raise ValueError(f"Unknown bench: {bench}")
 
 
@@ -285,7 +294,7 @@ def main():
                 while bs > 1:
                     max_plen = max(len(r["prompt_ids"]) for r in todo[i : i + bs])
                     max_span = max(len(r["prompt_ids"]) + r["max_new_tokens"] for r in todo[i : i + bs])
-                    cap = 2 if max_plen > 12000 else (4 if max_plen > 6000 else (8 if max_plen > 2048 else (16 if max_plen > 1024 else (48 if max_plen > 512 else 96))))
+                    cap = 1 if max_plen > 24000 else (2 if max_plen > 12000 else (4 if max_plen > 6000 else (8 if max_plen > 2048 else (16 if max_plen > 1024 else (48 if max_plen > 512 else 96)))))
                     if bs <= cap and bs * max_span <= args.batch_tokens:
                         break
                     bs = min(bs - 1, cap)
