@@ -14,7 +14,16 @@ import torch
 from transformers import AutoTokenizer
 
 from inkling.model import load_inkling_runner, select_cache_rows
-from inkling.scoring import bbh_answer, graphwalks_f1, helmet_score, minerva_norm, mrcr_score, ruler_score
+from inkling.scoring import (
+    bbh_answer,
+    bfcl_score,
+    graphwalks_f1,
+    helmet_score,
+    lcb_score,
+    minerva_norm,
+    mrcr_score,
+    ruler_score,
+)
 
 
 def extract_visible_text(raw: str) -> str:
@@ -170,6 +179,15 @@ def score_row(bench: str, row: dict, raw_text: str, gen_tokens: int, reason: str
     if bench.startswith("apex"):
         pred, ok = score_math500(vis, row["answer"])
         return {**base, "pred": pred, "gold": row["answer"], "correct": ok}
+    if bench.startswith("gpqa"):
+        pred = parse_mcq(vis, "ABCD")
+        return {**base, "pred": pred, "gold": row["answer"], "correct": pred == row["answer"]}
+    if bench.startswith("bfcl"):
+        calls, sc = bfcl_score(raw_text, row.get("ground_truth"), row.get("task", ""))
+        return {**base, "pred_calls": calls, "score": sc, "correct": sc >= 1.0}
+    if bench.startswith("livecodebench") or bench.startswith("lcb"):
+        ok, passed, total = lcb_score(vis, row["test_cases"], row.get("fn_name", ""))
+        return {**base, "difficulty": row.get("difficulty", ""), "passed": passed, "total_tests": total, "correct": ok}
     raise ValueError(f"Unknown bench: {bench}")
 
 
@@ -299,9 +317,14 @@ def main():
                         break
                     bs = min(bs - 1, cap)
                 batch = todo[i : i + bs]
+                torch.cuda.synchronize(device)
+                tb0 = perf_counter()
                 outs = greedy_batch(runner, tok, batch, device)
+                torch.cuda.synchronize(device)
+                batch_wall = (perf_counter() - tb0) / max(len(batch), 1)
                 for row, (raw_txt, n_gen, reason) in zip(batch, outs):
                     rec = score_row(bench, row, raw_txt, n_gen, reason)
+                    rec["wall_s"] = round(batch_wall, 4)
                     fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
                     done[rec["id"]] = rec
                 fh.flush()

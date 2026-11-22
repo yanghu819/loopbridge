@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from collections import Counter
 from difflib import SequenceMatcher
+import json
 import math
 import re
 import string
+import subprocess
+import sys
+import tempfile
 
 
 RULER_TASKS = ("niah_single_1", "niah_multikey_2", "vt", "cwe")
@@ -156,3 +160,202 @@ def mrcr_score(response: str, answer: str, random_string_to_prepend: str) -> flo
     resp = resp.removeprefix(random_string_to_prepend)
     ans = answer.removeprefix(random_string_to_prepend)
     return float(SequenceMatcher(None, resp, ans).ratio())
+
+
+def extract_inkling_tool_calls(raw_text: str) -> list[tuple[str, dict]]:
+    """Parse native Inkling-2-Mini tool invocations from raw model output (with special tokens)."""
+    calls: list[tuple[str, dict]] = []
+    # Pattern: <|message_model|>tool_name<|content_invoke_tool_json|>{"name":...,"args":{...}}<|end_message|>
+    pat = re.compile(
+        r"<\|content_invoke_tool_json\|>\s*(\{.*?\})\s*(?:<\|end_message\|>|<\|content_model_end_sampling\|>|$)",
+        re.S,
+    )
+    for m in pat.finditer(raw_text):
+        blob = m.group(1).strip()
+        try:
+            obj = json.loads(blob)
+        except Exception:
+            continue
+        if isinstance(obj, dict) and isinstance(obj.get("name"), str):
+            args = obj.get("args", obj.get("arguments", {}))
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except Exception:
+                    args = {}
+            if isinstance(args, dict):
+                calls.append((obj["name"], args))
+    return calls
+
+
+def _bfcl_val_match(pred, allowed_list: list) -> bool:
+    for a in allowed_list:
+        if pred == a:
+            return True
+        if isinstance(pred, (int, float)) and isinstance(a, (int, float)) and not isinstance(pred, bool) and not isinstance(a, bool):
+            if abs(float(pred) - float(a)) <= 1e-6:
+                return True
+        if isinstance(pred, str) and isinstance(a, str):
+            if pred.strip().lower() == a.strip().lower():
+                return True
+        if isinstance(pred, list) and isinstance(a, list) and len(pred) == len(a):
+            if all(_bfcl_val_match(x, [y]) for x, y in zip(pred, a)):
+                return True
+        if isinstance(pred, dict) and isinstance(a, dict) and set(pred.keys()) == set(a.keys()):
+            if all(_bfcl_val_match(pred[k], [a[k]]) for k in a):
+                return True
+    return False
+
+
+def _bfcl_call_matches(call: tuple[str, dict], gt_item: dict) -> bool:
+    if len(gt_item) != 1:
+        return False
+    gt_name, gt_params = next(iter(gt_item.items()))
+    pred_name, pred_args = call
+    # Accept exact or dotted-to-underscore name match (BFCL normalizes dots in some tools)
+    if pred_name != gt_name and pred_name.replace(".", "_") != gt_name.replace(".", "_"):
+        return False
+    if not isinstance(gt_params, dict):
+        return False
+    # No unexpected non-null parameters outside ground truth schema
+    for k, v in pred_args.items():
+        if k not in gt_params and v is not None and v != "":
+            return False
+    # Check every ground-truth parameter
+    for k, allowed in gt_params.items():
+        if not isinstance(allowed, list):
+            allowed = [allowed]
+        if k not in pred_args or pred_args[k] is None:
+            # Allowed to omit iff "" or None is in allowed list
+            if "" in allowed or None in allowed:
+                continue
+            return False
+        if not _bfcl_val_match(pred_args[k], allowed):
+            return False
+    return True
+
+
+def bfcl_score(raw_text: str, ground_truth: list[dict] | None, category: str) -> tuple[list[tuple[str, dict]], float]:
+    """Exact AST/JSON grader for BFCL v3 Live categories using native Inkling tool invocations."""
+    calls = extract_inkling_tool_calls(raw_text)
+    if "irrelevance" in category:
+        return calls, (1.0 if len(calls) == 0 else 0.0)
+    if not ground_truth or len(calls) != len(ground_truth):
+        return calls, 0.0
+    # Order-insensitive bipartite matching (handles parallel & parallel_multiple cleanly)
+    used = [False] * len(ground_truth)
+
+    def backtrack(idx: int) -> bool:
+        if idx == len(calls):
+            return True
+        for j, gt in enumerate(ground_truth):
+            if not used[j] and _bfcl_call_matches(calls[idx], gt):
+                used[j] = True
+                if backtrack(idx + 1):
+                    return True
+                used[j] = False
+        return False
+
+    return calls, (1.0 if backtrack(0) else 0.0)
+
+
+def extract_python_code(text: str) -> str:
+    blocks = re.findall(r"```(?:python3?|py)?\s*\n(.*?)```", text, re.S | re.I)
+    if blocks:
+        return blocks[-1].strip()
+    return ""
+
+
+_LCB_HARNESS = r'''
+import io, json, signal, sys, traceback
+from contextlib import redirect_stdout
+
+def _alarm(signum, frame):
+    raise TimeoutError("timeout")
+
+signal.signal(signal.SIGALRM, _alarm)
+
+payload = json.loads(sys.stdin.read())
+code = payload["code"]
+tests = payload["tests"]
+fn_name = payload.get("fn_name") or ""
+
+def norm_lines(s):
+    return "\n".join(line.rstrip() for line in s.strip().splitlines())
+
+passed = 0
+for tc in tests:
+    ttype = tc.get("testtype", "stdin")
+    inp = tc.get("input", "")
+    exp = tc.get("output", "")
+    signal.alarm(2)
+    try:
+        if ttype == "functional" and fn_name:
+            ns = {}
+            exec(compile(code, "<sol>", "exec"), ns)
+            fn = None
+            if "Solution" in ns and hasattr(ns["Solution"], fn_name):
+                fn = getattr(ns["Solution"](), fn_name)
+            elif fn_name in ns:
+                fn = ns[fn_name]
+            if fn is None:
+                print(json.dumps({"ok": False, "passed": passed, "total": len(tests), "err": "no_fn"}))
+                sys.exit(0)
+            args = [json.loads(line) for line in inp.strip().splitlines() if line.strip()]
+            res = fn(*args)
+            expected = json.loads(exp.strip())
+            ok = (res == expected)
+        else:
+            ns = {"__name__": "__main__"}
+            old_stdin = sys.stdin
+            buf = io.StringIO()
+            sys.stdin = io.StringIO(inp)
+            try:
+                with redirect_stdout(buf):
+                    exec(compile(code, "<sol>", "exec"), ns)
+            finally:
+                sys.stdin = old_stdin
+            got = norm_lines(buf.getvalue())
+            want = norm_lines(exp)
+            ok = (got == want)
+            if not ok:
+                # Floating-point tolerance fallback for single-number outputs
+                try:
+                    ok = abs(float(got) - float(want)) <= 1e-4 * max(1.0, abs(float(want)))
+                except Exception:
+                    ok = False
+        signal.alarm(0)
+        if not ok:
+            print(json.dumps({"ok": False, "passed": passed, "total": len(tests)}))
+            sys.exit(0)
+        passed += 1
+    except Exception:
+        signal.alarm(0)
+        print(json.dumps({"ok": False, "passed": passed, "total": len(tests)}))
+        sys.exit(0)
+
+print(json.dumps({"ok": True, "passed": passed, "total": len(tests)}))
+'''
+
+
+def lcb_score(vis_text: str, test_cases: list[dict], fn_name: str = "") -> tuple[bool, int, int]:
+    """Execute extracted Python code against LiveCodeBench test cases in an isolated subprocess."""
+    code = extract_python_code(vis_text)
+    if not code or not test_cases:
+        return False, 0, len(test_cases)
+    payload = json.dumps({"code": code, "tests": test_cases, "fn_name": fn_name})
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", _LCB_HARNESS],
+            input=payload,
+            capture_output=True,
+            text=True,
+            timeout=25,
+        )
+        out = proc.stdout.strip().splitlines()
+        if out:
+            res = json.loads(out[-1])
+            return bool(res.get("ok")), int(res.get("passed", 0)), int(res.get("total", len(test_cases)))
+    except Exception:
+        pass
+    return False, 0, len(test_cases)
