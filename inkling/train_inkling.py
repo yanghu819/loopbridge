@@ -287,6 +287,21 @@ def main():
         update += 1
         next_sample = end % n_rows
 
+        if world > 1 and update == 20:
+            max_diff = 0.0
+            with torch.no_grad():
+                for p in trainable:
+                    hi = p.data.detach().clone()
+                    lo = p.data.detach().clone()
+                    dist.all_reduce(hi, op=dist.ReduceOp.MAX)
+                    dist.all_reduce(lo, op=dist.ReduceOp.MIN)
+                    d = float((hi - lo).abs().max().item())
+                    if d > max_diff:
+                        max_diff = d
+            if rank == 0:
+                print(json.dumps({"event": "ddp_parity_check", "step": 20, "max_rank_diff": max_diff}), flush=True)
+            assert max_diff == 0.0, f"DDP rank parameter divergence detected at step 20: max_rank_diff={max_diff}"
+
         elapsed = perf_counter() - started
         last_stats = {
             "event": "update",
