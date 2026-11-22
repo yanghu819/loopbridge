@@ -228,7 +228,15 @@ def main():
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--force-text-header", action="store_true",
                         help="Append <|message_model|><|content_text|> so effort=none answers directly without thinking")
+    parser.add_argument("--max-new-tokens-map", default="",
+                        help="Optional comma-separated bench=N overrides, e.g. gsm8k=2048,math500=4096")
     args = parser.parse_args()
+
+    max_tok_overrides: dict[str, int] = {}
+    for item in args.max_new_tokens_map.split(","):
+        if "=" in item:
+            k, v = item.split("=", 1)
+            max_tok_overrides[k.strip()] = int(v.strip())
 
     device = torch.device("cuda:0")
     tok = AutoTokenizer.from_pretrained(args.model_path, local_files_only=True)
@@ -250,6 +258,9 @@ def main():
         if text_hdr:
             for r in all_rows:
                 r["prompt_ids"] = r["prompt_ids"] + text_hdr
+        if bench in max_tok_overrides:
+            for r in all_rows:
+                r["max_new_tokens"] = max_tok_overrides[bench]
         if args.limit:
             all_rows = all_rows[: args.limit]
         shard_rows = all_rows[args.shard_index :: args.num_shards]
