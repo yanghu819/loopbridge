@@ -55,7 +55,8 @@ def load_bench_rows(run_dir: Path, bench: str) -> dict[str, dict]:
                     r = json.loads(line)
                     rows[r["id"]] = r
         return rows
-    files = [single] if single.exists() else sorted(run_dir.glob(f"{bench}.shard*.jsonl"))
+    pilot = run_dir / f"{bench}.pilot.jsonl"
+    files = [p for p in (pilot, single) if p.exists()] + sorted(run_dir.glob(f"{bench}.shard*.jsonl"))
     for p in files:
         for line in p.open():
             if line.strip():

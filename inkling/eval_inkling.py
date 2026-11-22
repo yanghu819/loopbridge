@@ -27,9 +27,15 @@ from inkling.scoring import (
 
 
 def extract_visible_text(raw: str) -> str:
-    """Extract Inkling-2-Mini's final assistant text after <|content_text|> (fallback to cleaned text)."""
+    """Extract Inkling-2-Mini's final assistant text after <|content_text|>.
+
+    If generation truncated inside <|content_thinking|> without ever emitting <|content_text|>,
+    return empty string so unfinished reasoning traces are never falsely parsed as final answers.
+    """
     if "<|content_text|>" in raw:
         txt = raw.rsplit("<|content_text|>", 1)[-1]
+    elif "<|content_thinking|>" in raw:
+        return ""
     else:
         txt = raw
     for tag in ("<|content_model_end_sampling|>", "<|end_message|>", "<|message_model|>", "<|content_thinking|>"):
@@ -101,15 +107,15 @@ def score_math500(text: str, gold_norm: str) -> tuple[str, bool]:
 
 
 def parse_mcq(text: str, valid_letters: str = "ABCD") -> str:
-    # Check explicit "Answer: (X)" / "The correct answer is (X)" / "\boxed{X}" patterns first
+    # Check explicit "Answer: (X)" / "\boxed{X}" case-insensitively, then standalone uppercase letters ONLY
     pats = [
-        rf"(?:the\s+correct\s+answer\s+is|final\s+answer\s+is|answer\s*(?:is|:))\s*\(?\s*([{valid_letters}])\s*\)?",
-        rf"\\boxed\{{\s*\(?\s*([{valid_letters}])\s*\)?\s*\}}",
-        rf"\(\s*([{valid_letters}])\s*\)",
-        rf"\b([{valid_letters}])\b",
+        (rf"(?:the\s+correct\s+answer\s+is|final\s+answer\s+is|answer\s*(?:is|:))\s*\(?\s*([{valid_letters}])\s*\)?", re.I),
+        (rf"\\boxed\{{\s*\(?\s*([{valid_letters}])\s*\)?\s*\}}", re.I),
+        (rf"\(\s*([{valid_letters}])\s*\)", 0),
+        (rf"\b([{valid_letters}])\b", 0),
     ]
-    for pat in pats:
-        ms = re.findall(pat, text, re.I)
+    for pat, flags in pats:
+        ms = re.findall(pat, text, flags)
         if ms:
             return ms[-1].upper()
     return "[invalid]"
@@ -343,9 +349,12 @@ def main():
                     done[rec["id"]] = rec
             out_path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in done.values()))
 
-        # Also recognize items already completed in any other shard file in args.output (zero wasted pilot work)
+        # Also recognize items already completed in any exact-bench shard/pilot file (zero prefix collision)
         global_done = set(done.keys())
-        for existing in sorted(args.output.glob(f"{bench}*.jsonl")):
+        exact_files = [
+            p for p in [args.output / f"{bench}.jsonl", args.output / f"{bench}.pilot.jsonl"] if p.exists()
+        ] + sorted(args.output.glob(f"{bench}.shard*.jsonl"))
+        for existing in exact_files:
             if existing == out_path:
                 continue
             for line in existing.open():
