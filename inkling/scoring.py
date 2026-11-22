@@ -431,3 +431,142 @@ def lcb_score(vis_text: str, test_cases: list[dict], fn_name: str = "") -> tuple
     except Exception:
         pass
     return False, 0, len(test_cases)
+
+
+def extract_boxed(text: str) -> str | None:
+    idx = text.rfind("\\boxed{")
+    if idx < 0:
+        return None
+    i = idx + len("\\boxed{")
+    depth = 1
+    out = []
+    while i < len(text) and depth > 0:
+        ch = text[i]
+        if ch == "{":
+            depth += 1
+            out.append(ch)
+        elif ch == "}":
+            depth -= 1
+            if depth > 0:
+                out.append(ch)
+        else:
+            out.append(ch)
+        i += 1
+    return "".join(out).strip()
+
+
+def parse_gsm8k(text: str) -> str:
+    b = extract_boxed(text)
+    if b is not None:
+        m = re.findall(r"-?\d[\d,]*(?:\.\d+)?", b)
+        if m:
+            return m[-1].replace(",", "").rstrip(".")
+    m = re.search(r"####\s*(-?\d[\d,]*(?:\.\d+)?)", text)
+    if m:
+        return m.group(1).replace(",", "").rstrip(".")
+    nums = re.findall(r"-?\d[\d,]*(?:\.\d+)?", text)
+    return nums[-1].replace(",", "").rstrip(".") if nums else "[invalid]"
+
+
+def score_gsm8k(pred: str, gold: str) -> bool:
+    if pred == gold:
+        return True
+    try:
+        return abs(float(pred) - float(gold)) < 1e-6
+    except ValueError:
+        return False
+
+
+def score_math500(text: str, gold_norm: str) -> tuple[str, bool]:
+    b = extract_boxed(text)
+    if b is None:
+        m = re.search(r"(?:final answer is|answer is)\s*[:$]?\s*([^\n.]+)", text, re.I)
+        b = m.group(1).strip() if m else ""
+    if not b:
+        return "[invalid]", False
+    pred_norm = minerva_norm(b)
+    if pred_norm == gold_norm:
+        return pred_norm, True
+    try:
+        from math_verify import parse, verify
+        if verify(parse(f"${gold_norm}$"), parse(f"${b}$")):
+            return pred_norm, True
+    except Exception:
+        pass
+    return pred_norm, False
+
+
+def score_bbh(text: str, gold: str) -> tuple[str, bool]:
+    pred = bbh_answer(text)
+    if pred == "[invalidanswer]":
+        b = extract_boxed(text)
+        if b:
+            pred = b.strip()
+        else:
+            m = re.search(r"answer\s*(?:is|:)\s*([^\n]+)", text, re.I)
+            if m:
+                pred = m.group(1).strip().rstrip(".")
+    g = gold.strip()
+    ok = pred.strip().lower() == g.lower() or pred.strip("() ").lower() == g.strip("() ").lower()
+    return pred, ok
+
+
+def score_row(bench: str, row: dict, raw_text: str, gen_tokens: int, reason: str) -> dict:
+    vis = extract_visible_text(raw_text)
+    base = {
+        "id": row["id"],
+        "task": row["task"],
+        "generated_tokens": gen_tokens,
+        "stop_reason": reason,
+        "text": vis[:800],
+    }
+    if bench == "gsm8k":
+        pred = parse_gsm8k(vis)
+        return {**base, "pred": pred, "gold": row["answer"], "correct": score_gsm8k(pred, row["answer"])}
+    if bench.startswith("math500"):
+        pred, ok = score_math500(vis, row["answer"])
+        return {**base, "pred": pred, "gold": row["answer"], "correct": ok}
+    if bench == "mmlu_pro":
+        pred = parse_mcq(vis, "ABCDEFGHIJ")
+        return {**base, "pred": pred, "gold": row["answer"], "correct": pred == row["answer"]}
+    if bench == "arc_c":
+        pred = parse_mcq(vis, "ABCDE")
+        return {**base, "pred": pred, "gold": row["answer"], "correct": pred == row["answer"]}
+    if bench.startswith("longbench_v2"):
+        pred = parse_mcq(vis, "ABCD")
+        return {
+            **base,
+            "length_bucket": row.get("length_bucket"),
+            "difficulty": row.get("difficulty"),
+            "pred": pred,
+            "gold": row["answer"],
+            "correct": pred == row["answer"],
+        }
+    if bench == "bbh":
+        pred, ok = score_bbh(vis, row["answer"])
+        return {**base, "pred": pred, "gold": row["answer"], "correct": ok}
+    if bench.startswith("ruler"):
+        sc = float(ruler_score(row["task"], vis, row["answers"]))
+        return {**base, "score": sc}
+    if bench == "helmet":
+        sc = float(helmet_score(row, vis))
+        return {**base, "length": row["length"], "score": sc}
+    if bench.startswith("graphwalks"):
+        sc = float(graphwalks_f1(vis, row["answer_nodes"]))
+        return {**base, "prompt_tokens": len(row["prompt_ids"]), "score": sc}
+    if bench.startswith("mrcr"):
+        sc = float(mrcr_score(vis, row["answer"], row["random_string_to_prepend"]))
+        return {**base, "prompt_tokens": len(row["prompt_ids"]), "score": sc}
+    if bench.startswith("apex"):
+        pred, ok = score_math500(vis, row["answer"])
+        return {**base, "pred": pred, "gold": row["answer"], "correct": ok}
+    if bench.startswith("gpqa"):
+        pred = parse_mcq(vis, "ABCD")
+        return {**base, "pred": pred, "gold": row["answer"], "correct": pred == row["answer"]}
+    if bench.startswith("bfcl"):
+        calls, sc = bfcl_score(raw_text, row.get("ground_truth"), row.get("task", ""))
+        return {**base, "pred_calls": calls, "score": sc, "correct": sc >= 1.0}
+    if bench.startswith("livecodebench") or bench.startswith("lcb"):
+        ok, passed, total = lcb_score(vis, row["test_cases"], row.get("fn_name", ""))
+        return {**base, "difficulty": row.get("difficulty", ""), "passed": passed, "total_tests": total, "correct": ok}
+    raise ValueError(f"Unknown bench: {bench}")
