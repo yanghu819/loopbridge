@@ -366,6 +366,43 @@ def select_cache_rows(cache: DynamicCache, keep: torch.Tensor, batch_size: int) 
                 layer.recurrent_states[idx] = t.index_select(0, keep)
 
 
+@torch.inference_mode()
+def concat_caches(caches: list[DynamicCache]) -> DynamicCache:
+    """Concatenate micro-batched Inkling2Loop DynamicCaches (same padded width) along batch dim 0.
+
+    Consumes input caches in-place to avoid doubling peak KV-cache VRAM on 128K batches.
+    """
+    if len(caches) == 1:
+        return caches[0]
+    ref = caches[0]
+    out = DynamicCache()
+    out.layers = []
+    for li in range(len(ref.layers)):
+        layers_i = [c.layers[li] for c in caches]
+        src = layers_i[0]
+        keys = torch.cat([l.keys for l in layers_i], dim=0) if src.keys is not None else None
+        for l in layers_i:
+            l.keys = None
+        values = torch.cat([l.values for l in layers_i], dim=0) if src.values is not None else None
+        for l in layers_i:
+            l.values = None
+        dst = _clone_cache_layer(src, keys=keys, values=values, training=False)
+        dst.conv_states = {
+            idx: (torch.cat([l.conv_states[idx] for l in layers_i], dim=0) if torch.is_tensor(t) else None)
+            for idx, t in src.conv_states.items()
+        }
+        dst.recurrent_states = {
+            idx: (torch.cat([l.recurrent_states[idx] for l in layers_i], dim=0) if torch.is_tensor(t) else None)
+            for idx, t in src.recurrent_states.items()
+        }
+        for l in layers_i:
+            l.conv_states.clear()
+            l.recurrent_states.clear()
+        out.layers.append(dst)
+    caches.clear()
+    return out
+
+
 @dataclass
 class SystemConfig:
     mode: str  # "native", "training_free", "loopbridge", "distilled"

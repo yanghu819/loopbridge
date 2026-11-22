@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import re
 
 import pyarrow.parquet as pq
 from transformers import AutoTokenizer
@@ -35,6 +36,7 @@ def main():
     parser.add_argument("--model-path", type=Path, default=Path("/dev/shm/inkling/model"))
     parser.add_argument("--raw-dir", type=Path, default=Path("/dev/shm/inkling/data/official_sec5"))
     parser.add_argument("--eval-raw", type=Path, default=Path("/dev/shm/inkling/data/eval_raw"))
+    parser.add_argument("--v2-raw", type=Path, default=Path("/dev/shm/inkling/data/v2_raw"))
     parser.add_argument("--output", type=Path, default=Path("/dev/shm/inkling/data/eval_sec5"))
     parser.add_argument("--mrcr-max-tokens", type=int, default=65536)
     parser.add_argument("--lb2-max-tokens", type=int, default=131072)
@@ -171,6 +173,32 @@ def main():
             )
         (args.output / "apex_2025.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
         summary["apex_2025"] = {"n": len(rows)}
+
+    # 5. GPQA Diamond (198 items, official reasoning_effort=high, cap=16384 — Official: 86.6%)
+    gpqa_in = args.v2_raw / "gpqa_diamond_mc.parquet"
+    if gpqa_in.exists():
+        rows = []
+        for idx, r in enumerate(pq.read_table(gpqa_in).to_pylist()):
+            m = re.search(r"([ABCD])", r["solution"])
+            gold = m.group(1) if m else ""
+            prompt = (
+                "Solve the following graduate-level science multiple-choice question carefully. "
+                "Conclude with your final choice letter inside \\boxed{} (for example, \\boxed{A}).\n\n"
+                f"{r['problem'].strip()}"
+            )
+            ids = _chat_ids(tok, [{"role": "user", "content": prompt}], effort=args.effort)
+            rows.append(
+                {
+                    "id": f"gpqa_diamond/{idx}",
+                    "task": r.get("domain", "science"),
+                    "prompt_ids": ids,
+                    "answer": gold,
+                    "max_new_tokens": 16384,
+                    "until": [],
+                }
+            )
+        (args.output / "gpqa_diamond_high.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+        summary["gpqa_diamond_high"] = {"n": len(rows), "effort": args.effort}
 
     print(json.dumps(summary, indent=2), flush=True)
 

@@ -33,7 +33,7 @@ for g in 0 1 2 3 4 5 6 7; do
     --mode "$MODE" --m "$M" --n "$N" \
     "${CKPT_ARG[@]}" \
     --shard-index "$SHARD" --num-shards "$TOTAL" \
-    --batch-tokens 1048576 --max-batch 96 --chunk-size 1024 \
+    --batch-tokens 4194304 --max-batch 96 --chunk-size 1024 \
     ${EXTRA_ARGS:-} \
     > "$OUT/shard_${SHARD}.log" 2>&1 &
   PIDS+=($!)
