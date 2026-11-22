@@ -396,7 +396,7 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
 
     # --- 2. For LoopBridge / Training-Free: patch Attention, MoE, Blend, LoopModel.forward, and ModelRunner ---
     # `_state["step_is_decode"]` is set by GPUModelRunner.execute_model BEFORE forward/CUDA-graph capture.
-    _state = {"decode_mode": False, "step_is_decode": False}
+    _state = {"decode_mode": False, "step_is_decode": False, "scheduler_active": False}
 
     orig_attn_project = ink_attn_mod.Inkling2Attention._project
     orig_attn_forward = ink_attn_mod.Inkling2Attention.forward
@@ -513,8 +513,8 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
         use_decode_path = is_pure_decode or _state["step_is_decode"]
 
         if not use_decode_path:
-            # Verify pure-prefill when real attn_metadata is active (prevents stale pass-0/1 KV holes on decode tokens)
-            if has_prefill and isinstance(attn_metadata, dict):
+            # Verify pure-prefill once real Scheduler is active (startup warmup intentionally tests mixed batches)
+            if has_prefill and _state["scheduler_active"] and isinstance(attn_metadata, dict):
                 md0 = attn_metadata.get(self.layers[0].attn.prefix)
                 n_dec0 = getattr(md0, "num_decode_tokens", 0) if md0 is not None else 0
                 if n_dec0 > 0:
@@ -624,6 +624,7 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
     orig_schedule = sched_mod.Scheduler.schedule
 
     def _patched_schedule(self, throttle_prefills: bool = False):
+        _state["scheduler_active"] = True
         dec_reqs = [r for r in self.running if not r.is_prefill_chunk]
         pre_reqs = [r for r in self.running if r.is_prefill_chunk]
         has_waiting = bool(self.waiting)
