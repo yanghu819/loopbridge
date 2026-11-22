@@ -422,7 +422,7 @@ def export_onpolicy_prompts(args, tok, eval_fps: set[str]):
     # 3. 300 real 3K-6K long-context prompts from LongAlign-10k
     la_path = args.raw_dir / "longalign_10k.jsonl"
     if la_path.exists():
-        la_lines = [l for l in la_path.open() if l.strip()]
+        la_lines = [l for l in la_path.open(encoding="utf-8", errors="ignore") if l.strip()]
         rng.shuffle(la_lines)
         n_la = 0
         for idx, l in enumerate(la_lines):
@@ -623,7 +623,7 @@ def build_train_v2(args, tok, eval_fps: set[str]):
     # --- 3. Pillar 3 (20%): LongAlign-10k (max_prefix=6144) + LongAlpaca ---
     la_path = args.raw_dir / "longalign_10k.jsonl"
     if la_path.exists() and tok_counts["long"] < budgets["long"]:
-        la_lines = [l for l in la_path.open() if l.strip()]
+        la_lines = [l for l in la_path.open(encoding="utf-8", errors="ignore") if l.strip()]
         rng.shuffle(la_lines)
         for l in la_lines:
             if tok_counts["long"] >= budgets["long"]:
