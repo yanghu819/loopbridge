@@ -189,68 +189,72 @@ def cmd_prompts(args) -> None:
         forbidden |= load_eval_13grams(args.eval_exact_dir, args.eval_raw, args.sec5_raw, tok=tok)
     print(f"[v4 prompts] Loaded {len(forbidden):,} forbidden eval 13-grams", flush=True)
 
-    paras = _load_paragraph_pool(args.v2_raw, forbidden, max_paras=16000)
-    print(f"[v4 prompts] Harvested {len(paras):,} clean paragraphs from longalign_10k", flush=True)
-
     rng = random.Random(args.seed)
-    ultralong: list[dict] = []
-
-    # 1. 800 ultra-long 16K-52K multi-needle verbatim ordinal recall prompts
-    n_recall_target = args.n_ultralong_recall
-    attempts = 0
-    while len(ultralong) < n_recall_target and attempts < n_recall_target * 4:
-        attempts += 1
-        target_tok = rng.randint(16500, 50000)
-        effort = rng.choice(["high", "medium", "high"])
-        res = _make_ultralong_verbatim_recall(tok, paras, rng, target_tok, effort)
-        if res is None:
-            continue
-        p_ids, tag = res
-        ultralong.append(
-            {
-                "id": f"v4_ul_recall/{len(ultralong):05d}",
-                "pillar": "ultralong_recall",
-                "tag": tag,
-                "effort": effort,
-                "prefix_ids": p_ids,
-                "max_tokens": 1536,
-            }
-        )
-    print(f"[v4 prompts] Generated {len(ultralong)} ultra-long recall prompts (16K-52K)", flush=True)
-
-    # 2. 400 ultra-long 16K-40K synthetic random-graph BFS prompts
-    n_graph_done = 0
-    attempts = 0
-    while n_graph_done < args.n_ultralong_graph and attempts < args.n_ultralong_graph * 4:
-        attempts += 1
-        target_tok = rng.randint(16500, 38000)
-        effort = rng.choice(["high", "medium", "high"])
-        res = _make_ultralong_graph_bfs(tok, rng, target_tok, effort)
-        if res is None:
-            continue
-        p_ids, tag = res
-        ultralong.append(
-            {
-                "id": f"v4_ul_graph/{n_graph_done:05d}",
-                "pillar": "ultralong_graph",
-                "tag": tag,
-                "effort": effort,
-                "prefix_ids": p_ids,
-                "max_tokens": 1536,
-            }
-        )
-        n_graph_done += 1
-    rng.shuffle(ultralong)
     ul_path = args.output / "prompts_ultralong_v4.jsonl"
-    ul_path.write_text("".join(json.dumps(r) + "\n" for r in ultralong))
-    ul_lens = sorted(len(r["prefix_ids"]) for r in ultralong)
-    print(
-        f"[v4 prompts] Wrote {len(ultralong)} ultra-long prompts -> {ul_path} "
-        f"(min={ul_lens[0]}, med={ul_lens[len(ul_lens)//2]}, max={ul_lens[-1]})",
-        flush=True,
-    )
+    ul_target = args.n_ultralong_recall + args.n_ultralong_graph
+    if ul_path.exists() and sum(1 for _ in ul_path.open()) >= ul_target:
+        print(f"[v4 prompts] Reusing existing {ul_path} (>= {ul_target} rows)", flush=True)
+    else:
+        paras = _load_paragraph_pool(args.v2_raw, forbidden, max_paras=16000)
+        print(f"[v4 prompts] Harvested {len(paras):,} clean paragraphs from longalign_10k", flush=True)
 
-    # 3. Slice prompts_v3.jsonl for (a) On-Policy Student GKD and (b) Native VarLoop 3/3 Teacher Rollouts
+        ultralong: list[dict] = []
+
+        # 1. 800 ultra-long 16K-52K multi-needle verbatim ordinal recall prompts
+        n_recall_target = args.n_ultralong_recall
+        attempts = 0
+        while len(ultralong) < n_recall_target and attempts < n_recall_target * 4:
+            attempts += 1
+            target_tok = rng.randint(16500, 50000)
+            effort = rng.choice(["high", "medium", "high"])
+            res = _make_ultralong_verbatim_recall(tok, paras, rng, target_tok, effort)
+            if res is None:
+                continue
+            p_ids, tag = res
+            ultralong.append(
+                {
+                    "id": f"v4_ul_recall/{len(ultralong):05d}",
+                    "pillar": "ultralong_recall",
+                    "tag": tag,
+                    "effort": effort,
+                    "prefix_ids": p_ids,
+                    "max_tokens": 1536,
+                }
+            )
+        print(f"[v4 prompts] Generated {len(ultralong)} ultra-long recall prompts (16K-52K)", flush=True)
+
+        # 2. 400 ultra-long 16K-40K synthetic random-graph BFS prompts
+        n_graph_done = 0
+        attempts = 0
+        while n_graph_done < args.n_ultralong_graph and attempts < args.n_ultralong_graph * 4:
+            attempts += 1
+            target_tok = rng.randint(16500, 38000)
+            effort = rng.choice(["high", "medium", "high"])
+            res = _make_ultralong_graph_bfs(tok, rng, target_tok, effort)
+            if res is None:
+                continue
+            p_ids, tag = res
+            ultralong.append(
+                {
+                    "id": f"v4_ul_graph/{n_graph_done:05d}",
+                    "pillar": "ultralong_graph",
+                    "tag": tag,
+                    "effort": effort,
+                    "prefix_ids": p_ids,
+                    "max_tokens": 1536,
+                }
+            )
+            n_graph_done += 1
+        rng.shuffle(ultralong)
+        ul_path.write_text("".join(json.dumps(r) + "\n" for r in ultralong))
+        ul_lens = sorted(len(r["prefix_ids"]) for r in ultralong)
+        print(
+            f"[v4 prompts] Wrote {len(ultralong)} ultra-long prompts -> {ul_path} "
+            f"(min={ul_lens[0]}, med={ul_lens[len(ul_lens)//2]}, max={ul_lens[-1]})",
+            flush=True,
+        )
+
+    # 3. Slice prompts_v3.jsonl for (a) On-Policy Student OPD/GKD and (b) Native VarLoop 3/3 Teacher Rollouts
     v3_rows = [json.loads(l) for l in args.prompts_v3.open() if l.strip()]
     by_pillar: dict[str, list[dict]] = {}
     for r in v3_rows:
@@ -258,44 +262,293 @@ def cmd_prompts(args) -> None:
     for rows in by_pillar.values():
         rng.shuffle(rows)
 
-    # GKD hard subset: 3,000 STEM/coding 'reason' + 600 'long' = 3,600 prompts
-    gkd_rows = by_pillar.get("reason", [])[:3000] + by_pillar.get("long", [])[:600]
+    # GKD/OPD hard subset: 2,000 STEM/coding 'reason' + 400 'long' = 2,400 prompts (~3-4 min on 8x B300)
+    gkd_rows = by_pillar.get("reason", [])[: args.n_gkd_reason] + by_pillar.get("long", [])[: args.n_gkd_long]
     rng.shuffle(gkd_rows)
     gkd_out = []
     for idx, r in enumerate(gkd_rows):
+        p_ids = r.get("prefix_ids") or r["prompt_ids"]
         gkd_out.append(
             {
                 "id": f"v4_gkd/{r.get('id', idx)}",
                 "pillar": f"gkd_{r.get('pillar', 'reason')}",
-                "prefix_ids": r["prefix_ids"],
+                "prefix_ids": p_ids,
                 "max_tokens": 3072,
             }
         )
     gkd_path = args.output / "prompts_gkd_hard_v4.jsonl"
     gkd_path.write_text("".join(json.dumps(r) + "\n" for r in gkd_out))
-    print(f"[v4 prompts] Wrote {len(gkd_out)} GKD hard prompts -> {gkd_path}", flush=True)
+    print(f"[v4 prompts] Wrote {len(gkd_out)} GKD/OPD hard prompts -> {gkd_path}", flush=True)
 
-    # Native VarLoop teacher subset: all 4,200 reason + 1,800 long + 900 procedural + 600 tool = 7,500
+    # Native VarLoop teacher subset: 1,200 reason + 500 long + 450 procedural + 250 tool = 2,400 (~3 min on 8x B300)
     vl_rows = (
-        by_pillar.get("reason", [])[:4200]
-        + by_pillar.get("long", [])[:1800]
-        + by_pillar.get("procedural", [])[:900]
-        + by_pillar.get("tool", [])[:600]
+        by_pillar.get("reason", [])[: args.n_vl_reason]
+        + by_pillar.get("long", [])[: args.n_vl_long]
+        + by_pillar.get("procedural", [])[: args.n_vl_proc]
+        + by_pillar.get("tool", [])[: args.n_vl_tool]
     )
     rng.shuffle(vl_rows)
     vl_out = []
     for idx, r in enumerate(vl_rows):
+        p_ids = r.get("prefix_ids") or r["prompt_ids"]
         vl_out.append(
             {
                 "id": f"v4_vl_t/{r.get('id', idx)}",
                 "pillar": r.get("pillar", "reason"),
-                "prefix_ids": r["prefix_ids"],
+                "prefix_ids": p_ids,
                 "max_tokens": 2048,
             }
         )
     vl_path = args.output / "prompts_vl_teacher_v4.jsonl"
     vl_path.write_text("".join(json.dumps(r) + "\n" for r in vl_out))
     print(f"[v4 prompts] Wrote {len(vl_out)} VarLoop teacher prompts -> {vl_path}", flush=True)
+
+
+def _format_native_sft_pair(
+    tok,
+    user_text: str,
+    reasoning_text: str,
+    answer_text: str,
+    effort: str,
+    min_suffix: int,
+    max_suffix: int,
+    min_prefix: int = 16,
+    max_prefix: int = 48000,
+) -> tuple[list[int], list[int]] | None:
+    """Wrap (user, reasoning, answer) into exact native Inkling chat_template tokens with guaranteed EOS."""
+    user_text = user_text.strip()
+    answer_text = answer_text.strip()
+    reasoning_text = reasoning_text.strip()
+    if not user_text or not answer_text:
+        return None
+    msgs_p = [{"role": "user", "content": user_text}]
+    asst: dict[str, str] = {"role": "assistant", "content": answer_text}
+    if reasoning_text:
+        asst["reasoning_content"] = reasoning_text
+    msgs_full = [msgs_p[0], asst]
+    p_str = tok.apply_chat_template(msgs_p, tokenize=False, add_generation_prompt=True, reasoning_effort=effort)
+    full_str = tok.apply_chat_template(msgs_full, tokenize=False, add_generation_prompt=False, reasoning_effort=effort)
+    if not full_str.startswith(p_str):
+        return None
+    s_str = full_str[len(p_str) :]
+    if "<|content_text|>" not in s_str or not s_str.endswith("<|content_model_end_sampling|>"):
+        return None
+    p_ids = tok.encode(p_str, add_special_tokens=False)
+    s_ids = tok.encode(s_str, add_special_tokens=False)
+    if not (min_prefix <= len(p_ids) <= max_prefix):
+        return None
+    if not (min_suffix <= len(s_ids) <= max_suffix):
+        return None
+    return p_ids, s_ids
+
+
+def _split_thought_and_answer(raw: str) -> tuple[str, str] | None:
+    """Extract (reasoning, final_answer) from OpenCodeReasoning (<think>...</think>) or OpenThoughts tags."""
+    if "</think>" in raw:
+        left, right = raw.split("</think>", 1)
+        left = left.replace("<think>", "").strip()
+        right = right.strip()
+        if left and right:
+            return left, right
+    if "<|end_of_thought|>" in raw:
+        left, right = raw.split("<|end_of_thought|>", 1)
+        left = left.replace("<|begin_of_thought|>", "").strip()
+        right = right.replace("<|begin_of_solution|>", "").replace("<|end_of_solution|>", "").strip()
+        if left and right:
+            return left, right
+    return None
+
+
+def cmd_sft_verified(args) -> None:
+    """Build 100% EOS-complete, 13-gram-decontaminated, native-template SFT trajectories (0 GPU rollout cost)."""
+    import pyarrow.parquet as pq
+
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    tok = AutoTokenizer.from_pretrained(str(args.model_path), local_files_only=True)
+    forbidden = load_eval_13grams(args.eval_dir, args.eval_raw, args.sec5_raw, tok=tok)
+    if args.eval_exact_dir and args.eval_exact_dir.exists():
+        forbidden |= load_eval_13grams(args.eval_exact_dir, args.eval_raw, args.sec5_raw, tok=tok)
+    print(f"[v4 sft] Loaded {len(forbidden):,} forbidden eval 13-grams", flush=True)
+
+    rng = random.Random(args.seed)
+    out_rows: list[dict] = []
+    leaks_skipped = 0
+
+    # 1. Verified Competitive Coding SFT from NVIDIA OpenCodeReasoning (ocr_0.parquet)
+    ocr_path = args.v2_raw / "ocr_0.parquet"
+    if ocr_path.exists() and args.n_opencode > 0:
+        t = pq.read_table(str(ocr_path))
+        indices = list(range(t.num_rows))
+        rng.shuffle(indices)
+        kept = 0
+        for idx in indices:
+            if kept >= args.n_opencode:
+                break
+            raw_out = t["output"][idx].as_py() or ""
+            if "</think>" not in raw_out or len(raw_out) > 13500:
+                continue
+            parsed = _split_thought_and_answer(raw_out)
+            if parsed is None:
+                continue
+            u_txt = t["input"][idx].as_py() or ""
+            if _has_13gram_overlap(u_txt, forbidden) or _has_13gram_overlap(parsed[1], forbidden):
+                leaks_skipped += 1
+                continue
+            effort = rng.choice(["high", "high", "medium"])
+            pair = _format_native_sft_pair(tok, u_txt, parsed[0], parsed[1], effort, 128, 3072, 16, 4096)
+            if pair is None:
+                continue
+            p_ids, s_ids = pair
+            out_rows.append(
+                {
+                    "id": f"v4_sft_code/{kept:05d}",
+                    "pillar": "sft_opencode",
+                    "source_mode": "sft_verified",
+                    "finish_reason": "stop",
+                    "prefix_ids": p_ids,
+                    "suffix_ids": s_ids,
+                    "effective_tokens": len(s_ids),
+                }
+            )
+            kept += 1
+        print(f"[v4 sft] OpenCodeReasoning: kept {kept} complete EOS rows (leaks_skipped={leaks_skipped})", flush=True)
+
+    # 2. Verified Science + Math + Code Reasoning SFT from OpenThoughts-114k shards
+    ot_dir = args.v2_raw / "openthoughts_114k"
+    ot_files = sorted(ot_dir.glob("*.parquet")) if ot_dir.exists() else []
+    if ot_files and args.n_openthoughts > 0:
+        # Allocate balanced quota across shards (shard5 science/STEM gets priority!)
+        per_shard_target = max(1, (args.n_openthoughts + len(ot_files) - 1) // len(ot_files))
+        kept_ot = 0
+        for sf in reversed(ot_files):
+            t = pq.read_table(str(sf))
+            indices = list(range(t.num_rows))
+            if "shard5" in sf.name:
+                # Prioritize graduate-level Science/STEM rows (tail of shard5, non-boxed) before math rows
+                sci_idx, math_idx = [], []
+                for idx in indices:
+                    convs = t["conversations"][idx].as_py()
+                    u0 = (convs[0].get("value", "") or "") if convs else ""
+                    if "\\boxed{}" not in u0:
+                        sci_idx.append(idx)
+                    else:
+                        math_idx.append(idx)
+                rng.shuffle(sci_idx)
+                rng.shuffle(math_idx)
+                indices = sci_idx + math_idx
+            else:
+                rng.shuffle(indices)
+            kept_shard = 0
+            # Give shard5 (science/STEM + math) up to 60% of quota if available
+            shard_cap = int(args.n_openthoughts * 0.60) if "shard5" in sf.name else per_shard_target
+            for idx in indices:
+                if kept_ot >= args.n_openthoughts or kept_shard >= shard_cap:
+                    break
+                convs = t["conversations"][idx].as_py()
+                if not convs or len(convs) < 2:
+                    continue
+                u_txt = convs[0].get("value", "") or ""
+                a_txt = convs[1].get("value", "") or ""
+                if ("<|end_of_thought|>" not in a_txt and "</think>" not in a_txt) or len(a_txt) > 13500:
+                    continue
+                parsed = _split_thought_and_answer(a_txt)
+                if parsed is None:
+                    continue
+                if _has_13gram_overlap(u_txt, forbidden) or _has_13gram_overlap(parsed[1], forbidden):
+                    leaks_skipped += 1
+                    continue
+                effort = rng.choice(["high", "high", "medium"])
+                pair = _format_native_sft_pair(tok, u_txt, parsed[0], parsed[1], effort, 128, 3072, 16, 4096)
+                if pair is None:
+                    continue
+                p_ids, s_ids = pair
+                out_rows.append(
+                    {
+                        "id": f"v4_sft_ot/{sf.stem}_{kept_shard:05d}",
+                        "pillar": "sft_openthoughts",
+                        "source_mode": "sft_verified",
+                        "finish_reason": "stop",
+                        "prefix_ids": p_ids,
+                        "suffix_ids": s_ids,
+                        "effective_tokens": len(s_ids),
+                    }
+                )
+                kept_ot += 1
+                kept_shard += 1
+            print(f"[v4 sft] OpenThoughts {sf.name}: kept {kept_shard} complete EOS rows", flush=True)
+        print(f"[v4 sft] OpenThoughts total: kept {kept_ot} rows (leaks_skipped={leaks_skipped})", flush=True)
+
+    # 3. Untruncated Real Long-Document QA SFT (8K-46K prefixes, above 8,192 LogScale floor!) from longalign_10k
+    la_path = args.v2_raw / "longalign_10k.jsonl"
+    if la_path.exists() and args.n_longalign_ul > 0:
+        la_cands = []
+        with la_path.open(encoding="utf-8", errors="replace") as fh:
+            for l in fh:
+                try:
+                    r = json.loads(l)
+                except Exception:
+                    continue
+                msgs = r.get("messages", [])
+                if len(msgs) < 2 or msgs[-1].get("role") != "assistant":
+                    continue
+                # Quick char filter for ~8K-46K prefix
+                p_chars = sum(len(str(m.get("content", ""))) for m in msgs[:-1])
+                if 28000 <= p_chars <= 200000:
+                    la_cands.append(msgs)
+        rng.shuffle(la_cands)
+        kept_la = 0
+        for msgs in la_cands:
+            if kept_la >= args.n_longalign_ul:
+                break
+            u_msgs = [{"role": m["role"], "content": str(m.get("content", ""))} for m in msgs[:-1] if m.get("role") in ("user", "assistant")]
+            if not u_msgs or u_msgs[-1]["role"] != "user":
+                continue
+            ans = str(msgs[-1].get("content", "")).strip()
+            if not ans or len(ans) > 10000:
+                continue
+            last_q = u_msgs[-1]["content"]
+            if _has_13gram_overlap(last_q[-4000:], forbidden) or _has_13gram_overlap(ans, forbidden):
+                leaks_skipped += 1
+                continue
+            effort = rng.choice(["medium", "low", "high"])
+            p_str = tok.apply_chat_template(u_msgs, tokenize=False, add_generation_prompt=True, reasoning_effort=effort)
+            full_str = tok.apply_chat_template(
+                u_msgs + [{"role": "assistant", "content": ans}],
+                tokenize=False,
+                add_generation_prompt=False,
+                reasoning_effort=effort,
+            )
+            if not full_str.startswith(p_str):
+                continue
+            s_str = full_str[len(p_str) :]
+            if "<|content_text|>" not in s_str or not s_str.endswith("<|content_model_end_sampling|>"):
+                continue
+            p_ids = tok.encode(p_str, add_special_tokens=False)
+            s_ids = tok.encode(s_str, add_special_tokens=False)
+            if not (8192 <= len(p_ids) <= 46000) or not (48 <= len(s_ids) <= 1536):
+                continue
+            out_rows.append(
+                {
+                    "id": f"v4_sft_longalign/{kept_la:05d}",
+                    "pillar": "sft_longalign_ul",
+                    "source_mode": "sft_verified",
+                    "finish_reason": "stop",
+                    "prefix_ids": p_ids,
+                    "suffix_ids": s_ids,
+                    "effective_tokens": len(s_ids),
+                }
+            )
+            kept_la += 1
+        print(f"[v4 sft] LongAlign 8K-46K: kept {kept_la} complete EOS rows (leaks_skipped={leaks_skipped})", flush=True)
+
+    rng.shuffle(out_rows)
+    args.output.write_text("".join(json.dumps(r) + "\n" for r in out_rows))
+    tot_tok = sum(r["effective_tokens"] for r in out_rows)
+    print(
+        f"[v4 sft] DONE: wrote {len(out_rows)} verified SFT rows ({tot_tok/1e6:.2f}M KL tokens, "
+        f"leaks_skipped={leaks_skipped}) -> {args.output}",
+        flush=True,
+    )
 
 
 def _post_rollout(
@@ -559,7 +812,26 @@ def main() -> None:
     p1.add_argument("--output", type=Path, required=True)
     p1.add_argument("--n-ultralong-recall", type=int, default=800)
     p1.add_argument("--n-ultralong-graph", type=int, default=400)
+    p1.add_argument("--n-gkd-reason", type=int, default=2000)
+    p1.add_argument("--n-gkd-long", type=int, default=400)
+    p1.add_argument("--n-vl-reason", type=int, default=1200)
+    p1.add_argument("--n-vl-long", type=int, default=500)
+    p1.add_argument("--n-vl-proc", type=int, default=450)
+    p1.add_argument("--n-vl-tool", type=int, default=250)
     p1.add_argument("--seed", type=int, default=20261123)
+
+    p_sft = sub.add_parser("sft_verified")
+    p_sft.add_argument("--model-path", type=Path, default=Path("/dev/shm/inkling/model_varloop"))
+    p_sft.add_argument("--v2-raw", type=Path, default=Path("/dev/shm/inkling/data/v2_raw"))
+    p_sft.add_argument("--eval-dir", type=Path, default=Path("/dev/shm/inkling/data/eval_sec5_high"))
+    p_sft.add_argument("--eval-exact-dir", type=Path, default=Path("/dev/shm/inkling/data/eval_official_exact"))
+    p_sft.add_argument("--eval-raw", type=Path, default=Path("/dev/shm/inkling/data/eval_raw"))
+    p_sft.add_argument("--sec5-raw", type=Path, default=Path("/dev/shm/inkling/data/official_sec5"))
+    p_sft.add_argument("--output", type=Path, required=True)
+    p_sft.add_argument("--n-opencode", type=int, default=3000)
+    p_sft.add_argument("--n-openthoughts", type=int, default=3000)
+    p_sft.add_argument("--n-longalign-ul", type=int, default=1200)
+    p_sft.add_argument("--seed", type=int, default=20261123)
 
     p2 = sub.add_parser("rollout_vllm")
     p2.add_argument("--urls", nargs="+", required=True)
@@ -588,6 +860,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.cmd == "prompts":
         cmd_prompts(args)
+    elif args.cmd == "sft_verified":
+        cmd_sft_verified(args)
     elif args.cmd == "rollout_vllm":
         cmd_rollout_vllm(args)
     elif args.cmd == "build":
