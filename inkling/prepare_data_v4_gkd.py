@@ -33,14 +33,6 @@ import urllib.request
 
 from transformers import AutoTokenizer
 
-from inkling.prepare_data_v3 import (
-    RECALL_FORMS,
-    RECALL_TOPICS,
-    _has_13gram_overlap,
-    _load_paragraph_pool,
-    load_eval_13grams,
-)
-
 
 def _make_ultralong_verbatim_recall(
     tok,
@@ -50,6 +42,8 @@ def _make_ultralong_verbatim_recall(
     effort: str,
 ) -> tuple[list[int], str] | None:
     """Procedurally generate a 16K-52K multi-turn multi-needle verbatim-copy prompt (zero test overlap)."""
+    from inkling.prepare_data_v3 import RECALL_FORMS, RECALL_TOPICS
+
     if len(paras) < 80:
         return None
     target_form = rng.choice(RECALL_FORMS)
@@ -182,6 +176,8 @@ def _make_ultralong_graph_bfs(
 
 
 def cmd_prompts(args) -> None:
+    from inkling.prepare_data_v3 import _load_paragraph_pool, load_eval_13grams
+
     args.output.mkdir(parents=True, exist_ok=True)
     tok = AutoTokenizer.from_pretrained(str(args.model_path), local_files_only=True)
     forbidden = load_eval_13grams(args.eval_dir, args.eval_raw, args.sec5_raw, tok=tok)
@@ -362,6 +358,7 @@ def _split_thought_and_answer(raw: str) -> tuple[str, str] | None:
 def cmd_sft_verified(args) -> None:
     """Build 100% EOS-complete, 13-gram-decontaminated, native-template SFT trajectories (0 GPU rollout cost)."""
     import pyarrow.parquet as pq
+    from inkling.prepare_data_v3 import _has_13gram_overlap, load_eval_13grams
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     tok = AutoTokenizer.from_pretrained(str(args.model_path), local_files_only=True)
@@ -707,6 +704,8 @@ def cmd_rollout_vllm(args) -> None:
 
 
 def cmd_build(args) -> None:
+    from inkling.prepare_data_v3 import _has_13gram_overlap, load_eval_13grams
+
     args.output.mkdir(parents=True, exist_ok=True)
     tok = AutoTokenizer.from_pretrained(str(args.model_path), local_files_only=True)
     forbidden = load_eval_13grams(args.eval_dir, args.eval_raw, args.sec5_raw, tok=tok)
