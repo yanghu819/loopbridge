@@ -5671,5 +5671,719 @@
         }
       ]
     }
+  },
+  "mini_orig_3_3_cap65k": {
+    "mrcr_8n_256k_512k": {
+      "n": 100,
+      "score": 0.559117,
+      "eos_n": 92,
+      "eos_score": 0.607736,
+      "trunc_n": 8,
+      "trunc_rate": 0.08,
+      "mean_gen_tok": 18260.4,
+      "mean_wall_s": 147.3,
+      "items": [
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/206",
+          "score": 0.029412,
+          "trunc": false,
+          "gen_tok": 1265,
+          "wall_s": 16.255
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/200",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 1241,
+          "wall_s": 29.045
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/208",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 2902,
+          "wall_s": 26.72
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/202",
+          "score": 0.21759,
+          "trunc": false,
+          "gen_tok": 5252,
+          "wall_s": 55.121
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/210",
+          "score": 0.999317,
+          "trunc": false,
+          "gen_tok": 5735,
+          "wall_s": 39.385
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/207",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 16191,
+          "wall_s": 98.519
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/205",
+          "score": 0.047487,
+          "trunc": false,
+          "gen_tok": 16615,
+          "wall_s": 113.219
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/213",
+          "score": 0.048874,
+          "trunc": false,
+          "gen_tok": 6064,
+          "wall_s": 42.974
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/212",
+          "score": 0.014639,
+          "trunc": false,
+          "gen_tok": 7043,
+          "wall_s": 75.919
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/203",
+          "score": 0.009634,
+          "trunc": false,
+          "gen_tok": 16119,
+          "wall_s": 169.307
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/204",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 21281,
+          "wall_s": 174.273
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/211",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 12017,
+          "wall_s": 127.153
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/209",
+          "score": 0.999558,
+          "trunc": false,
+          "gen_tok": 15953,
+          "wall_s": 159.516
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/217",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 5171,
+          "wall_s": 57.425
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/221",
+          "score": 0.027288,
+          "trunc": false,
+          "gen_tok": 10147,
+          "wall_s": 77.34
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/220",
+          "score": 0.977288,
+          "trunc": false,
+          "gen_tok": 18666,
+          "wall_s": 118.684
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/215",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 26006,
+          "wall_s": 189.437
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/224",
+          "score": 0.997642,
+          "trunc": false,
+          "gen_tok": 4303,
+          "wall_s": 42.221
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/218",
+          "score": 0.978106,
+          "trunc": false,
+          "gen_tok": 33946,
+          "wall_s": 211.363
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/216",
+          "score": 0.994855,
+          "trunc": false,
+          "gen_tok": 32840,
+          "wall_s": 235.779
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/214",
+          "score": 0.074127,
+          "trunc": false,
+          "gen_tok": 36260,
+          "wall_s": 299.882
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/222",
+          "score": 0.992743,
+          "trunc": false,
+          "gen_tok": 10046,
+          "wall_s": 114.426
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/226",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 3572,
+          "wall_s": 38.865
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/228",
+          "score": 0.134745,
+          "trunc": false,
+          "gen_tok": 2509,
+          "wall_s": 33.706
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/227",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 8205,
+          "wall_s": 82.584
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/230",
+          "score": 0.055518,
+          "trunc": false,
+          "gen_tok": 10071,
+          "wall_s": 64.832
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/231",
+          "score": 0.035185,
+          "trunc": false,
+          "gen_tok": 3988,
+          "wall_s": 47.075
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/225",
+          "score": 0.997789,
+          "trunc": false,
+          "gen_tok": 12084,
+          "wall_s": 134.066
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/234",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 2299,
+          "wall_s": 34.917
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/201",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 58159,
+          "wall_s": 530.318
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/235",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 650,
+          "wall_s": 23.6
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/232",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 17533,
+          "wall_s": 110.459
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/239",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 2091,
+          "wall_s": 33.279
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/219",
+          "score": 0.0,
+          "trunc": true,
+          "gen_tok": 65536,
+          "wall_s": 462.088
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/240",
+          "score": 0.061998,
+          "trunc": false,
+          "gen_tok": 9340,
+          "wall_s": 67.68
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/229",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 36317,
+          "wall_s": 293.86
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/237",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 23939,
+          "wall_s": 213.815
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/223",
+          "score": 0.0,
+          "trunc": true,
+          "gen_tok": 65536,
+          "wall_s": 448.031
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/241",
+          "score": 0.028281,
+          "trunc": false,
+          "gen_tok": 12141,
+          "wall_s": 115.796
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/236",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 37811,
+          "wall_s": 236.29
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/245",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 1598,
+          "wall_s": 17.325
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/242",
+          "score": 0.072484,
+          "trunc": false,
+          "gen_tok": 15886,
+          "wall_s": 94.623
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/246",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 2946,
+          "wall_s": 35.608
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/248",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 703,
+          "wall_s": 24.623
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/233",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 40256,
+          "wall_s": 323.252
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/249",
+          "score": 0.072557,
+          "trunc": false,
+          "gen_tok": 4254,
+          "wall_s": 40.553
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/253",
+          "score": 0.098343,
+          "trunc": false,
+          "gen_tok": 18204,
+          "wall_s": 115.929
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/254",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 1038,
+          "wall_s": 24.878
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/243",
+          "score": 0.09564,
+          "trunc": false,
+          "gen_tok": 34509,
+          "wall_s": 269.082
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/244",
+          "score": 0.594027,
+          "trunc": false,
+          "gen_tok": 31190,
+          "wall_s": 237.958
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/255",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 3166,
+          "wall_s": 36.223
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/256",
+          "score": 0.925819,
+          "trunc": false,
+          "gen_tok": 2559,
+          "wall_s": 21.487
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/238",
+          "score": 0.0,
+          "trunc": true,
+          "gen_tok": 65536,
+          "wall_s": 477.64
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/257",
+          "score": 0.039867,
+          "trunc": false,
+          "gen_tok": 2322,
+          "wall_s": 31.152
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/259",
+          "score": 0.065891,
+          "trunc": false,
+          "gen_tok": 2028,
+          "wall_s": 25.599
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/258",
+          "score": 0.020996,
+          "trunc": false,
+          "gen_tok": 2046,
+          "wall_s": 36.383
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/250",
+          "score": 0.976566,
+          "trunc": false,
+          "gen_tok": 39549,
+          "wall_s": 253.697
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/251",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 33582,
+          "wall_s": 269.347
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/262",
+          "score": 0.258866,
+          "trunc": false,
+          "gen_tok": 12709,
+          "wall_s": 79.035
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/265",
+          "score": 0.999148,
+          "trunc": false,
+          "gen_tok": 11953,
+          "wall_s": 72.336
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/266",
+          "score": 0.230855,
+          "trunc": false,
+          "gen_tok": 5786,
+          "wall_s": 38.424
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/261",
+          "score": 0.091317,
+          "trunc": false,
+          "gen_tok": 20420,
+          "wall_s": 144.887
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/267",
+          "score": 0.999783,
+          "trunc": false,
+          "gen_tok": 2575,
+          "wall_s": 25.484
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/270",
+          "score": 0.997839,
+          "trunc": false,
+          "gen_tok": 3730,
+          "wall_s": 29.13
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/269",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 11887,
+          "wall_s": 80.325
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/264",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 34348,
+          "wall_s": 233.608
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/271",
+          "score": 0.03125,
+          "trunc": false,
+          "gen_tok": 7458,
+          "wall_s": 110.204
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/247",
+          "score": 0.0,
+          "trunc": true,
+          "gen_tok": 65536,
+          "wall_s": 591.501
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/272",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 20602,
+          "wall_s": 130.851
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/274",
+          "score": 0.055409,
+          "trunc": false,
+          "gen_tok": 21472,
+          "wall_s": 135.696
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/252",
+          "score": 0.0,
+          "trunc": true,
+          "gen_tok": 65536,
+          "wall_s": 637.913
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/273",
+          "score": 0.999434,
+          "trunc": false,
+          "gen_tok": 24990,
+          "wall_s": 168.959
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/277",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 9060,
+          "wall_s": 59.535
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/260",
+          "score": 0.047189,
+          "trunc": false,
+          "gen_tok": 48938,
+          "wall_s": 537.462
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/275",
+          "score": 0.046543,
+          "trunc": false,
+          "gen_tok": 25722,
+          "wall_s": 189.376
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/278",
+          "score": 0.87714,
+          "trunc": false,
+          "gen_tok": 18473,
+          "wall_s": 105.584
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/283",
+          "score": 0.059495,
+          "trunc": false,
+          "gen_tok": 3232,
+          "wall_s": 36.813
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/281",
+          "score": 0.218724,
+          "trunc": false,
+          "gen_tok": 6030,
+          "wall_s": 52.642
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/282",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 10817,
+          "wall_s": 65.611
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/279",
+          "score": 0.056,
+          "trunc": false,
+          "gen_tok": 18338,
+          "wall_s": 168.414
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/285",
+          "score": 0.017467,
+          "trunc": false,
+          "gen_tok": 2103,
+          "wall_s": 26.776
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/288",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 2607,
+          "wall_s": 29.631
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/263",
+          "score": 0.0,
+          "trunc": true,
+          "gen_tok": 65536,
+          "wall_s": 639.818
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/290",
+          "score": 0.019024,
+          "trunc": false,
+          "gen_tok": 2649,
+          "wall_s": 26.308
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/286",
+          "score": 0.99919,
+          "trunc": false,
+          "gen_tok": 16075,
+          "wall_s": 96.017
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/289",
+          "score": 0.857361,
+          "trunc": false,
+          "gen_tok": 5130,
+          "wall_s": 53.605
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/276",
+          "score": 0.035771,
+          "trunc": false,
+          "gen_tok": 29643,
+          "wall_s": 358.876
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/293",
+          "score": 0.055993,
+          "trunc": false,
+          "gen_tok": 1967,
+          "wall_s": 20.83
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/295",
+          "score": 0.999657,
+          "trunc": false,
+          "gen_tok": 14220,
+          "wall_s": 130.918
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/284",
+          "score": 0.118523,
+          "trunc": false,
+          "gen_tok": 23700,
+          "wall_s": 293.165
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/296",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 2191,
+          "wall_s": 30.849
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/268",
+          "score": 0.051068,
+          "trunc": false,
+          "gen_tok": 1914,
+          "wall_s": 37.6
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/297",
+          "score": 0.999196,
+          "trunc": false,
+          "gen_tok": 3240,
+          "wall_s": 39.502
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/299",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 2930,
+          "wall_s": 46.798
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/292",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 9790,
+          "wall_s": 80.185
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/298",
+          "score": 1.0,
+          "trunc": false,
+          "gen_tok": 13288,
+          "wall_s": 97.658
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/287",
+          "score": 0.026311,
+          "trunc": false,
+          "gen_tok": 33544,
+          "wall_s": 206.241
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/294",
+          "score": 0.078913,
+          "trunc": false,
+          "gen_tok": 36613,
+          "wall_s": 215.209
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/280",
+          "score": 0.0,
+          "trunc": true,
+          "gen_tok": 65536,
+          "wall_s": 387.5
+        },
+        {
+          "id": "mrcr_8n_256k_512k/mrcr_8needle_0/291",
+          "score": 0.0,
+          "trunc": true,
+          "gen_tok": 65536,
+          "wall_s": 442.071
+        }
+      ]
+    }
   }
 }
