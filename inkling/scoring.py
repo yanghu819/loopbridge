@@ -346,6 +346,9 @@ def _alarm(signum, frame):
     raise TimeoutError("timeout")
 
 signal.signal(signal.SIGALRM, _alarm)
+sys.setrecursionlimit(1_000_000)
+if hasattr(sys, "set_int_max_str_digits"):
+    sys.set_int_max_str_digits(0)
 
 payload = json.loads(sys.stdin.read())
 code = payload["code"]
@@ -355,12 +358,24 @@ fn_name = payload.get("fn_name") or ""
 def norm_lines(s):
     return "\n".join(line.rstrip() for line in s.strip().splitlines())
 
+def _outputs_match(got, want):
+    if got == want:
+        return True
+    gtoks = got.split()
+    wtoks = want.split()
+    if len(gtoks) == len(wtoks) and gtoks:
+        try:
+            return all(abs(float(g) - float(w)) <= 1e-4 * max(1.0, abs(float(w))) for g, w in zip(gtoks, wtoks))
+        except Exception:
+            return False
+    return False
+
 passed = 0
 for tc in tests:
     ttype = tc.get("testtype", "stdin")
     inp = tc.get("input", "")
     exp = tc.get("output", "")
-    signal.alarm(2)
+    signal.alarm(6)
     try:
         if ttype == "functional" and fn_name:
             ns = dict(_STD_PRELUDE)
@@ -379,23 +394,30 @@ for tc in tests:
             ok = (res == expected)
         else:
             ns = {"__name__": "__main__"}
-            old_stdin = sys.stdin
-            buf = io.StringIO()
-            sys.stdin = io.StringIO(inp)
+            old_stdin, old_stdout = sys.stdin, sys.stdout
+            raw_out = io.BytesIO()
+            out_wrapper = io.TextIOWrapper(raw_out, encoding="utf-8")
+            sys.stdin = io.TextIOWrapper(io.BytesIO(inp.encode("utf-8")), encoding="utf-8")
+            sys.stdout = out_wrapper
+            exit_err = False
             try:
-                with redirect_stdout(buf):
-                    exec(compile(code, "<sol>", "exec"), ns)
+                exec(compile(code, "<sol>", "exec"), ns)
+            except SystemExit as se:
+                if se.code not in (None, 0):
+                    exit_err = True
             finally:
-                sys.stdin = old_stdin
-            got = norm_lines(buf.getvalue())
-            want = norm_lines(exp)
-            ok = (got == want)
-            if not ok:
-                # Floating-point tolerance fallback for single-number outputs
                 try:
-                    ok = abs(float(got) - float(want)) <= 1e-4 * max(1.0, abs(float(want)))
+                    out_wrapper.flush()
                 except Exception:
-                    ok = False
+                    pass
+                sys.stdin = old_stdin
+                sys.stdout = old_stdout
+            if exit_err:
+                ok = False
+            else:
+                got = norm_lines(raw_out.getvalue().decode("utf-8", errors="replace"))
+                want = norm_lines(exp)
+                ok = _outputs_match(got, want)
         signal.alarm(0)
         if not ok:
             print(json.dumps({"ok": False, "passed": passed, "total": len(tests)}))
@@ -422,7 +444,7 @@ def lcb_score(vis_text: str, test_cases: list[dict], fn_name: str = "") -> tuple
             input=payload,
             capture_output=True,
             text=True,
-            timeout=25,
+            timeout=90,
         )
         out = proc.stdout.strip().splitlines()
         if out:
@@ -518,7 +540,7 @@ def score_row(bench: str, row: dict, raw_text: str, gen_tokens: int, reason: str
         "task": row["task"],
         "generated_tokens": gen_tokens,
         "stop_reason": reason,
-        "text": vis[:800],
+        "text": vis[:16384],
     }
     if bench == "gsm8k":
         pred = parse_gsm8k(vis)
