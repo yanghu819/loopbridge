@@ -12,6 +12,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from pathlib import Path
+import threading
 from time import perf_counter
 import urllib.error
 import urllib.request
@@ -119,29 +120,55 @@ def main():
         todo = [j for j in jobs if j[0] not in done]
         print(f"[vLLM] {bench}: total={len(jobs)}, done={len(done)}, todo={len(todo)}, urls={len(urls)}, conc={args.concurrency}", flush=True)
 
+        in_flight = {u: 0 for u in urls}
+        rr_cursor = 0
+        url_lock = threading.Lock()
+
+        def acquire_url() -> str:
+            nonlocal rr_cursor
+            with url_lock:
+                min_load = min(in_flight.values())
+                n_urls = len(urls)
+                for offset in range(n_urls):
+                    cand = urls[(rr_cursor + offset) % n_urls]
+                    if in_flight[cand] == min_load:
+                        in_flight[cand] += 1
+                        rr_cursor = (rr_cursor + offset + 1) % n_urls
+                        return cand
+                cand = urls[0]
+                in_flight[cand] += 1
+                return cand
+
+        def release_url(url: str) -> None:
+            with url_lock:
+                in_flight[url] = max(0, in_flight[url] - 1)
+
         def run_one(idx_job):
-            idx, (jid, row, seed) = idx_job
-            url = urls[idx % len(urls)]
-            last_err = None
-            for attempt in range(3):
-                try:
-                    raw_txt, n_gen, reason, wall_s = _post_completion(
-                        url,
-                        args.model,
-                        row["prompt_ids"],
-                        row["max_new_tokens"],
-                        args.temperature,
-                        args.top_p,
-                        seed + attempt,
-                        timeout=args.timeout,
-                    )
-                    rec = score_row(bench, row, raw_txt, n_gen, reason)
-                    rec["id"] = jid
-                    rec["wall_s"] = round(wall_s, 4)
-                    return rec
-                except Exception as e:
-                    last_err = e
-            raise RuntimeError(f"Failed {jid} on {url}: {last_err}")
+            _idx, (jid, row, seed) = idx_job
+            url = acquire_url()
+            try:
+                last_err = None
+                for attempt in range(3):
+                    try:
+                        raw_txt, n_gen, reason, wall_s = _post_completion(
+                            url,
+                            args.model,
+                            row["prompt_ids"],
+                            row["max_new_tokens"],
+                            args.temperature,
+                            args.top_p,
+                            seed + attempt,
+                            timeout=args.timeout,
+                        )
+                        rec = score_row(bench, row, raw_txt, n_gen, reason)
+                        rec["id"] = jid
+                        rec["wall_s"] = round(wall_s, 4)
+                        return rec
+                    except Exception as e:
+                        last_err = e
+                raise RuntimeError(f"Failed {jid} on {url}: {last_err}")
+            finally:
+                release_url(url)
 
         completed = 0
         with out_path.open("a") as fh, ThreadPoolExecutor(max_workers=args.concurrency) as ex:
