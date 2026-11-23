@@ -288,33 +288,36 @@ def _fold_request_kv_maps(
         if bo is None:
             continue
         blk, off = bo
-
-        if cross_pass:
-            k_src = [k_caches[p][blk, off].float() for p in range(m)]
-            v_src = [v_caches[p][blk, off].float() for p in range(m)]
-            slot_offset = max_m - m
-            out_pairs = []
-            for k_pass in range(n):
-                j = min(max(m - n + k_pass, 0), m - 1)
-                k_out = k_src[j].clone()
-                v_out = v_src[j].clone()
-                for p in range(m):
-                    ps = max(0, min(max_m - 1, slot_offset + p))
-                    k_out.add_(torch.einsum("nhi,hoi->nho", k_src[p], kd_loop[k_pass, idx, ps]))
-                    v_out.add_(torch.einsum("nhi,hoi->nho", v_src[p], vd_loop[k_pass, idx, ps]))
-                out_pairs.append((j, k_out, v_out))
-            for j, k_out, v_out in out_pairs:
-                k_caches[j][blk, off] = k_out.to(k_caches[j].dtype)
-                v_caches[j][blk, off] = v_out.to(v_caches[j].dtype)
-        else:
-            for k_pass in range(n):
-                j = min(max(m - n + k_pass, 0), m - 1)
-                ks = k_caches[j][blk, off].float()
-                vs = v_caches[j][blk, off].float()
-                k_out = ks + torch.einsum("nhi,hoi->nho", ks, kd_loop[k_pass, idx])
-                v_out = vs + torch.einsum("nhi,hoi->nho", vs, vd_loop[k_pass, idx])
-                k_caches[j][blk, off] = k_out.to(k_caches[j].dtype)
-                v_caches[j][blk, off] = v_out.to(v_caches[j].dtype)
+        chunk_sz = 32768
+        for c_start in range(0, prompt_len, chunk_sz):
+            c_end = min(prompt_len, c_start + chunk_sz)
+            cb, co = blk[c_start:c_end], off[c_start:c_end]
+            if cross_pass:
+                k_src = [k_caches[p][cb, co].float() for p in range(m)]
+                v_src = [v_caches[p][cb, co].float() for p in range(m)]
+                slot_offset = max_m - m
+                out_pairs = []
+                for k_pass in range(n):
+                    j = min(max(m - n + k_pass, 0), m - 1)
+                    k_out = k_src[j].clone()
+                    v_out = v_src[j].clone()
+                    for p in range(m):
+                        ps = max(0, min(max_m - 1, slot_offset + p))
+                        k_out.add_(torch.einsum("nhi,hoi->nho", k_src[p], kd_loop[k_pass, idx, ps]))
+                        v_out.add_(torch.einsum("nhi,hoi->nho", v_src[p], vd_loop[k_pass, idx, ps]))
+                    out_pairs.append((j, k_out, v_out))
+                for j, k_out, v_out in out_pairs:
+                    k_caches[j][cb, co] = k_out.to(k_caches[j].dtype)
+                    v_caches[j][cb, co] = v_out.to(v_caches[j].dtype)
+            else:
+                for k_pass in range(n):
+                    j = min(max(m - n + k_pass, 0), m - 1)
+                    ks = k_caches[j][cb, co].float()
+                    vs = v_caches[j][cb, co].float()
+                    k_out = ks + torch.einsum("nhi,hoi->nho", ks, kd_loop[k_pass, idx])
+                    v_out = vs + torch.einsum("nhi,hoi->nho", vs, vd_loop[k_pass, idx])
+                    k_caches[j][cb, co] = k_out.to(k_caches[j].dtype)
+                    v_caches[j][cb, co] = v_out.to(v_caches[j].dtype)
 
     # 2. Post-loop coda layers (e.g. L23 for Global-3)
     for idx, layer_id in enumerate(kv_bundle["post_layers"]):
@@ -327,12 +330,16 @@ def _fold_request_kv_maps(
         if bo is None:
             continue
         blk, off = bo
-        ks = kc[blk, off].float()
-        vs = vc[blk, off].float()
-        k_out = ks + torch.einsum("nhi,hoi->nho", ks, kd_post[idx])
-        v_out = vs + torch.einsum("nhi,hoi->nho", vs, vd_post[idx])
-        kc[blk, off] = k_out.to(kc.dtype)
-        vc[blk, off] = v_out.to(vc.dtype)
+        chunk_sz = 32768
+        for c_start in range(0, prompt_len, chunk_sz):
+            c_end = min(prompt_len, c_start + chunk_sz)
+            cb, co = blk[c_start:c_end], off[c_start:c_end]
+            ks = kc[cb, co].float()
+            vs = vc[cb, co].float()
+            k_out = ks + torch.einsum("nhi,hoi->nho", ks, kd_post[idx])
+            v_out = vs + torch.einsum("nhi,hoi->nho", vs, vd_post[idx])
+            kc[cb, co] = k_out.to(kc.dtype)
+            vc[cb, co] = v_out.to(vc.dtype)
 
 
 def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
