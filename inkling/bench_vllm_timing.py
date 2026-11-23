@@ -80,7 +80,7 @@ async def _stream_one(
     }
     t0 = perf_counter()
     t_first: float | None = None
-    chunks = 0
+    chunk_ts: list[float] = []
     async with session.post(url, json=payload) as resp:
         if resp.status != 200:
             body = await resp.text()
@@ -98,10 +98,11 @@ async def _stream_one(
                 continue
             choices = ev.get("choices") or []
             if choices and (choices[0].get("text") or choices[0].get("delta")):
+                now = perf_counter()
                 if t_first is None:
-                    t_first = perf_counter()
-                chunks += 1
-    t_end = perf_counter()
+                    t_first = now
+                chunk_ts.append(now)
+    t_end = chunk_ts[-1] if chunk_ts else perf_counter()
     if t_first is None:
         t_first = t_end
     ttft_s = t_first - t0
@@ -111,11 +112,12 @@ async def _stream_one(
         "ttft_ms": ttft_s * 1000.0,
         "t_first_abs": t_first,
         "t_end_abs": t_end,
+        "chunk_ts": chunk_ts,
         "decode_s": dec_s,
         "e2e_s": e2e_s,
         "decode_tok_s": max(1, gen_len - 1) / dec_s,
         "e2e_tok_s": gen_len / max(1e-6, e2e_s),
-        "chunks": chunks,
+        "chunks": len(chunk_ts),
     }
 
 
@@ -136,21 +138,41 @@ async def run_regime(
     ttfts = sorted(r["ttft_ms"] for r in results)
     mean_ttft_ms = sum(ttfts) / B
     p95_ttft_ms = ttfts[min(B - 1, int(0.95 * B))]
-    # True uncontaminated batch decode window: starts ONLY after ALL B requests finish prefill (max t_first_abs)
-    # so chunked-prefill waves from later requests never bias mixed-scheduler baselines like Original 3/3 or Distilled.
+    # Uncontaminated pure-decode windows:
+    # 1) Exact steady-state all-B-concurrent window (max t_first_abs, min t_end_abs]:
+    #    ZERO prefills in flight AND ALL B requests actively decoding.
+    # 2) Batch tail-drain window (max t_first_abs, max t_end_abs].
     max_t_first = max(r["t_first_abs"] for r in results)
+    min_t_end = min(r["t_end_abs"] for r in results)
     max_t_end = max(r["t_end_abs"] for r in results)
     pure_dec_wall_s = max(1e-6, max_t_end - max_t_first)
-    agg_pure_dec_tps = B * max(1, gen_len - 1) / pure_dec_wall_s
+    agg_tail_dec_tps = B * max(1, gen_len - 1) / pure_dec_wall_s
+
+    steady_win_s = max(0.0, min_t_end - max_t_first)
+    steady_toks = 0
+    if steady_win_s > 0.05:
+        for r in results:
+            # Scale by gen_len / chunks in case multiple tokens coalesced into one SSE packet
+            n_ch = max(1, r["chunks"])
+            tok_per_ch = gen_len / n_ch
+            in_win = sum(1 for ts in r["chunk_ts"] if max_t_first < ts <= min_t_end)
+            steady_toks += in_win * tok_per_ch
+        agg_steady_dec_tps = steady_toks / steady_win_s
+    else:
+        agg_steady_dec_tps = agg_tail_dec_tps
+
     return {
         "B": B,
         "gen_len": gen_len,
         "batch_wall_s": round(batch_wall_s, 4),
         "pure_decode_wall_s": round(pure_dec_wall_s, 4),
+        "steady_window_s": round(steady_win_s, 4),
+        "steady_tokens": round(steady_toks, 1),
         "ttft_mean_ms": round(mean_ttft_ms, 2),
         "ttft_p95_ms": round(p95_ttft_ms, 2),
-        "per_user_decode_tok_s": round(agg_pure_dec_tps / B, 2),
-        "agg_decode_tok_s": round(agg_pure_dec_tps, 2),
+        "per_user_decode_tok_s": round(agg_steady_dec_tps / B, 2),
+        "agg_decode_tok_s": round(agg_steady_dec_tps, 2),
+        "agg_tail_decode_tok_s": round(agg_tail_dec_tps, 2),
         "agg_e2e_tok_s": round(B * gen_len / max(1e-6, batch_wall_s), 2),
         "warmup": warmup,
     }
