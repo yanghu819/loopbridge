@@ -58,7 +58,7 @@ def _has_13gram_overlap(text: str, forbidden: set[tuple[str, ...]]) -> bool:
     return False
 
 
-def load_eval_13grams(eval_dir: Path, raw_dir: Path, sec5_raw: Path) -> set[tuple[str, ...]]:
+def load_eval_13grams(eval_dir: Path, raw_dir: Path, sec5_raw: Path, tok=None) -> set[tuple[str, ...]]:
     """Collect 13-gram fingerprints from ALL official evaluation benchmarks."""
     ngrams: set[tuple[str, ...]] = set()
 
@@ -80,15 +80,20 @@ def load_eval_13grams(eval_dir: Path, raw_dir: Path, sec5_raw: Path) -> set[tupl
                 if not line.strip():
                     continue
                 r = json.loads(line)
+                found_str = False
                 for key in ("prompt_text", "question", "problem", "input", "context"):
                     val = r.get(key)
                     if isinstance(val, str) and len(val) >= 40:
                         add_text(val)
+                        found_str = True
                 msgs = r.get("messages")
                 if isinstance(msgs, list):
                     for m in msgs:
                         if isinstance(m, dict) and isinstance(m.get("content"), str):
                             add_text(m["content"], max_words=1000)
+                            found_str = True
+                if not found_str and tok is not None and isinstance(r.get("prompt_ids"), list):
+                    add_text(tok.decode(r["prompt_ids"], skip_special_tokens=True))
 
     # 2. Raw benchmark sources (GPQA, LCB v5/v6, Apex)
     gpqa = raw_dir / "gpqa_diamond_mc.parquet"
@@ -844,7 +849,7 @@ def main() -> None:
         asyncio.run(_run_rollouts_vllm(args, tok))
         return
 
-    forbidden = load_eval_13grams(args.eval_dir, args.raw_dir, args.sec5_raw)
+    forbidden = load_eval_13grams(args.eval_dir, args.raw_dir, args.sec5_raw, tok=tok)
     print(f"Loaded {len(forbidden):,} 13-gram eval decontamination shingles", flush=True)
     if args.mode == "prompts":
         export_prompts_v3(args, tok, forbidden)
