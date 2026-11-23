@@ -73,6 +73,7 @@ def main():
     parser.add_argument("--mode", choices=("loopbridge", "distilled"), required=True)
     parser.add_argument("--cells", default="3x1", help="Comma-separated m x n cells, e.g. '3x1' or '3x1,2x1,1x1'")
     parser.add_argument("--cell-weights", default="", help="Optional comma-separated sampling weights matching --cells")
+    parser.add_argument("--teacher-passes", type=int, default=3, help="Teacher loop depth (default 3)")
     parser.add_argument("--lora-rank", type=int, default=64)
     parser.add_argument("--freeze-maps", action="store_true")
     parser.add_argument("--kv-map-layers", choices=("all", "global"), default="global",
@@ -127,6 +128,7 @@ def main():
         )
     adapt_pre = True if args.mode == "distilled" else args.adapt_pre_loop
     cross_pass = (not args.no_cross_pass_kv) and (args.kv_map_layers == "global")
+    max_prefill_passes = max(max(m for m, _ in cells), args.teacher_passes, 3)
     sys_cfg = SystemConfig(
         mode=args.mode,
         decode_depths=decode_depths,
@@ -138,6 +140,8 @@ def main():
         adapt_attnres=not args.no_attnres,
         adapt_rel_sink=not args.no_rel_sink,
         adapt_pre_loop=adapt_pre,
+        max_prefill_passes=max_prefill_passes,
+        teacher_passes=args.teacher_passes,
     )
     system = InklingLoopBridgeSystem(base, sys_cfg)
     if args.gradient_checkpointing:

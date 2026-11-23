@@ -208,7 +208,7 @@ def _apply_delta_to_vllm_model(
 
         kv_bundle = {
             "cross_pass": cross_pass,
-            "max_prefill_passes": int(model.config.loop_config["num_passes"]),
+            "max_prefill_passes": int(sys_cfg.get("max_prefill_passes", model.config.num_loop_passes)),
             "loop_layers": loop_layers,
             "post_layers": post_layers,
             "k_loop": {},
@@ -225,6 +225,9 @@ def _apply_delta_to_vllm_model(
             t = val.to(device=dev, dtype=torch.float32)
             kv_bundle[kind][int(n_str)] = t
             extra_bytes += t.numel() * t.element_size()
+        if cross_pass and kv_bundle["k_loop"]:
+            first_kl = next(iter(kv_bundle["k_loop"].values()))
+            kv_bundle["max_prefill_passes"] = int(first_kl.shape[2])
 
     return {"extra_mb": round(extra_bytes / (1024 * 1024), 2), "kv_bundle": kv_bundle}
 
@@ -846,7 +849,7 @@ def main() -> None:
         "--gpu-memory-utilization",
         str(args.gpu_memory_utilization),
     ]
-    if args.mode == "distilled" or args.m < 3:
+    if args.mode == "distilled" or args.m != 3:
         passes = args.n if args.mode == "distilled" else args.m
         overrides = json.dumps(
             {

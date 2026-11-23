@@ -193,6 +193,7 @@ class InklingKVMapAdapter(nn.Module):
         decode_depths: tuple[int, ...] = (1,),
         kv_map_layers: str = "global",
         cross_pass: bool = False,
+        max_prefill_passes: int | None = None,
     ):
         super().__init__()
         assert kv_map_layers in ("all", "global"), f"Unsupported kv_map_layers={kv_map_layers}"
@@ -200,7 +201,9 @@ class InklingKVMapAdapter(nn.Module):
         self.decode_depths = tuple(sorted(set(decode_depths)))
         self.kv_map_layers = kv_map_layers
         self.cross_pass = cross_pass
-        self.max_prefill_passes = int(getattr(config, "loop_num_passes", 3))
+        self.max_prefill_passes = (
+            int(max_prefill_passes) if max_prefill_passes is not None else int(getattr(config, "loop_num_passes", 3))
+        )
         self.loop_start = config.loop_layer_index_start
         self.loop_end = config.loop_layer_index_end
         layer_types = getattr(config, "layer_types", None)
@@ -499,6 +502,8 @@ class SystemConfig:
     adapt_attnres: bool = True
     adapt_rel_sink: bool = False  # LoRA on relative_position_bias.linear & sink_proj (vLLM qkvr-compatible)
     adapt_pre_loop: bool = False  # True for param-matched distilled controls
+    max_prefill_passes: int = 3  # Max prefill loop depth supported by cross-pass KV maps (e.g. 4 or 5 for varloop)
+    teacher_passes: int = 3  # Teacher loop depth for forward-KL distillation
 
 
 class InklingLoopBridgeSystem(nn.Module):
@@ -564,6 +569,7 @@ class InklingLoopBridgeSystem(nn.Module):
                 decode_depths=cfg.decode_depths,
                 kv_map_layers=cfg.kv_map_layers,
                 cross_pass=cfg.kv_map_cross_pass,
+                max_prefill_passes=cfg.max_prefill_passes,
             )
 
     def trainable_parameters(self) -> list[nn.Parameter]:
@@ -690,20 +696,21 @@ class InklingLoopBridgeSystem(nn.Module):
         P = prefix.shape[1]
         dec_pos = full_pos[:, P - 1 :]
 
-        # 1. Frozen Original 3/3 teacher (adapter strictly OFF)
+        # 1. Frozen Original teacher (adapter strictly OFF)
+        t_passes = int(getattr(self.cfg, "teacher_passes", 3))
         with torch.no_grad():
             _, teacher_pre_cache = self._run_prefill_chunked(
-                prefix[:, :-1], pmask[:, :-1], num_passes=3, adapter_on=False, chunk_size=2048, return_logits=False
+                prefix[:, :-1], pmask[:, :-1], num_passes=t_passes, adapter_on=False, chunk_size=2048, return_logits=False
             )
-            # If LoopBridge with m == 3, reuse teacher_pre_cache for student prefill (clone before teacher decode mutates it)
-            if self.cfg.mode == "loopbridge" and m == 3:
+            # If LoopBridge with m == t_passes, reuse teacher_pre_cache for student prefill (clone before teacher decode mutates it)
+            if self.cfg.mode == "loopbridge" and m == t_passes:
                 student_pre_cache = teacher_pre_cache
                 t_dec_cache = clone_full_cache(teacher_pre_cache, training=False)
             else:
                 student_pre_cache = None
                 t_dec_cache = teacher_pre_cache
 
-            set_loop_passes(self.base, 3)
+            set_loop_passes(self.base, t_passes)
             self.adapter_state["on"] = False
             t_out = self.base(
                 input_ids=dec_in,
