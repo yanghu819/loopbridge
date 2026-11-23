@@ -45160,10 +45160,10 @@
     "longbench_v2_1m": {
       "n": 503,
       "score": 0.32008,
-      "eos_n": 503,
-      "eos_score": 0.32008,
-      "trunc_n": 0,
-      "trunc_rate": 0.0,
+      "eos_n": 379,
+      "eos_score": 0.424802,
+      "trunc_n": 124,
+      "trunc_rate": 0.246521,
       "mean_gen_tok": 21745.9,
       "mean_wall_s": 97.2,
       "items": [
@@ -45513,7 +45513,7 @@
         {
           "id": "lb2/670cf1c0bb02136c067d26e5",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 208.958
         },
@@ -45534,7 +45534,7 @@
         {
           "id": "lb2/6723a1ccbb02136c067d70b3",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 214.718
         },
@@ -45548,14 +45548,14 @@
         {
           "id": "lb2/671b3cabbb02136c067d5252",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 220.994
         },
         {
           "id": "lb2/66f2a414821e116aacb2a3af",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 221.611
         },
@@ -45569,7 +45569,7 @@
         {
           "id": "lb2/66fcffd9bb02136c067c94c5",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 230.427
         },
@@ -45611,7 +45611,7 @@
         {
           "id": "lb2/6724631ebb02136c067d7300",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 218.736
         },
@@ -45625,7 +45625,7 @@
         {
           "id": "lb2/67239fd9bb02136c067d6ff7",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 249.192
         },
@@ -45639,7 +45639,7 @@
         {
           "id": "lb2/670fb813bb02136c067d2bec",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 222.81
         },
@@ -45667,7 +45667,7 @@
         {
           "id": "lb2/67286634bb02136c067d91f0",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 260.264
         },
@@ -45695,7 +45695,7 @@
         {
           "id": "lb2/67286698bb02136c067d9223",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 204.854
         },
@@ -45730,7 +45730,7 @@
         {
           "id": "lb2/6703a0ecbb02136c067cd11b",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 227.524
         },
@@ -45758,7 +45758,7 @@
         {
           "id": "lb2/66ee4c55821e116aacb21596",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 218.693
         },
@@ -45786,7 +45786,7 @@
         {
           "id": "lb2/66f61d7dbb02136c067c1802",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 311.262
         },
@@ -45814,14 +45814,14 @@
         {
           "id": "lb2/670fbae0bb02136c067d2c79",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 194.885
         },
         {
           "id": "lb2/67246903bb02136c067d74f2",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 200.889
         },
@@ -45835,7 +45835,7 @@
         {
           "id": "lb2/66ec3aff821e116aacb1c52e",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 215.763
         },
@@ -45884,7 +45884,7 @@
         {
           "id": "lb2/672464aebb02136c067d73e6",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 201.92
         },
@@ -45905,7 +45905,7 @@
         {
           "id": "lb2/670cf52abb02136c067d2728",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 199.567
         },
@@ -45989,14 +45989,14 @@
         {
           "id": "lb2/66fcf8dfbb02136c067c92cc",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 319.793
         },
         {
           "id": "lb2/670fbb78bb02136c067d2cd3",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 193.116
         },
@@ -46031,7 +46031,7 @@
         {
           "id": "lb2/670fbb1fbb02136c067d2ca4",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 221.411
         },
@@ -46052,14 +46052,14 @@
         {
           "id": "lb2/6724c788bb02136c067d792d",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 240.978
         },
         {
           "id": "lb2/66f2a4e3821e116aacb2a49b",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 332.822
         },
@@ -46080,7 +46080,7 @@
         {
           "id": "lb2/671b3fa1bb02136c067d5353",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 247.01
         },
@@ -46108,7 +46108,7 @@
         {
           "id": "lb2/66f2a80d821e116aacb2a760",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 243.312
         },
@@ -46143,7 +46143,7 @@
         {
           "id": "lb2/66f2b546821e116aacb2b152",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 252.229
         },
@@ -46185,14 +46185,14 @@
         {
           "id": "lb2/6724c83fbb02136c067d7962",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 212.715
         },
         {
           "id": "lb2/66f2a255821e116aacb2a20b",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 380.901
         },
@@ -46213,7 +46213,7 @@
         {
           "id": "lb2/671a4444bb02136c067d4a40",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 245.378
         },
@@ -46227,7 +46227,7 @@
         {
           "id": "lb2/66f53ab2821e116aacb33299",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 214.766
         },
@@ -46248,7 +46248,7 @@
         {
           "id": "lb2/66faac15bb02136c067c73f3",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 240.744
         },
@@ -46332,7 +46332,7 @@
         {
           "id": "lb2/66fcf725bb02136c067c924a",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 206.304
         },
@@ -46353,21 +46353,21 @@
         {
           "id": "lb2/670fb6a3bb02136c067d2b94",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 311.875
         },
         {
           "id": "lb2/66ebd2475a08c7b9b35e0155",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 387.184
         },
         {
           "id": "lb2/672468b1bb02136c067d74bd",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 273.221
         },
@@ -46381,7 +46381,7 @@
         {
           "id": "lb2/66f530ce821e116aacb32f09",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 181.68
         },
@@ -46402,14 +46402,14 @@
         {
           "id": "lb2/6724c4aabb02136c067d78a6",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 207.555
         },
         {
           "id": "lb2/66f1cd02821e116aacb27d3f",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 339.732
         },
@@ -46423,7 +46423,7 @@
         {
           "id": "lb2/66fa542bbb02136c067c686d",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 324.957
         },
@@ -46437,7 +46437,7 @@
         {
           "id": "lb2/6723a0a7bb02136c067d7040",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 184.763
         },
@@ -46451,7 +46451,7 @@
         {
           "id": "lb2/670bf6ddbb02136c067d2379",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 207.104
         },
@@ -46493,7 +46493,7 @@
         {
           "id": "lb2/66f299b3821e116aacb29cfa",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 396.228
         },
@@ -46549,7 +46549,7 @@
         {
           "id": "lb2/670765abbb02136c067d06b4",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 374.268
         },
@@ -46612,7 +46612,7 @@
         {
           "id": "lb2/670c090bbb02136c067d2404",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 237.912
         },
@@ -46640,7 +46640,7 @@
         {
           "id": "lb2/66f00f1a821e116aacb252cf",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 288.397
         },
@@ -46654,7 +46654,7 @@
         {
           "id": "lb2/67095b87bb02136c067d1bad",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 246.834
         },
@@ -46668,14 +46668,14 @@
         {
           "id": "lb2/67239f49bb02136c067d6fc0",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 202.478
         },
         {
           "id": "lb2/66f2a46d821e116aacb2a41a",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 308.247
         },
@@ -46689,7 +46689,7 @@
         {
           "id": "lb2/670fb882bb02136c067d2c1d",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 251.54
         },
@@ -46738,21 +46738,21 @@
         {
           "id": "lb2/66f95e11bb02136c067c5370",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 216.457
         },
         {
           "id": "lb2/670bf1c4bb02136c067d2341",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 200.227
         },
         {
           "id": "lb2/6724694fbb02136c067d752b",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 199.314
         },
@@ -46801,14 +46801,14 @@
         {
           "id": "lb2/66ec332a821e116aacb1c042",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 195.392
         },
         {
           "id": "lb2/66fad00bbb02136c067c76ce",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 313.411
         },
@@ -46829,7 +46829,7 @@
         {
           "id": "lb2/670fbfa4bb02136c067d2dcb",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 256.009
         },
@@ -46906,7 +46906,7 @@
         {
           "id": "lb2/66ebcc335a08c7b9b35df8b6",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 269.743
         },
@@ -46941,7 +46941,7 @@
         {
           "id": "lb2/66f7f963bb02136c067c3be1",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 219.236
         },
@@ -46955,7 +46955,7 @@
         {
           "id": "lb2/6704fe26bb02136c067ce670",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 220.901
         },
@@ -46976,7 +46976,7 @@
         {
           "id": "lb2/6725d7a9bb02136c067d822d",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 215.365
         },
@@ -46990,14 +46990,14 @@
         {
           "id": "lb2/66ebeb5a5a08c7b9b35e1ba5",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 291.385
         },
         {
           "id": "lb2/66f3c806821e116aacb2ed77",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 252.436
         },
@@ -47025,7 +47025,7 @@
         {
           "id": "lb2/670493d4bb02136c067cdcd9",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 238.607
         },
@@ -47046,7 +47046,7 @@
         {
           "id": "lb2/6725db8bbb02136c067d84eb",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 238.532
         },
@@ -47102,14 +47102,14 @@
         {
           "id": "lb2/670397b5bb02136c067ccec6",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 195.174
         },
         {
           "id": "lb2/66fcf36fbb02136c067c919e",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 200.524
         },
@@ -47165,7 +47165,7 @@
         {
           "id": "lb2/66ebd49a5a08c7b9b35e0550",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 200.362
         },
@@ -47207,7 +47207,7 @@
         {
           "id": "lb2/672864b4bb02136c067d916c",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 216.798
         },
@@ -47249,7 +47249,7 @@
         {
           "id": "lb2/66f2b5ec821e116aacb2b1ec",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 213.559
         },
@@ -47319,7 +47319,7 @@
         {
           "id": "lb2/67246500bb02136c067d7423",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 172.485
         },
@@ -47354,28 +47354,28 @@
         {
           "id": "lb2/66f118e1821e116aacb26b79",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 295.832
         },
         {
           "id": "lb2/6725dbd1bb02136c067d8522",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 229.587
         },
         {
           "id": "lb2/6724c1d4bb02136c067d77ec",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 236.617
         },
         {
           "id": "lb2/66fa1e4cbb02136c067c5edf",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 305.397
         },
@@ -47417,7 +47417,7 @@
         {
           "id": "lb2/6724645dbb02136c067d73ad",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 189.928
         },
@@ -47459,14 +47459,14 @@
         {
           "id": "lb2/6725e351bb02136c067d8758",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 254.656
         },
         {
           "id": "lb2/66f3fb15821e116aacb303dc",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 243.474
         },
@@ -47508,7 +47508,7 @@
         {
           "id": "lb2/66eefa2f821e116aacb2284f",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 240.934
         },
@@ -47536,7 +47536,7 @@
         {
           "id": "lb2/671b3d9fbb02136c067d52b2",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 218.643
         },
@@ -47627,14 +47627,14 @@
         {
           "id": "lb2/671b2c05bb02136c067d50c8",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 205.156
         },
         {
           "id": "lb2/66f3a311821e116aacb2de19",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 205.236
         },
@@ -47683,7 +47683,7 @@
         {
           "id": "lb2/66f2a59d821e116aacb2a553",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 352.684
         },
@@ -47732,7 +47732,7 @@
         {
           "id": "lb2/671b13f5bb02136c067d4ee3",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 175.619
         },
@@ -47788,14 +47788,14 @@
         {
           "id": "lb2/66f52f0f821e116aacb32ddb",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 338.245
         },
         {
           "id": "lb2/66ec6582821e116aacb1cf7a",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 211.229
         },
@@ -47844,14 +47844,14 @@
         {
           "id": "lb2/66f7f382bb02136c067c3a6c",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 309.728
         },
         {
           "id": "lb2/6725dabfbb02136c067d8450",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 261.579
         },
@@ -47921,7 +47921,7 @@
         {
           "id": "lb2/66f3ac0b821e116aacb2e203",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 344.069
         },
@@ -47935,14 +47935,14 @@
         {
           "id": "lb2/67039cfabb02136c067cd04e",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 264.076
         },
         {
           "id": "lb2/67246413bb02136c067d7374",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 204.243
         },
@@ -47956,7 +47956,7 @@
         {
           "id": "lb2/66f2a14b821e116aacb2a128",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 392.971
         },
@@ -47977,7 +47977,7 @@
         {
           "id": "lb2/6725dd39bb02136c067d861b",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 225.913
         },
@@ -47991,7 +47991,7 @@
         {
           "id": "lb2/66fcfbbcbb02136c067c93d3",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 228.649
         },
@@ -48012,7 +48012,7 @@
         {
           "id": "lb2/66ebdadd5a08c7b9b35e0e5b",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 249.903
         },
@@ -48026,7 +48026,7 @@
         {
           "id": "lb2/66fa700bbb02136c067c6c06",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 292.709
         },
@@ -48054,14 +48054,14 @@
         {
           "id": "lb2/670fb8dfbb02136c067d2c48",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 214.2
         },
         {
           "id": "lb2/671b080abb02136c067d4dde",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 213.83
         },
@@ -48110,7 +48110,7 @@
         {
           "id": "lb2/66eecc45821e116aacb225c3",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 175.316
         },
@@ -48152,7 +48152,7 @@
         {
           "id": "lb2/66f3e318821e116aacb2f9d1",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 374.735
         },
@@ -48215,14 +48215,14 @@
         {
           "id": "lb2/671b170cbb02136c067d4f4a",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 206.382
         },
         {
           "id": "lb2/66fa1b54bb02136c067c5df7",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 428.33
         },
@@ -48257,7 +48257,7 @@
         {
           "id": "lb2/66fcfa1cbb02136c067c932e",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 406.468
         },
@@ -48327,14 +48327,14 @@
         {
           "id": "lb2/670fbd96bb02136c067d2d49",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 220.113
         },
         {
           "id": "lb2/6723a63bbb02136c067d71a1",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 217.984
         },
@@ -48348,7 +48348,7 @@
         {
           "id": "lb2/67246a00bb02136c067d759f",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 319.309
         },
@@ -48369,7 +48369,7 @@
         {
           "id": "lb2/66ec052a5a08c7b9b35e29c7",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 235.422
         },
@@ -48439,7 +48439,7 @@
         {
           "id": "lb2/66f3c5f2821e116aacb2eccf",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 400.589
         },
@@ -48544,28 +48544,28 @@
         {
           "id": "lb2/66f51ab2821e116aacb325fb",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 221.564
         },
         {
           "id": "lb2/66f2982b821e116aacb29c66",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 567.461
         },
         {
           "id": "lb2/66f28794821e116aacb298ee",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 544.467
         },
         {
           "id": "lb2/671b2b57bb02136c067d508b",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 228.983
         },
@@ -48579,14 +48579,14 @@
         {
           "id": "lb2/67066b87bb02136c067cfaa3",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 493.952
         },
         {
           "id": "lb2/66fcfc9fbb02136c067c9411",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 235.329
         },
@@ -48600,7 +48600,7 @@
         {
           "id": "lb2/670fb637bb02136c067d2b65",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 228.74
         },
@@ -48614,77 +48614,77 @@
         {
           "id": "lb2/66ec31eb821e116aacb1bf28",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 240.13
         },
         {
           "id": "lb2/66efa466821e116aacb23219",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 182.115
         },
         {
           "id": "lb2/6724cae7bb02136c067d79be",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 345.831
         },
         {
           "id": "lb2/66ed24c5821e116aacb1eee6",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 249.376
         },
         {
           "id": "lb2/670bffa2bb02136c067d23b5",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 318.285
         },
         {
           "id": "lb2/670cf163bb02136c067d26b6",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 182.226
         },
         {
           "id": "lb2/67286795bb02136c067d92ab",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 273.291
         },
         {
           "id": "lb2/66fcf53fbb02136c067c91e7",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 221.041
         },
         {
           "id": "lb2/66f2abc5821e116aacb2aab7",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 218.572
         },
         {
           "id": "lb2/66f7c780bb02136c067c35e8",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 210.901
         },
         {
           "id": "lb2/66fa36c9bb02136c067c6517",
           "score": 0.0,
-          "trunc": false,
+          "trunc": true,
           "gen_tok": 57344,
           "wall_s": 285.112
         }
