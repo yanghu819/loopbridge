@@ -74,6 +74,8 @@ async def _stream_one(
         "max_tokens": gen_len,
         "min_tokens": gen_len,
         "ignore_eos": True,
+        "skip_special_tokens": False,
+        "spaces_between_special_tokens": False,
         "temperature": 1.0,
         "top_p": 0.95,
         "stream": True,
