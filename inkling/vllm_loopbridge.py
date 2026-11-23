@@ -706,6 +706,15 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
             for new_req in scheduler_output.scheduled_new_reqs:
                 self._lb_req_prompt_len[new_req.req_id] = len(new_req.prompt_token_ids)
                 self._lb_req_computed[new_req.req_id] = int(new_req.num_computed_tokens)
+            # Reset computed counter if a request was preempted and resumed from scratch
+            cached = getattr(scheduler_output, "scheduled_cached_reqs", None)
+            if cached is not None:
+                resumed = getattr(cached, "resumed_from_preemption", None)
+                req_ids = getattr(cached, "req_ids", None)
+                if resumed and req_ids:
+                    for rid, is_res in zip(req_ids, resumed):
+                        if is_res and rid in self._lb_req_computed:
+                            self._lb_req_computed[rid] = 0
 
             any_prefill = False
             any_decode = False
@@ -810,6 +819,7 @@ def main() -> None:
         print(f"Installed hook: {pth}")
         return
 
+    assert args.m >= args.n, f"LoopBridge requires m >= n (got m={args.m}, n={args.n})"
     cfg = {
         "mode": args.mode,
         "m": args.m,
@@ -853,14 +863,12 @@ def main() -> None:
             }
         )
         cmd += ["--hf-overrides", overrides]
-    if args.mode != "distilled":
-        # Pure-phase scheduler + post-final-chunk block-table KV folding supports arbitrary prompt lengths
-        # up to 1M tokens with standard <=16K chunk size (stays well within CUDA gridDim.y <= 65535).
-        cmd += [
-            "--no-enable-prefix-caching",
-            "--max-num-batched-tokens",
-            "16384",
-        ]
+    # Symmetric scheduler/cache flags across ALL modes (loopbridge, training_free, distilled) for apples-to-apples timing
+    cmd += [
+        "--no-enable-prefix-caching",
+        "--max-num-batched-tokens",
+        "16384",
+    ]
     if args.extra_args:
         cmd += args.extra_args
 

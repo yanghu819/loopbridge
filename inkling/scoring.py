@@ -37,7 +37,7 @@ def parse_mcq(text: str, valid_letters: str = "ABCD") -> str:
     """Extract final MCQ choice letter with strict priority: \\boxed{} > explicit answer phrase > standalone uppercase."""
     if not text or not text.strip():
         return "[invalid]"
-    # 1. Explicit \boxed{\text{X}} or \boxed{(X)} (highest priority — cannot be hijacked by earlier prose)
+    # 1a. Exact \boxed{\text{X}} or \boxed{(X)}
     ms = re.findall(
         rf"\\boxed\{{\s*(?:\\(?:text|textbf|mathrm)\{{\s*)?\(?\s*([{valid_letters}])\s*\)?(?:\s*\}})?\s*\}}",
         text,
@@ -45,12 +45,20 @@ def parse_mcq(text: str, valid_letters: str = "ABCD") -> str:
     )
     if ms:
         return ms[-1].upper()
-    # 2. Explicit answer header (supports Markdown bold **Answer:** and requires boundary after letter)
-    explicit_pat = (
-        rf"(?:the\s+correct\s+answer\s+is|final\s+answer\s+is|(?:\*\*)?answer(?:\*\*)?\s*(?:is|:))\s*"
-        rf"(?:\*\*)?\s*\(?\s*([{valid_letters}])\s*\)?(?:\*\*)?(?=\s|$|[.,;:\)\]\*])"
+    # 1b. \boxed{B: 3.5 \text{ C}} or \boxed{(B) ...} — extract leading choice letter before delimiter
+    ms = re.findall(
+        rf"\\boxed\{{\s*(?:\\(?:text|textbf|mathrm)\{{\s*)?\(?\s*([{valid_letters}])\s*\)?(?:\s*\}})?\s*[:.)\-]",
+        text,
     )
-    ms = re.findall(explicit_pat, text, re.I)
+    if ms:
+        return ms[-1].upper()
+    # 2. Explicit answer header (case-insensitive phrase, case-sensitive choice letter or parenthesized letter
+    #    so prose like "whether the answer is a positive trend" never hijacks 'A'; allows optional colon after 'is')
+    explicit_pat = (
+        rf"(?i:(?:the\s+)?(?:correct\s+|final\s+|best\s+)?(?:\*\*)?(?:answer|choice|option)(?:\*\*)?\s*(?:is\s*:?|:))\s*"
+        rf"(?:\*\*)?\s*(?:\(\s*([{valid_letters}])\s*\)|([{valid_letters}]))(?:\*\*)?(?=\s|$|[.,;:\)\]\*])"
+    )
+    ms = [g1 or g2 for g1, g2 in re.findall(explicit_pat, text)]
     if ms:
         return ms[-1].upper()
     # 3. Parenthesized uppercase option (X)
@@ -178,15 +186,15 @@ def ruler_score(task: str, prediction: str, answers: list[str]) -> float:
 
 
 def graphwalks_f1(response: str, answer_nodes: list[str]) -> float:
-    """Official OpenAI GraphWalks node-set F1 scorer (handles both same-line and newline Final Answer lists)."""
+    """Official OpenAI GraphWalks node-set F1 scorer (supports bold Markdown, backticks, and multiline lists)."""
     if not response or not response.strip():
         return 0.0
     m = None
-    for cand in re.finditer(r"Final\s+Answer\s*:\s*(\[[^\]]*\])", response, re.I | re.S):
+    for cand in re.finditer(r"Final\s+Answer(?:\*+)?\s*:\s*(?:\*+)?\s*(?:`+)?\s*(\[[^\]]*\])", response, re.I | re.S):
         m = cand
     if m is None:
         return 0.0
-    sampled = [item.strip().strip("'\"") for item in m.group(1).strip("[]").split(",") if item.strip()]
+    sampled = [item.strip().strip("'\"`") for item in m.group(1).strip("[]").split(",") if item.strip()]
     sampled_set = set(sampled)
     truth_set = set(answer_nodes)
     n_golden = len(truth_set)
@@ -310,17 +318,20 @@ def bfcl_score(raw_text: str, ground_truth: list[dict] | None, category: str) ->
 
 
 def extract_python_code(text: str) -> str:
-    blocks = re.findall(r"```(?:python3?|py)?\s*\n(.*?)```", text, re.S | re.I)
+    # Prefer explicitly tagged Python blocks so trailing untagged Sample Output fences cannot hijack code extraction
+    tagged = re.findall(r"```(?:python3?|py)\s*\n(.*?)```", text, re.S | re.I)
+    if tagged:
+        return tagged[-1].strip()
+    blocks = re.findall(r"```\s*\n(.*?)```", text, re.S)
     if blocks:
         return blocks[-1].strip()
     return ""
 
 
 _LCB_HARNESS = r'''
-import bisect, collections, functools, heapq, io, itertools, json, math, operator, re, signal, string, sys, traceback, typing
+import bisect, collections, functools, heapq, io, itertools, json, math, operator, os, re, signal, string, sys, tempfile, traceback, typing
 from bisect import bisect_left, bisect_right, insort
 from collections import Counter, defaultdict, deque, OrderedDict
-from contextlib import redirect_stdout
 from functools import cache, cmp_to_key, lru_cache, reduce
 from heapq import heapify, heappop, heappush, heappushpop, heapreplace, nlargest, nsmallest
 from itertools import accumulate, combinations, groupby, permutations, product
@@ -370,6 +381,37 @@ def _outputs_match(got, want):
             return False
     return False
 
+def _norm_val(v):
+    if isinstance(v, tuple):
+        return [_norm_val(x) for x in v]
+    if isinstance(v, list):
+        return [_norm_val(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _norm_val(val) for k, val in v.items()}
+    return v
+
+def _val_equal(a, b):
+    a, b = _norm_val(a), _norm_val(b)
+    if type(a) is bool or type(b) is bool:
+        return a is b
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        if isinstance(a, int) and isinstance(b, int):
+            return a == b
+        return math.isclose(float(a), float(b), rel_tol=1e-5, abs_tol=1e-6)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_val_equal(x, y) for x, y in zip(a, b))
+    if isinstance(a, dict) and isinstance(b, dict):
+        return set(a.keys()) == set(b.keys()) and all(_val_equal(a[k], b[k]) for k in a)
+    return a == b
+
+# Keep a private dup of real stdout FD 1 so child code writing to FD 1 cannot corrupt JSON result
+_REAL_OUT_FD = os.dup(1)
+_REAL_IN_FD = os.dup(0)
+
+def _emit(obj):
+    os.write(_REAL_OUT_FD, (json.dumps(obj) + "\n").encode("utf-8"))
+    os._exit(0)
+
 passed = 0
 for tc in tests:
     ttype = tc.get("testtype", "stdin")
@@ -386,19 +428,23 @@ for tc in tests:
             elif fn_name in ns:
                 fn = ns[fn_name]
             if fn is None:
-                print(json.dumps({"ok": False, "passed": passed, "total": len(tests), "err": "no_fn"}))
-                sys.exit(0)
+                _emit({"ok": False, "passed": passed, "total": len(tests), "err": "no_fn"})
             args = [json.loads(line) for line in inp.strip().splitlines() if line.strip()]
             res = fn(*args)
             expected = json.loads(exp.strip())
-            ok = (res == expected)
+            ok = _val_equal(res, expected)
         else:
             ns = {"__name__": "__main__"}
             old_stdin, old_stdout = sys.stdin, sys.stdout
-            raw_out = io.BytesIO()
-            out_wrapper = io.TextIOWrapper(raw_out, encoding="utf-8")
-            sys.stdin = io.TextIOWrapper(io.BytesIO(inp.encode("utf-8")), encoding="utf-8")
-            sys.stdout = out_wrapper
+            in_tmp = tempfile.TemporaryFile()
+            out_tmp = tempfile.TemporaryFile()
+            in_tmp.write(inp.encode("utf-8"))
+            in_tmp.flush()
+            in_tmp.seek(0)
+            os.dup2(in_tmp.fileno(), 0)
+            os.dup2(out_tmp.fileno(), 1)
+            sys.stdin = os.fdopen(os.dup(0), "r", encoding="utf-8", closefd=True)
+            sys.stdout = os.fdopen(os.dup(1), "w", encoding="utf-8", closefd=True)
             exit_err = False
             try:
                 exec(compile(code, "<sol>", "exec"), ns)
@@ -407,28 +453,37 @@ for tc in tests:
                     exit_err = True
             finally:
                 try:
-                    out_wrapper.flush()
+                    sys.stdout.flush()
                 except Exception:
                     pass
+                try:
+                    sys.stdin.close()
+                    sys.stdout.close()
+                except Exception:
+                    pass
+                os.dup2(_REAL_IN_FD, 0)
+                os.dup2(_REAL_OUT_FD, 1)
                 sys.stdin = old_stdin
                 sys.stdout = old_stdout
+                out_tmp.seek(0)
+                raw_bytes = out_tmp.read()
+                in_tmp.close()
+                out_tmp.close()
             if exit_err:
                 ok = False
             else:
-                got = norm_lines(raw_out.getvalue().decode("utf-8", errors="replace"))
+                got = norm_lines(raw_bytes.decode("utf-8", errors="replace"))
                 want = norm_lines(exp)
                 ok = _outputs_match(got, want)
         signal.alarm(0)
         if not ok:
-            print(json.dumps({"ok": False, "passed": passed, "total": len(tests)}))
-            sys.exit(0)
+            _emit({"ok": False, "passed": passed, "total": len(tests)})
         passed += 1
     except Exception:
         signal.alarm(0)
-        print(json.dumps({"ok": False, "passed": passed, "total": len(tests)}))
-        sys.exit(0)
+        _emit({"ok": False, "passed": passed, "total": len(tests)})
 
-print(json.dumps({"ok": True, "passed": passed, "total": len(tests)}))
+_emit({"ok": True, "passed": passed, "total": len(tests)})
 '''
 
 

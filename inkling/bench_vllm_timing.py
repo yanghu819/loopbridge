@@ -109,6 +109,8 @@ async def _stream_one(
     e2e_s = t_end - t0
     return {
         "ttft_ms": ttft_s * 1000.0,
+        "t_first_abs": t_first,
+        "t_end_abs": t_end,
         "decode_s": dec_s,
         "e2e_s": e2e_s,
         "decode_tok_s": max(1, gen_len - 1) / dec_s,
@@ -132,19 +134,23 @@ async def run_regime(
     batch_wall_s = perf_counter() - t0
     B = len(prompts)
     ttfts = sorted(r["ttft_ms"] for r in results)
-    dec_tps = [r["decode_tok_s"] for r in results]
     mean_ttft_ms = sum(ttfts) / B
     p95_ttft_ms = ttfts[min(B - 1, int(0.95 * B))]
-    mean_dec_tps = sum(dec_tps) / B
-    mean_dec_s = sum(r["decode_s"] for r in results) / B
+    # True uncontaminated batch decode window: starts ONLY after ALL B requests finish prefill (max t_first_abs)
+    # so chunked-prefill waves from later requests never bias mixed-scheduler baselines like Original 3/3 or Distilled.
+    max_t_first = max(r["t_first_abs"] for r in results)
+    max_t_end = max(r["t_end_abs"] for r in results)
+    pure_dec_wall_s = max(1e-6, max_t_end - max_t_first)
+    agg_pure_dec_tps = B * max(1, gen_len - 1) / pure_dec_wall_s
     return {
         "B": B,
         "gen_len": gen_len,
         "batch_wall_s": round(batch_wall_s, 4),
+        "pure_decode_wall_s": round(pure_dec_wall_s, 4),
         "ttft_mean_ms": round(mean_ttft_ms, 2),
         "ttft_p95_ms": round(p95_ttft_ms, 2),
-        "per_user_decode_tok_s": round(mean_dec_tps, 2),
-        "agg_decode_tok_s": round(B * (gen_len - 1) / max(1e-6, mean_dec_s), 2),
+        "per_user_decode_tok_s": round(agg_pure_dec_tps / B, 2),
+        "agg_decode_tok_s": round(agg_pure_dec_tps, 2),
         "agg_e2e_tok_s": round(B * gen_len / max(1e-6, batch_wall_s), 2),
         "warmup": warmup,
     }
