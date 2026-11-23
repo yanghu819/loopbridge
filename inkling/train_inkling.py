@@ -85,6 +85,12 @@ def main():
     parser.add_argument("--no-router", action="store_true")
     parser.add_argument("--no-attnres", action="store_true")
     parser.add_argument("--no-rel-sink", action="store_true")
+    parser.add_argument("--freeze-sink", action="store_true",
+                        help="Freeze sink_proj while keeping relative_position_bias (protects 1M attention sink calibration)")
+    parser.add_argument("--jsd-beta", type=float, default=0.0,
+                        help="0.0 = pure Forward KL; (0,1) e.g. 0.5 = Hessian-matched Generalized JSD for on-policy GKD")
+    parser.add_argument("--length-bucket", action="store_true",
+                        help="Bucket rows into equal-length global_batch blocks then shuffle blocks (zero straggler wait for 16K-56K long rows)")
     parser.add_argument("--micro", type=int, default=4)
     parser.add_argument("--global-batch", type=int, default=32)
     parser.add_argument("--peak-lr", type=float, default=1.5e-4)
@@ -118,6 +124,11 @@ def main():
     np.random.seed(args.seed)
 
     rows = load_stream(args.data)
+    if args.length_bucket and len(rows) >= args.global_batch:
+        rows.sort(key=lambda r: len(r["prefix_ids"]) + len(r["suffix_ids"]))
+        buckets = [rows[i : i + args.global_batch] for i in range(0, len(rows), args.global_batch)]
+        random.Random(args.seed + 7919).shuffle(buckets)
+        rows = [r for b in buckets for r in b]
     pad_id = 199999  # Inkling-2-Mini pad_token_id
 
     base = load_inkling_model(args.model_path, device=device)
@@ -139,9 +150,11 @@ def main():
         adapt_router=not args.no_router,
         adapt_attnres=not args.no_attnres,
         adapt_rel_sink=not args.no_rel_sink,
+        adapt_sink=not args.freeze_sink,
         adapt_pre_loop=adapt_pre,
         max_prefill_passes=max_prefill_passes,
         teacher_passes=args.teacher_passes,
+        jsd_beta=args.jsd_beta,
     )
     system = InklingLoopBridgeSystem(base, sys_cfg)
     if args.gradient_checkpointing:

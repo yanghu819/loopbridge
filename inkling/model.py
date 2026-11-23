@@ -18,6 +18,7 @@ at deployment for zero decode-step parameter overhead.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from pathlib import Path
 from time import perf_counter
 import types
@@ -501,9 +502,11 @@ class SystemConfig:
     adapt_router: bool = True
     adapt_attnres: bool = True
     adapt_rel_sink: bool = False  # LoRA on relative_position_bias.linear & sink_proj (vLLM qkvr-compatible)
+    adapt_sink: bool = True  # Set False with --freeze-sink to protect pretrained 1M attention sink calibration
     adapt_pre_loop: bool = False  # True for param-matched distilled controls
     max_prefill_passes: int = 3  # Max prefill loop depth supported by cross-pass KV maps (e.g. 4 or 5 for varloop)
     teacher_passes: int = 3  # Teacher loop depth for forward-KL distillation
+    jsd_beta: float = 0.0  # 0.0 = pure Forward KL; (0,1) e.g. 0.5 = Hessian-matched Generalized JSD for GKD
 
 
 class InklingLoopBridgeSystem(nn.Module):
@@ -537,7 +540,8 @@ class InklingLoopBridgeSystem(nn.Module):
                 attn.relative_position_bias.linear = ToggleLoRALinear(
                     attn.relative_position_bias.linear, min(16, cfg.lora_rank), self.adapter_state
                 )
-                attn.sink_proj = ToggleLoRALinear(attn.sink_proj, min(8, cfg.lora_rank), self.adapter_state)
+                if getattr(cfg, "adapt_sink", True):
+                    attn.sink_proj = ToggleLoRALinear(attn.sink_proj, min(8, cfg.lora_rank), self.adapter_state)
 
             # 2. Sparse-MoE Router delta (lets shortened decode re-route across all 128 frozen experts)
             if cfg.adapt_router:
@@ -770,14 +774,28 @@ class InklingLoopBridgeSystem(nn.Module):
             raise ValueError(f"forward_kl unsupported for mode={self.cfg.mode}")
 
         keep = smask.bool()
-        kl_tok = F.kl_div(student_logp, teacher_logp, reduction="none", log_target=True).sum(dim=-1)
-        kl_sum = kl_tok[keep].sum()
+        jsd_beta = float(getattr(self.cfg, "jsd_beta", 0.0))
+        if jsd_beta > 0.0:
+            assert 0.0 < jsd_beta < 1.0, f"jsd_beta must be in (0, 1), got {jsd_beta}"
+            t_lp = teacher_logp[keep]
+            s_lp = student_logp[keep]
+            log_m = torch.logaddexp(t_lp + math.log(jsd_beta), s_lp + math.log(1.0 - jsd_beta))
+            kl_tm = F.kl_div(log_m, t_lp, reduction="sum", log_target=True)
+            kl_sm = F.kl_div(log_m, s_lp, reduction="sum", log_target=True)
+            # Divide by beta*(1-beta) to match Forward-KL curvature near P_S ≈ P_T so LR stays identical
+            loss_sum = (jsd_beta * kl_tm + (1.0 - jsd_beta) * kl_sm) / (jsd_beta * (1.0 - jsd_beta))
+            with torch.no_grad():
+                kl_metric_sum = F.kl_div(s_lp, t_lp, reduction="sum", log_target=True)
+        else:
+            kl_tok = F.kl_div(student_logp, teacher_logp, reduction="none", log_target=True).sum(dim=-1)
+            loss_sum = kl_tok[keep].sum()
+            kl_metric_sum = loss_sum.detach()
         with torch.no_grad():
             target = suffix.unsqueeze(-1)
             ce_sum = -student_logp.gather(-1, target).squeeze(-1)[keep].sum()
             tce_sum = -teacher_logp.gather(-1, target).squeeze(-1)[keep].sum()
             n_tok = keep.sum().to(ce_sum.dtype)
-        return kl_sum, torch.stack((kl_sum.detach(), ce_sum, tce_sum, n_tok))
+        return loss_sum, torch.stack((kl_metric_sum, ce_sum, tce_sum, n_tok))
 
 
 class InklingRunner:
