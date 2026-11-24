@@ -525,6 +525,126 @@ class SystemConfig:
     pass_pairing: str = "tail"  # "tail" (legacy j=m-n+k) or "anchored" (k=0 -> Pass 0, k>=1 -> m-n+k)
 
 
+def _enable_chunked_rel_attention(base: Inkling2LoopForCausalLM, q_chunk: int = 1024) -> None:
+    """Chunk relative-position-bias + attention over query blocks when `cache is None` and `q_len > q_chunk`.
+
+    Eliminates O(L^2) `gather_index` / `position_bias` (>550 GB at L=53K) during full-sequence `distilled`
+    training on 16K-52K ultralong samples while remaining mathematically bit-equivalent to unchunked forward
+    and fully compatible with gradient checkpointing.
+    """
+    import types
+    import torch.utils.checkpoint as ckpt_mod
+    from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS
+    from transformers.models.inkling2_loop.modeling_inkling2_loop import eager_attention_forward
+
+    def _make_forward(orig_forward):
+        def _chunked_forward(
+            self,
+            hidden_states: torch.Tensor,
+            attention_mask: torch.Tensor | None = None,
+            relative_distance: torch.Tensor | None = None,
+            conv_mask: torch.Tensor | None = None,
+            cache=None,
+            key_hidden_states: torch.Tensor | None = None,
+            value_hidden_states: torch.Tensor | None = None,
+            cache_offset: int = 0,
+            **kwargs,
+        ):
+            if cache is not None or hidden_states.shape[1] <= q_chunk:
+                if self.__class__.__name__ == "Inkling2LoopFullAttention":
+                    return orig_forward(
+                        hidden_states=hidden_states,
+                        key_hidden_states=hidden_states if key_hidden_states is None else key_hidden_states,
+                        value_hidden_states=hidden_states if value_hidden_states is None else value_hidden_states,
+                        attention_mask=attention_mask,
+                        relative_distance=relative_distance,
+                        conv_mask=conv_mask,
+                        cache=cache,
+                        cache_offset=cache_offset,
+                        **kwargs,
+                    )
+                return orig_forward(
+                    hidden_states=hidden_states,
+                    attention_mask=attention_mask,
+                    relative_distance=relative_distance,
+                    conv_mask=conv_mask,
+                    cache=cache,
+                    key_hidden_states=key_hidden_states,
+                    value_hidden_states=value_hidden_states,
+                    cache_offset=cache_offset,
+                    **kwargs,
+                )
+
+            k_in = hidden_states if key_hidden_states is None else key_hidden_states
+            v_in = hidden_states if value_hidden_states is None else value_hidden_states
+            input_shape = hidden_states.shape[:-1]
+            q_len = hidden_states.shape[1]
+            position_ids = kwargs["position_ids"]
+
+            query_states = self.q_proj(hidden_states, position_ids)
+            key_states = self.k_proj(k_in, cache=None, conv_mask=conv_mask, cache_offset=cache_offset, **kwargs)
+            value_states = self.v_proj(v_in, cache=None, conv_mask=conv_mask, cache_offset=cache_offset, **kwargs)
+
+            attention_interface = ALL_ATTENTION_FUNCTIONS.get_interface(
+                self.config._attn_implementation, eager_attention_forward
+            )
+            dropout_p = 0.0 if not self.training else self.attention_dropout
+            base_kwargs = {k: v for k, v in kwargs.items() if k != "position_ids"}
+            sw = self.sliding_window
+
+            def _run_chunk(hs_c, q_c, k_c, v_c, mask_c, rel_c, pos_c):
+                pb = self.relative_position_bias(hs_c, rel_c, pos_c)
+                sk = self.sink_proj(hs_c).transpose(1, 2).unsqueeze(-1)
+                out_c, _ = attention_interface(
+                    self,
+                    q_c,
+                    k_c,
+                    v_c,
+                    mask_c,
+                    dropout=dropout_p,
+                    scaling=self.scaling,
+                    sliding_window=sw,
+                    position_bias=pb,
+                    sinks=sk,
+                    position_ids=pos_c,
+                    **base_kwargs,
+                )
+                return out_c
+
+            chunks = []
+            use_ckpt = torch.is_grad_enabled()
+            for qs in range(0, q_len, q_chunk):
+                qe = min(qs + q_chunk, q_len)
+                ks = max(0, qs - sw) if sw is not None else 0
+                ke = qe
+                hs_c = hidden_states[:, qs:qe]
+                q_c = query_states[:, :, qs:qe, :]
+                k_c = key_states[:, :, ks:ke, :]
+                v_c = value_states[:, :, ks:ke, :]
+                rel_c = relative_distance[qs:qe, ks:ke]
+                pos_c = position_ids[:, qs:qe]
+                mask_c = None if attention_mask is None else attention_mask[:, :, qs:qe, ks:ke]
+                if use_ckpt:
+                    out_c = ckpt_mod.checkpoint(
+                        _run_chunk, hs_c, q_c, k_c, v_c, mask_c, rel_c, pos_c, use_reentrant=False
+                    )
+                else:
+                    out_c = _run_chunk(hs_c, q_c, k_c, v_c, mask_c, rel_c, pos_c)
+                chunks.append(out_c)
+
+            attn_output = torch.cat(chunks, dim=1).reshape(*input_shape, -1).contiguous()
+            attn_output = self.o_proj(attn_output, hidden_states)
+            return attn_output, None
+
+        return _chunked_forward
+
+    for layer in base.model.layers:
+        attn = layer.self_attn
+        if not getattr(attn, "_lb_chunked_rel", False):
+            attn.forward = types.MethodType(_make_forward(attn.forward), attn)
+            attn._lb_chunked_rel = True
+
+
 class InklingLoopBridgeSystem(nn.Module):
     """Single-backbone frozen Inkling-2-Mini with toggleable LoopBridge or Distilled adapters."""
 
@@ -591,6 +711,10 @@ class InklingLoopBridgeSystem(nn.Module):
                 cross_pass=cfg.kv_map_cross_pass,
                 max_prefill_passes=cfg.max_prefill_passes,
             )
+
+        # 6. Query-chunked relative-position attention for full-sequence Distilled training on 16K-52K rows
+        if cfg.mode == "distilled":
+            _enable_chunked_rel_attention(self.base, q_chunk=1024)
 
     def trainable_parameters(self) -> list[nn.Parameter]:
         return [p for p in self.parameters() if p.requires_grad]
