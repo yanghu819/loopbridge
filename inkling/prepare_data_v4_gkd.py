@@ -548,6 +548,229 @@ def cmd_sft_verified(args) -> None:
     )
 
 
+def cmd_targeted_v5_prompts(args) -> None:
+    """Build contamination-free targeted v5 prompt sets directly from local public training splits & synthetic generators.
+
+    Strictly audits EVERY prompt against ALL eval 13-grams (eval_official_exact + eval_sec5_high + eval_raw + official_sec5):
+      1. prompts_v5_ultralong.jsonl : 1,400 synthetic 18K-52K multi-needle recall + 1,000 synthetic 16K-44K BFS graph traversal.
+      2. prompts_v5_coding.jsonl    : 2,400 competitive programming prompts from OpenCodeReasoning (ocr_0.parquet) for Orig 4/4 rollouts.
+      3. prompts_v5_stem_long.jsonl : 1,200 graduate STEM prompts (OpenThoughts shard5) + 1,200 10K-48K long-doc QA (LongAlign-10K).
+    """
+    import pyarrow.parquet as pq
+    from inkling.prepare_data_v3 import _has_13gram_overlap, _load_paragraph_pool, load_eval_13grams
+
+    args.output.mkdir(parents=True, exist_ok=True)
+    tok = AutoTokenizer.from_pretrained(str(args.model_path), local_files_only=True)
+    forbidden = load_eval_13grams(args.eval_dir, args.eval_raw, args.sec5_raw, tok=tok)
+    if args.eval_exact_dir and args.eval_exact_dir.exists():
+        forbidden |= load_eval_13grams(args.eval_exact_dir, args.eval_raw, args.sec5_raw, tok=tok)
+    print(f"[v5 prompts] Loaded {len(forbidden):,} forbidden eval 13-grams", flush=True)
+
+    rng = random.Random(args.seed)
+    leaks_skipped = 0
+
+    # 1. Targeted Ultra-Long Synthetic Prompts (MRCR-style 18K-52K recall + GraphWalks-style 16K-44K BFS)
+    ul_path = args.output / "prompts_v5_ultralong.jsonl"
+    paras = _load_paragraph_pool(args.v2_raw, forbidden, max_paras=16000)
+    ultralong: list[dict] = []
+    attempts = 0
+    while len(ultralong) < args.n_ultralong_recall and attempts < args.n_ultralong_recall * 4:
+        attempts += 1
+        target_tok = rng.randint(18000, 52000)
+        effort = rng.choice(["high", "medium", "high"])
+        res = _make_ultralong_verbatim_recall(tok, paras, rng, target_tok, effort)
+        if res is None:
+            continue
+        p_ids, tag = res
+        ultralong.append(
+            {
+                "id": f"v5_ul_recall/{len(ultralong):05d}",
+                "pillar": "ultralong_recall",
+                "tag": tag,
+                "effort": effort,
+                "prefix_ids": p_ids,
+                "max_tokens": 4096,
+            }
+        )
+    n_graph = 0
+    attempts = 0
+    while n_graph < args.n_ultralong_graph and attempts < args.n_ultralong_graph * 4:
+        attempts += 1
+        target_tok = rng.randint(16500, 42000)
+        effort = rng.choice(["high", "high", "medium"])
+        res = _make_ultralong_graph_bfs(tok, rng, target_tok, effort)
+        if res is None:
+            continue
+        p_ids, tag = res
+        ultralong.append(
+            {
+                "id": f"v5_ul_graph/{n_graph:05d}",
+                "pillar": "ultralong_graph",
+                "tag": tag,
+                "effort": effort,
+                "prefix_ids": p_ids,
+                "max_tokens": 4096,
+            }
+        )
+        n_graph += 1
+    rng.shuffle(ultralong)
+    ul_path.write_text("".join(json.dumps(r) + "\n" for r in ultralong))
+    ul_lens = sorted(len(r["prefix_ids"]) for r in ultralong)
+    print(
+        f"[v5 prompts] Ultra-long: {len(ultralong)} rows ({len(ultralong)-n_graph} recall + {n_graph} graph, "
+        f"min={ul_lens[0]}, med={ul_lens[len(ul_lens)//2]}, max={ul_lens[-1]}) -> {ul_path}",
+        flush=True,
+    )
+
+    # 2. Targeted Competitive Coding Prompts (OpenCodeReasoning -> Orig 4/4 on-policy rollouts)
+    coding_path = args.output / "prompts_v5_coding.jsonl"
+    ocr_path = args.v2_raw / "ocr_0.parquet"
+    coding_rows: list[dict] = []
+    if ocr_path.exists() and args.n_coding > 0:
+        t = pq.read_table(str(ocr_path), columns=["input"])
+        indices = list(range(t.num_rows))
+        rng.shuffle(indices)
+        seen_u: set[str] = set()
+        for idx in indices:
+            if len(coding_rows) >= args.n_coding:
+                break
+            u_txt = (t["input"][idx].as_py() or "").strip()
+            if len(u_txt) < 120 or len(u_txt) > 14000 or u_txt[:200] in seen_u:
+                continue
+            if _has_13gram_overlap(u_txt, forbidden):
+                leaks_skipped += 1
+                continue
+            seen_u.add(u_txt[:200])
+            effort = rng.choice(["high", "high", "medium"])
+            p_str = tok.apply_chat_template(
+                [{"role": "user", "content": u_txt}],
+                tokenize=False,
+                add_generation_prompt=True,
+                reasoning_effort=effort,
+            )
+            p_ids = tok.encode(p_str, add_special_tokens=False)
+            if not (32 <= len(p_ids) <= 4096):
+                continue
+            coding_rows.append(
+                {
+                    "id": f"v5_code_t4/{len(coding_rows):05d}",
+                    "pillar": "v5_coding_t4",
+                    "effort": effort,
+                    "prefix_ids": p_ids,
+                    "max_tokens": 4096,
+                }
+            )
+    coding_path.write_text("".join(json.dumps(r) + "\n" for r in coding_rows))
+    print(f"[v5 prompts] Competitive coding: {len(coding_rows)} rows (leaks_skipped={leaks_skipped}) -> {coding_path}", flush=True)
+
+    # 3. Targeted Graduate STEM (OpenThoughts shard5) + Real Long-Doc QA (LongAlign 10K-48K)
+    sl_path = args.output / "prompts_v5_stem_long.jsonl"
+    sl_rows: list[dict] = []
+    ot_dir = args.v2_raw / "openthoughts_114k"
+    ot_files = sorted(ot_dir.glob("*.parquet")) if ot_dir.exists() else []
+    n_stem_done = 0
+    for sf in reversed(ot_files):
+        if n_stem_done >= args.n_stem:
+            break
+        t = pq.read_table(str(sf), columns=["conversations"])
+        indices = list(range(t.num_rows))
+        if "shard5" in sf.name:
+            sci_idx, math_idx = [], []
+            for idx in indices:
+                convs = t["conversations"][idx].as_py()
+                u0 = (convs[0].get("value", "") or "") if convs else ""
+                if "\\boxed{}" not in u0:
+                    sci_idx.append(idx)
+                else:
+                    math_idx.append(idx)
+            rng.shuffle(sci_idx)
+            rng.shuffle(math_idx)
+            indices = sci_idx + math_idx
+        else:
+            rng.shuffle(indices)
+        for idx in indices:
+            if n_stem_done >= args.n_stem:
+                break
+            convs = t["conversations"][idx].as_py()
+            if not convs:
+                continue
+            u_txt = (convs[0].get("value", "") or "").strip()
+            if len(u_txt) < 80 or len(u_txt) > 12000:
+                continue
+            if _has_13gram_overlap(u_txt, forbidden):
+                leaks_skipped += 1
+                continue
+            effort = rng.choice(["high", "high", "medium"])
+            p_str = tok.apply_chat_template(
+                [{"role": "user", "content": u_txt}],
+                tokenize=False,
+                add_generation_prompt=True,
+                reasoning_effort=effort,
+            )
+            p_ids = tok.encode(p_str, add_special_tokens=False)
+            if not (24 <= len(p_ids) <= 4096):
+                continue
+            sl_rows.append(
+                {
+                    "id": f"v5_stem_t4/{n_stem_done:05d}",
+                    "pillar": "v5_stem_t4",
+                    "effort": effort,
+                    "prefix_ids": p_ids,
+                    "max_tokens": 4096,
+                }
+            )
+            n_stem_done += 1
+
+    la_path = args.v2_raw / "longalign_10k.jsonl"
+    n_la_done = 0
+    if la_path.exists() and args.n_longdoc > 0:
+        la_cands = []
+        with la_path.open(encoding="utf-8", errors="replace") as fh:
+            for l in fh:
+                try:
+                    r = json.loads(l)
+                except Exception:
+                    continue
+                msgs = r.get("messages", [])
+                if len(msgs) < 2 or msgs[-1].get("role") != "assistant":
+                    continue
+                p_chars = sum(len(str(m.get("content", ""))) for m in msgs[:-1])
+                if 36000 <= p_chars <= 210000:
+                    la_cands.append(msgs[:-1])
+        rng.shuffle(la_cands)
+        for raw_u in la_cands:
+            if n_la_done >= args.n_longdoc:
+                break
+            u_msgs = [{"role": m["role"], "content": str(m.get("content", ""))} for m in raw_u if m.get("role") in ("user", "assistant")]
+            if not u_msgs or u_msgs[-1]["role"] != "user":
+                continue
+            if _has_13gram_overlap(u_msgs[-1]["content"][-4000:], forbidden):
+                leaks_skipped += 1
+                continue
+            effort = rng.choice(["high", "medium"])
+            p_str = tok.apply_chat_template(u_msgs, tokenize=False, add_generation_prompt=True, reasoning_effort=effort)
+            p_ids = tok.encode(p_str, add_special_tokens=False)
+            if not (10000 <= len(p_ids) <= 48000):
+                continue
+            sl_rows.append(
+                {
+                    "id": f"v5_longdoc_t4/{n_la_done:05d}",
+                    "pillar": "v5_longdoc_t4",
+                    "effort": effort,
+                    "prefix_ids": p_ids,
+                    "max_tokens": 4096,
+                }
+            )
+            n_la_done += 1
+    rng.shuffle(sl_rows)
+    sl_path.write_text("".join(json.dumps(r) + "\n" for r in sl_rows))
+    print(
+        f"[v5 prompts] STEM + LongDoc: {len(sl_rows)} rows ({n_stem_done} STEM + {n_la_done} LongDoc 10K-48K, "
+        f"leaks_skipped={leaks_skipped}) -> {sl_path}",
+        flush=True,
+    )
+
+
 def _post_rollout(
     base_url: str,
     model: str,
@@ -856,11 +1079,28 @@ def main() -> None:
     p3.add_argument("--output", type=Path, required=True)
     p3.add_argument("--seed", type=int, default=20261123)
 
+    p_v5 = sub.add_parser("targeted_v5_prompts")
+    p_v5.add_argument("--model-path", type=Path, default=Path("/dev/shm/inkling/model_varloop"))
+    p_v5.add_argument("--v2-raw", type=Path, default=Path("/dev/shm/inkling/data/v2_raw"))
+    p_v5.add_argument("--eval-dir", type=Path, default=Path("/dev/shm/inkling/data/eval_sec5_high"))
+    p_v5.add_argument("--eval-exact-dir", type=Path, default=Path("/dev/shm/inkling/data/eval_official_exact"))
+    p_v5.add_argument("--eval-raw", type=Path, default=Path("/dev/shm/inkling/data/eval_raw"))
+    p_v5.add_argument("--sec5-raw", type=Path, default=Path("/dev/shm/inkling/data/official_sec5"))
+    p_v5.add_argument("--output", type=Path, required=True)
+    p_v5.add_argument("--n-ultralong-recall", type=int, default=1400)
+    p_v5.add_argument("--n-ultralong-graph", type=int, default=1000)
+    p_v5.add_argument("--n-coding", type=int, default=2400)
+    p_v5.add_argument("--n-stem", type=int, default=1200)
+    p_v5.add_argument("--n-longdoc", type=int, default=1200)
+    p_v5.add_argument("--seed", type=int, default=20261124)
+
     args = parser.parse_args()
     if args.cmd == "prompts":
         cmd_prompts(args)
     elif args.cmd == "sft_verified":
         cmd_sft_verified(args)
+    elif args.cmd == "targeted_v5_prompts":
+        cmd_targeted_v5_prompts(args)
     elif args.cmd == "rollout_vllm":
         cmd_rollout_vllm(args)
     elif args.cmd == "build":
