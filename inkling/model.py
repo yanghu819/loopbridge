@@ -680,17 +680,18 @@ class InklingLoopBridgeSystem(nn.Module):
         for layer_idx in range(start_layer, self.config.num_hidden_layers):
             layer = self.base.model.layers[layer_idx]
             attn = layer.self_attn
-            attn.q_proj.linear = ToggleLoRALinear(attn.q_proj.linear, cfg.lora_rank, self.adapter_state)
-            attn.k_proj.linear = ToggleLoRALinear(attn.k_proj.linear, cfg.lora_rank, self.adapter_state)
-            attn.v_proj.linear = ToggleLoRALinear(attn.v_proj.linear, cfg.lora_rank, self.adapter_state)
-            attn.o_proj.linear = ToggleLoRALinear(attn.o_proj.linear, cfg.lora_rank, self.adapter_state)
-            attn.o_proj.gate_proj = ToggleLoRALinear(attn.o_proj.gate_proj, cfg.lora_rank, self.adapter_state)
-            if cfg.adapt_rel_sink:
-                attn.relative_position_bias.linear = ToggleLoRALinear(
-                    attn.relative_position_bias.linear, min(16, cfg.lora_rank), self.adapter_state
-                )
-                if getattr(cfg, "adapt_sink", True):
-                    attn.sink_proj = ToggleLoRALinear(attn.sink_proj, min(8, cfg.lora_rank), self.adapter_state)
+            if cfg.lora_rank > 0:
+                attn.q_proj.linear = ToggleLoRALinear(attn.q_proj.linear, cfg.lora_rank, self.adapter_state)
+                attn.k_proj.linear = ToggleLoRALinear(attn.k_proj.linear, cfg.lora_rank, self.adapter_state)
+                attn.v_proj.linear = ToggleLoRALinear(attn.v_proj.linear, cfg.lora_rank, self.adapter_state)
+                attn.o_proj.linear = ToggleLoRALinear(attn.o_proj.linear, cfg.lora_rank, self.adapter_state)
+                attn.o_proj.gate_proj = ToggleLoRALinear(attn.o_proj.gate_proj, cfg.lora_rank, self.adapter_state)
+                if cfg.adapt_rel_sink:
+                    attn.relative_position_bias.linear = ToggleLoRALinear(
+                        attn.relative_position_bias.linear, min(16, cfg.lora_rank), self.adapter_state
+                    )
+                    if getattr(cfg, "adapt_sink", True):
+                        attn.sink_proj = ToggleLoRALinear(attn.sink_proj, min(8, cfg.lora_rank), self.adapter_state)
 
             # 2. Sparse-MoE Router delta (lets shortened decode re-route across all 128 frozen experts)
             if cfg.adapt_router:
@@ -703,7 +704,7 @@ class InklingLoopBridgeSystem(nn.Module):
                 layer.mlp_input = ToggleQueryDelta(layer.mlp_input, self.adapter_state)
 
             # 4. Message gates when decoding with >= 2 passes (only looped core layers 6..17 have them)
-            if max(cfg.decode_depths) >= 2 and hasattr(layer, "q_message_gate"):
+            if cfg.lora_rank > 0 and max(cfg.decode_depths) >= 2 and hasattr(layer, "q_message_gate"):
                 mg_rank = min(16, cfg.lora_rank)
                 for gname in ("q_message_gate", "k_message_gate", "v_message_gate", "mlp_message_gate"):
                     gate = getattr(layer, gname)
