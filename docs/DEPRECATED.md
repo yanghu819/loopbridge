@@ -28,6 +28,12 @@ shared answer KV (`O`/`P`) and a gated first-loop branch (`M`) also remain in `o
   (`evaluate_gsm8k.py`, `evaluate_prefix_suffix.py`), speculative decoding check (`spec_agree.py`, `spec_agree.sh`),
   1.4B batched timing (`time_batch14.sh`), `ouro/runs_scripts/deprecated/` (`a1_fill.sh`, `make_bib.py`),
   `rescore_mbpp_plus.py`, and non-paper timing/item files.
+- **Stopped / superseded 26.4B MoE (`inkling/`) prototypes:** early PyTorch eager evaluator/timer/sampler
+  (`eval_inkling.py`, `bench_timing.py`, `run_eval_node.sh`, `sample_onpolicy.py`, `summarize.py`), early v1/v2 data and
+  sub-64K eval builders (`prepare_data.py`, `prepare_data_v2.py`, `prepare_frontier_eval.py`, `prepare_official_sec5.py`),
+  and pre-isolation/eager timing files (`timing_b300.json`, non-isolated `vllm_sse_*_v3.json`) — all superseded by the
+  official-exact Day-0 vLLM pipeline (`prepare_data_v3.py`, `prepare_data_v4_gkd.py`, `prepare_official_exact.py`,
+  `vllm_loopbridge.py`, `eval_vllm.py`, `bench_vllm_timing.py`, `make_figs.py`).
 - **Internal operational files:** cluster backup scripts (`backup_*.py`), internal handoff/scratch logs, and orphaned
   figure/table artifacts.
 - **Never in this repository:** a training-free untying check on Huginn-0125 (no reliable GSM8K gain; kept only in the

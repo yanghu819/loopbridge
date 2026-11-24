@@ -2,8 +2,7 @@
 
 Queries 1..8 local vLLM OpenAI-compatible servers (e.g. 8x TP=1 replicas on 8x B300) using
 pre-tokenized `prompt_ids` with `skip_special_tokens=False` so `<|content_thinking|>` and
-`<|content_text|>` match Inkling-2-Mini's native template bit-for-bit, scored by our
-Verifier-audited `inkling.scoring` module.
+`<|content_text|>` match the native template bit-for-bit, scored by `inkling.scoring`.
 """
 
 from __future__ import annotations

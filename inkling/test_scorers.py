@@ -1,4 +1,4 @@
-"""Adversarial unit tests for inkling.scoring (locking down all Verifier-audited edge cases)."""
+"""Adversarial unit tests for inkling.scoring covering MCQ, LCB, MRCR, and GraphWalks edge cases."""
 
 from __future__ import annotations
 
@@ -81,4 +81,4 @@ if __name__ == "__main__":
     test_graphwalks_f1()
     test_lcb_score()
     test_mrcr()
-    print("ALL VERIFIER ADVERSARIAL SCORER TESTS PASSED!")
+    print("ALL SCORER UNIT TESTS PASSED!")

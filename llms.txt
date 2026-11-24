@@ -2,40 +2,53 @@
 
 > Looped (recurrent-depth) language models use the same number of loops to read the prompt (prefill) and to generate
 > each answer token (decode), although generation is almost all decoding. We untie the two loop counts (prefill m
-> loops, decode n < m) and introduce LoopBridge (2.4% of the parameters: decoder LoRA + RoPE-commuting per-loop
-> key maps and linear value maps), a single adapter distilled from the four-loop model that serves every trained (m, n) pair and folds
-> into the prompt cache once at prefill. (A restricted fixed-m=4 decoder-only LoRA variant is documented in Appendix L.)
-> Evaluated on Ouro-2.6B, Ouro-1.4B, Thinking models and Lev decision models. Every number is recomputed from released
-> per-item scores by ouro/scripts/paper_numbers.py.
+> loops, decode n < m) and introduce LoopBridge (2.4% of parameters on Ouro-2.6B; 0.13-0.25% on 26.4B sparse-MoE
+> looped models: decoder LoRA + cache-foldable prompt KV maps), a lightweight adapter distilled from the full-loop
+> model that folds into the prompt cache once at prefill with virtually zero per-token decode overhead.
+> Evaluated on Ouro-2.6B, Ouro-1.4B, Thinking models, Lev decision models, and 26.4B sparse-MoE looped models
+> (TML-d24-varloop-research and Inkling-2-Mini) in Day-0 vLLM. Every number is recomputed from released per-item scores
+> by ouro/scripts/paper_numbers.py (Ouro) and inkling/make_figs.py (26.4B MoE).
 
-Main findings (Ouro-2.6B; 95% paired bootstrap intervals in the paper):
-- At batch 1, prefill is 0.3-2.6% of the wall time of a chain-of-thought request (0.1-0.3% on Thinking models).
-- One decode loop: LoopBridge 4/1 raises the 11-benchmark average from 44.2 (Original 1/1) to 58.2 (58.3 +- 0.1 over
-  three seeds), above tied-loop distillation on the same data (49.5; rank 80: 49.3); at two decode loops, 63.7 -> 69.1
-  (vs 66.2 Distilled 2/2); MATH-500 zero-shot.
-- Measured time (800 requests, batch 1): LoopBridge 4/1 scores 45.0% (+17.2 over Original 1/1, +10.8 over Distilled 1/1)
-  at 27.7 tokens/s (vs 28.3 for Original 1/1) and +10.5 points over a time-matched Original 1/1-2/2 mix; 4/2 runs at
-  14.3 tokens/s (2.1x Original 4/4). At batch 32, LoopBridge 4/1 stays +18.5 / +11.3 points ahead in 1.18x / 1.19x time.
+Main findings (95% paired bootstrap intervals in the paper):
+- At batch 1 on Ouro-2.6B, prefill is 0.3-2.6% of the wall time of a chain-of-thought request (0.1-0.3% on Thinking models).
+- One decode loop (Ouro-2.6B): LoopBridge 4/1 raises the 11-benchmark average from 44.2 (Original 1/1) to 58.2
+  (58.3 +- 0.1 over three seeds), above tied-loop distillation on the same data (49.5; rank 80: 49.3); at two decode
+  loops, 63.7 -> 69.1 (vs 66.2 Distilled 2/2); MATH-500 zero-shot.
+- Measured time (Ouro-2.6B, 800 requests, batch 1): LoopBridge 4/1 scores 45.0% (+17.2 over Original 1/1, +10.8 over
+  Distilled 1/1) at 27.7 tokens/s (vs 28.3 for Original 1/1) and +10.5 points over a time-matched Original 1/1-2/2 mix;
+  4/2 runs at 14.3 tokens/s (2.1x Original 4/4). At batch 32, LoopBridge 4/1 stays +18.5 / +11.3 points ahead in
+  1.18x / 1.19x time.
 - The gain peaks within two to five prefill loops (also for an adapter trained to 16 loops, over seeds, and with the
   prefill loops trained too).
 - Transfers to Ouro-1.4B (44.5 at 4/1, 44.2 +- 0.2 over three seeds, vs 40.5 distilled and 34.7 original),
   Ouro-2.6B-Thinking (4/2 within 0.8 points of 4/4 on average and +3.1 above Distilled 2/2; served in batches, matches
-  Original 4/4 on all 1,319 GSM8K problems at 2.0x throughput and 0.47-0.57x wall time) and Lev decision models.
-- Baselines: the distilled baselines move by at most 0.9 points over 0.3x-3x learning rates (0.7 at rank 16, 0.9 at rank 80).
+  Original 4/4 on all 1,319 GSM8K problems at 2.0x throughput and 0.47-0.57x wall time), and Lev decision models.
+- Scales 10x to 26.4B sparse-MoE looped models in Day-0 vLLM (TML-d24-varloop-research & Inkling-2-Mini) on five
+  official reasoning and 256K-1M benchmarks (GPQA Diamond, LiveCodeBench v6, MRCR v2 8n 256K-512K, GraphWalks BFS 256K,
+  LongBench v2 1M): folded NoPE global-3 KV maps (0.13-0.25% params) add <1% decode overhead (1.33-1.39x at n=2,
+  1.87-2.18x batched at n=1 up to 256K). Under locked 24M controls, LoopBridge sweeps Distilled 5/5 on both
+  TML-d24-varloop 3/1 (51.2 vs 43.4, +7.8 [4.4, 11.2]; 3-Long +11.7 [7.1, 16.4]; 3.55x faster training) and
+  Inkling-2-Mini 3/2 (56.6 vs 51.5, +5.1 [2.0, 8.1]; 4.5x faster training). Scaling to 48M hybrid GKD/SFT (r=128)
+  lifts TML-d24-varloop 3/2 to 70.7 (96.2% of Original 3/3's 73.5, -2.8 [-5.7, 0.0]; +7.4 [1.7, 13.1] on LiveCodeBench
+  over Original 2/2 at equal 1.37x decode speed).
+- Baselines: the Ouro distilled baselines move by at most 0.9 points over 0.3x-3x learning rates (0.7 at rank 16, 0.9 at rank 80).
 
-Limitations stated by the author: timing on one GPU type at batch 1 to 32; folded maps keep Original n/n's KV footprint
-and per-token latency, whereas the one-cache variant cuts prompt KV memory by n× via per-step maps (adding small-batch
-decode overhead while raising max-batch throughput on long prompts); prefill depth is fixed per setting; one looped LLM
-family (Ouro, up to 3B and four loops, greedy Thinking evaluation); English benchmarks.
+Limitations stated by the author: timing on one GPU architecture (B300) up to batch 32; on short-output 128K-256K
+prompts (G=512), m-pass prefill attenuates end-to-end speedup (1.14-1.19x for 3/1 vs 2.18x pure decode); under
+unconstrained single-stream (B=1) high-effort reasoning on 26.4B models, n=1 decoders inflate chain-of-thought length
+by 1.4-1.8x so n=2 (LoopBridge 3/2) dominates n=1 in both single-request wall time and accuracy whereas n=1 leads in
+batched throughput cost; our current vLLM prototype retains m global KV slots (matching 3/3's KV footprint); prefill
+depth is fixed per setting rather than per prompt; English benchmarks only.
 
 ## Docs
-- README.md: findings, when to use, repository map
-- REPRODUCE.md: every table and figure -> script -> result file; training and evaluation commands
-- paper/loopbridge.pdf: the paper
-- ouro/results/items/: per-item scores of every run the paper uses; ouro/results/paper_numbers.json: the recomputed statistics
-- ouro/results/provenance/: run manifests, logs, and per-item outputs, plus training configs and checkpoint hashes for the main and ablation models
-- docs/ARCHIVE.md: public ModelScope checkpoints/data (`torushy/LoopBridge`, `torushy/LoopBridge-Data`) and private cold-archive notes
-- Checkpoints (ModelScope): https://modelscope.cn/models/torushy/LoopBridge
+- README.md: findings, 26.4B vLLM results, quick start, repository map
+- REPRODUCE.md: every table and figure -> script -> result file; Ouro and 26.4B vLLM commands
+- paper/loopbridge.pdf: the 31-page paper (8-page ACL main body + Appendices A-O)
+- ouro/results/items/: Ouro per-item scores; ouro/results/paper_numbers.json: recomputed Ouro statistics
+- inkling/results/: 26.4B sparse-MoE official-exact per-item JSONs & isolated Day-0 vLLM Blackwell timing logs
+- ouro/results/provenance/: Ouro run manifests, logs, configs, and checkpoint hashes
+- docs/ARCHIVE.md: public ModelScope checkpoints/data (`torushy/LoopBridge`, `torushy/LoopBridge-Data`) and cold-archive notes
+- Checkpoints (ModelScope, 14 adapters: 8 Ouro + 6 26.4B MoE): https://modelscope.cn/models/torushy/LoopBridge
 - Data (ModelScope): https://modelscope.cn/datasets/torushy/LoopBridge-Data
-- docs/DEPRECATED.md: the modules and training arms the paper does not use
+- docs/DEPRECATED.md: pruned legacy scripts/arms and remaining optional branches
 - The tag paper-arxiv points to the exact commit the arXiv PDF and all figures/tables were built from.

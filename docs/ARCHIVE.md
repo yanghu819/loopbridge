@@ -19,8 +19,10 @@ from them on a CPU, and `ouro/scripts/paper_figs.py` redraws every figure. The e
 
 ## Public release on ModelScope
 
-The 8 core LoopBridge adapter checkpoints (every file SHA256-matched to `ouro/results/provenance/training/`) and the
-GPQA-free 48M-token distillation mix + prepared RULER/HELMET evaluation sets are publicly available on ModelScope:
+All 14 core LoopBridge adapter checkpoints (8 Ouro adapters SHA256-matched to `ouro/results/provenance/training/` plus 6
+26.4B sparse-MoE adapters for `TML-d24-varloop-research` and `Inkling-2-Mini`, SHA256-verified in `SHA256SUMS.txt` on
+ModelScope) and the GPQA-free 48M-token Ouro distillation mix + prepared RULER/HELMET evaluation sets are publicly
+available on ModelScope:
 
 - **Checkpoints:** [`https://modelscope.cn/models/torushy/LoopBridge`](https://modelscope.cn/models/torushy/LoopBridge)
 - **Data:** [`https://modelscope.cn/datasets/torushy/LoopBridge-Data`](https://modelscope.cn/datasets/torushy/LoopBridge-Data)

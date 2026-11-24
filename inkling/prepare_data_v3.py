@@ -1,6 +1,6 @@
-"""Build clean, 100% on-policy, 13-gram-decontaminated v3 distillation data for Inkling-2-Mini.
+"""Build clean, 100% on-policy, 13-gram-decontaminated v3 distillation data for 26.4B MoE looped models.
 
-Design goals (aligned with Verifier [H0] gate & Inkling-2-Mini architecture):
+Design goals:
   1. ZERO fallback to truncated v1_train, ZERO 30% mid-CoT slicing, ZERO malformed special tokens.
   2. Crosses Inkling-2-Mini's LogScale global-attention boundary (`log_scaling_n_floor = 8192`):
      long-context & procedural retrieval/graph prompts span 4K-14K tokens (>55% >= 8,192 tok).
@@ -30,7 +30,190 @@ from time import perf_counter
 import pyarrow.parquet as pq
 from transformers import AutoTokenizer
 
-from inkling.prepare_data_v2 import _convert_apigen_mt, _convert_swesmith
+
+def _norm_schema(obj):
+    if isinstance(obj, list):
+        return [_norm_schema(x) for x in obj]
+    if not isinstance(obj, dict):
+        return obj
+    out = {}
+    tmap = {"dict": "object", "float": "number", "tuple": "array", "any": "string"}
+    for k, v in obj.items():
+        if k == "type" and isinstance(v, str):
+            out[k] = tmap.get(v.lower(), v.lower())
+        else:
+            out[k] = _norm_schema(v)
+    return out
+
+
+def _wrap_tools(raw_tools: list[dict]) -> list[dict]:
+    tools = []
+    for t in raw_tools:
+        fn = t["function"] if isinstance(t, dict) and "function" in t else t
+        if not isinstance(fn, dict) or not fn.get("name"):
+            continue
+        params = _norm_schema(fn.get("parameters", {"type": "object", "properties": {}}))
+        if not isinstance(params, dict):
+            params = {"type": "object", "properties": {}}
+        params.setdefault("type", "object")
+        params.setdefault("properties", {})
+        tools.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": str(fn["name"]),
+                    "description": str(fn.get("description", "")),
+                    "parameters": params,
+                },
+            }
+        )
+    return tools
+
+
+def _convert_apigen_mt(row: dict) -> tuple[list[dict], list[dict]] | None:
+    raw_tools = json.loads(row["tools"]) if isinstance(row.get("tools"), str) else (row.get("tools") or [])
+    tools = _wrap_tools(raw_tools)
+    msgs: list[dict] = []
+    if row.get("system"):
+        msgs.append({"role": "system", "content": str(row["system"])})
+    last_tool_name = "tool"
+    pending_thought = ""
+    for turn in row.get("conversations", []):
+        frm = turn.get("from", "")
+        val = turn.get("value", "")
+        if frm == "human":
+            msgs.append({"role": "user", "content": str(val)})
+        elif frm == "gpt":
+            m = {"role": "assistant", "content": str(val)}
+            if pending_thought:
+                m["reasoning_content"] = pending_thought
+                pending_thought = ""
+            msgs.append(m)
+        elif frm == "function_call":
+            try:
+                fc = json.loads(val) if isinstance(val, str) else val
+            except Exception:
+                return None
+            if not isinstance(fc, dict) or not fc.get("name"):
+                continue
+            args = fc.get("arguments", {})
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except Exception:
+                    args = {}
+            if not isinstance(args, dict):
+                args = {}
+            if fc["name"] == "think" and "thought" in args:
+                pending_thought = (pending_thought + "\n" + str(args["thought"])).strip()
+                continue
+            last_tool_name = str(fc["name"])
+            m = {
+                "role": "assistant",
+                "tool_calls": [{"function": {"name": last_tool_name, "arguments": args}}],
+            }
+            if pending_thought:
+                m["reasoning_content"] = pending_thought
+                pending_thought = ""
+            msgs.append(m)
+        elif frm == "observation":
+            if str(val).strip() in ("", "null", "None"):
+                continue
+            msgs.append({"role": "tool", "name": last_tool_name, "content": str(val)})
+    return msgs, tools
+
+
+SWE_DEFAULT_TOOLS = _wrap_tools(
+    [
+        {
+            "name": "bash",
+            "description": "Execute a bash command in the repository environment.",
+            "parameters": {"type": "object", "properties": {"command": {"type": "string"}}, "required": ["command"]},
+        },
+        {
+            "name": "str_replace_editor",
+            "description": "View, create, or edit files in the repository.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string"},
+                    "path": {"type": "string"},
+                    "old_str": {"type": "string"},
+                    "new_str": {"type": "string"},
+                    "file_text": {"type": "string"},
+                    "view_range": {"type": "array", "items": {"type": "integer"}},
+                },
+                "required": ["command", "path"],
+            },
+        },
+        {
+            "name": "submit",
+            "description": "Submit the final patch.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    ]
+)
+
+
+def _text_of(content) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for x in content:
+            if isinstance(x, dict) and "text" in x:
+                parts.append(str(x["text"]))
+            elif isinstance(x, str):
+                parts.append(x)
+        return "\n".join(parts)
+    return str(content or "")
+
+
+def _convert_swesmith(row: dict) -> tuple[list[dict], list[dict]] | None:
+    try:
+        raw_msgs = json.loads(row["messages"]) if isinstance(row["messages"], str) else row["messages"]
+    except Exception:
+        return None
+    msgs: list[dict] = []
+    last_tool_name = "bash"
+    for m in raw_msgs:
+        role = m.get("role", "")
+        txt = _text_of(m.get("content", "")).strip()
+        if role == "system":
+            msgs.append({"role": "system", "content": txt})
+        elif role == "user":
+            msgs.append({"role": "user", "content": txt})
+        elif role == "assistant":
+            out_m: dict = {"role": "assistant"}
+            tcs_raw = m.get("tool_calls") or []
+            tcs = []
+            for tc in tcs_raw:
+                fn = tc.get("function", tc) if isinstance(tc, dict) else {}
+                name = fn.get("name")
+                if not name:
+                    continue
+                args = fn.get("arguments", {})
+                if isinstance(args, str):
+                    try:
+                        args = json.loads(args)
+                    except Exception:
+                        args = {}
+                if not isinstance(args, dict):
+                    args = {}
+                last_tool_name = str(name)
+                tcs.append({"function": {"name": last_tool_name, "arguments": args}})
+            if tcs:
+                if txt:
+                    out_m["reasoning_content"] = txt
+                out_m["tool_calls"] = tcs
+            elif txt:
+                out_m["content"] = txt
+            else:
+                continue
+            msgs.append(out_m)
+        elif role == "tool":
+            msgs.append({"role": "tool", "name": last_tool_name, "content": txt})
+    return msgs, SWE_DEFAULT_TOOLS
 
 
 WORD_RE = re.compile(r"[a-z0-9]+")
@@ -722,7 +905,7 @@ async def _run_rollouts_vllm(args, tok) -> None:
 
 
 def build_train_v3(args, tok, forbidden: set[tuple[str, ...]]) -> None:
-    """Assemble and Verifier-[H0]-audit the final train_inkling_v3/train.jsonl stream."""
+    """Assemble and audit the final train_inkling_v3/train.jsonl stream."""
     rng = random.Random(args.seed)
     rows: list[dict] = []
     skipped = Counter()
@@ -755,7 +938,7 @@ def build_train_v3(args, tok, forbidden: set[tuple[str, ...]]) -> None:
         if len(s_ids) > args.max_target:
             s_ids = s_ids[: args.max_target]
 
-        # [H0] Audit 1: exact native template integrity (1 Thinking effort header, intact generation start)
+        # Audit 1: exact native template integrity (1 Thinking effort header, intact generation start)
         p_txt = tok.decode(p_ids, skip_special_tokens=False)
         if p_txt.count("Thinking effort level:") != 1:
             skipped["bad_effort_header"] += 1
@@ -764,7 +947,7 @@ def build_train_v3(args, tok, forbidden: set[tuple[str, ...]]) -> None:
             skipped["bad_prefix_end"] += 1
             continue
 
-        # [H0] Audit 2: strict 13-gram decontamination against ALL 5 official benchmarks
+        # Audit 2: strict 13-gram decontamination against ALL 5 official benchmarks
         if _has_13gram_overlap(p_txt, forbidden):
             skipped["decontam_13gram"] += 1
             continue

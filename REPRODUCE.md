@@ -11,8 +11,13 @@ The paper's numbers come from these places, all in this commit:
 2. **Timing records** (`ouro/results/e2e/`, `ouro/results/throughput-sb4/`): the end-to-end timing table, time ratios
    and decode throughput, also recomputed by `paper_numbers.py compute`.
 3. **Decision-model records** (`ouro/results/lev/`): per-depth LevBench development outputs for the Lev appendix.
+4. **26.4B sparse-MoE Day-0 vLLM records** (`inkling/results/eval_official_exact.json`, `eval_vllm_*.json`, `vllm_sse_*.json`):
+   per-item official-exact scores (`GPQA Diamond` 198, `LiveCodeBench v6` 175, `MRCR v2 8n 256K–512K` 100,
+   `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503) and isolated single-GPU Day-0 vLLM Blackwell timing (`512..256K`).
+   `uv run --with numpy --with matplotlib python inkling/make_figs.py` recomputes every 26.4B paired bootstrap 95% CI
+   (5,000 resamples, seed 0) and redraws Figures 15–16.
 
-`ouro/scripts/paper_figs.py` draws every figure and generated table from `paper_numbers.json`.
+`ouro/scripts/paper_figs.py` draws Figures 1–14 and generated Ouro tables from `paper_numbers.json`.
 
 ## Main-text results and where they come from
 
@@ -52,7 +57,7 @@ and `uv run --with numpy --with matplotlib python ouro/scripts/paper_figs.py` re
 
 - **Released LoopBridge Checkpoints (ModelScope, public, SHA256-verified):**
   [`https://modelscope.cn/models/torushy/LoopBridge`](https://modelscope.cn/models/torushy/LoopBridge)
-  (`ouro-2.6b/loopbridge`, `loopbridge-wide`, `loopbridge-onecache`; `ouro-2.6b-thinking/loopbridge`, `loopbridge-onecache`; `ouro-1.4b/loopbridge`, `loopbridge-onecache`; `ouro-1.4b-thinking/loopbridge-onecache`).
+  (8 Ouro adapters: `ouro-2.6b/loopbridge`, `loopbridge-wide`, `loopbridge-onecache`; `ouro-2.6b-thinking/loopbridge`, `loopbridge-onecache`; `ouro-1.4b/loopbridge`, `loopbridge-onecache`; `ouro-1.4b-thinking/loopbridge-onecache`; plus 6 26.4B sparse-MoE adapters: `tml-d24-varloop/loopbridge-3x2-v2-48m`, `loopbridge-3x1-v2-48m`, `loopbridge-3x1-24m`; `inkling-2-mini/loopbridge-3x2-v2-48m`, `loopbridge-3x2-24m`, `loopbridge-3x1-24m`).
 - **Prepared Distillation & Long-Context Eval Data (ModelScope, public, GPQA-free):**
   [`https://modelscope.cn/datasets/torushy/LoopBridge-Data`](https://modelscope.cn/datasets/torushy/LoopBridge-Data)
   (`mix-data-48m.tar.gz`, `bench.tar.gz`, `bench-mini.tar.gz`).
@@ -61,6 +66,7 @@ and `uv run --with numpy --with matplotlib python ouro/scripts/paper_figs.py` re
   `ByteDance/Ouro-1.4B` ([ModelScope](https://modelscope.cn/models/bytedance-community/Ouro-1.4B)),
   `ByteDance/Ouro-2.6B-Thinking` ([ModelScope](https://modelscope.cn/models/bytedance-community/Ouro-2.6B-Thinking)),
   `ByteDance/Ouro-1.4B-Thinking` ([ModelScope](https://modelscope.cn/models/bytedance-community/Ouro-1.4B-Thinking)),
+  `thinkingmachines/TML-d24-varloop-research` ([Hugging Face](https://huggingface.co/thinkingmachines/TML-d24-varloop-research)),
   `thinkingmachines/Inkling-2-Mini` ([Hugging Face](https://huggingface.co/thinkingmachines/Inkling-2-Mini)).
 - Training mix (48M KL tokens): `ouro/prepare_mix.py` (OpenThoughts, Tulu SFT, LongAlpaca, FineWeb-Edu; base models),
   `ouro/scripts/prepare_think_mix.py` (same samples in the thinking chat template).
@@ -131,8 +137,36 @@ figure and table to its runs and generators.
 | Appendix K: Figure 13 (`fig_batched`), Table 14 (`tab_batched`), Table 15 (`tab_tbatched`), Figure 14 (`fig2_frontier`) | `time_batch.sh`, `batch_set2.sh`, `time_batch_think.sh`, `tput_sb.sh`, `tput_aligned.sh`, `tput_ctx.sh`, `tput_batch.sh`, `e2e_latency.py` | `batched_serving`, `thinking_batched`, `think_frontier`, `throughput`, `appendix_checks` → `fig_batched`, `tab_batched`, `tab_tbatched`, `fig2_frontier` |
 | Appendix L: design variants (unrestricted key maps vs. one-cache LoopBridge; fixed-depth `m=4` LoRA) | `launch_v.sh`, `launch_s.sh`, `launch_variant.sh fixed4`, `fixed14.sh` | `main_table`, `CMP` (`Table 6`), `time_breakdown`, `batched_serving` |
 | Appendix M: Table 16 (`tab_lev`, Lev decision models, both directions) | `ouro/lev/train_rd.sh`, `ouro/lev/after_train.sh`, `lev_mn.sh`, `lev_mn_seeds.sh` | `lev` → `tab_lev` |
-| Appendix N: from-scratch re-runs & single-bank exactness checks | `verify_q.sh`, `ouro/scripts/verify_compare.py`, `check_aligned_runner.py`, `single_bank_check.py`, `check_replay_scorer.py` | `ouro/results/verify_rerun.txt` |
-| Paper PDF and arXiv package | — | in order: `paper_numbers.py compute`, `paper_figs.py`, `tectonic -X compile main.tex`, `paper/build_arxiv.py` |
+| Appendix N: Figures 15–16 (`fig_inkling_pareto`, `fig_inkling_ablate`), Tables 17–19 (26.4B sparse-MoE `TML-d24-varloop` & `Inkling-2-Mini` in Day-0 vLLM) | `inkling/prepare_data_v3.py`, `prepare_data_v4_gkd.py`, `train_inkling.py`, `prepare_official_exact.py`, `eval_vllm.py`, `bench_vllm_timing.py` | `inkling/make_figs.py` (reads `inkling/results/eval_official_exact.json`, `eval_vllm_*.json`, `vllm_sse_*.json`) |
+| Appendix O: from-scratch re-runs & single-bank exactness checks | `verify_q.sh`, `ouro/scripts/verify_compare.py`, `check_aligned_runner.py`, `single_bank_check.py`, `check_replay_scorer.py` | `ouro/results/verify_rerun.txt` |
+| Paper PDF and arXiv package | — | in order: `paper_numbers.py compute`, `paper_figs.py`, `inkling/make_figs.py`, `tectonic -X compile main.tex`, `paper/build_arxiv.py` |
+
+### 26.4B Sparse-MoE Day-0 vLLM Commands (`inkling/`)
+
+Requires Thinking Machines' Day-0 vLLM Blackwell environment (`vllm`, `PyTorch 2.14+cu130`, NVIDIA B300):
+
+```bash
+# 1. Unit-test official scorers (CPU, no GPU required)
+PYTHONPATH=. python inkling/test_scorers.py
+
+# 2. Verify every 26.4B paired bootstrap 95% CI & redraw Figures 15-16 (CPU, no GPU required)
+uv run --with numpy --with matplotlib python inkling/make_figs.py
+
+# 3. Prepare exact official 256K-1M evaluation splits (GPQA, LCB v6, MRCR, GraphWalks, LongBench v2)
+python inkling/prepare_official_exact.py --model-dir /path/to/TML-d24-varloop-research --out-dir ./eval_official_exact
+
+# 4. Train LoopBridge (e.g., controlled 24M 3/1 or v2 48M 3/2 with --freeze-sink --jsd-beta 0.5 --length-bucket)
+torchrun --nproc_per_node=8 -m inkling.train_inkling \
+    --model-dir /path/to/TML-d24-varloop-research --data /path/to/train_v4_gkd/train.jsonl \
+    --out-dir ./runs/vl_lb_3_2_v2_48m --mode loopbridge --cells 3x2 --lora-rank 128 \
+    --kv-map-layers global --kv-map-cross-pass --freeze-sink --jsd-beta 0.5 --length-bucket --target-tokens 48000000
+
+# 5. Serve zero-overhead folded LoopBridge in Day-0 vLLM & evaluate / benchmark throughput (512..256K)
+LOOPBRIDGE_CKPT=./runs/vl_lb_3_2_v2_48m/checkpoint-48m.pt LOOPBRIDGE_CELL=3x2 \
+    python -m inkling.vllm_loopbridge --model /path/to/TML-d24-varloop-research --port 8000
+python inkling/eval_vllm.py --urls http://127.0.0.1:8000 --data-dir ./eval_official_exact --out-dir ./eval_out
+python inkling/bench_vllm_timing.py --url http://127.0.0.1:8000 --label vl_lb_3_2_v2_48m --out ./timing.json
+```
 
 `paper_numbers.py compute` checks every number quoted in the text against hard-coded expectations and reports any
 mismatch with `!!` (must end with `0 printed values differ`).
