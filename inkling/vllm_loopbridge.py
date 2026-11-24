@@ -232,6 +232,12 @@ def _apply_delta_to_vllm_model(
     return {"extra_mb": round(extra_bytes / (1024 * 1024), 2), "kv_bundle": kv_bundle}
 
 
+def _aligned_pass_indices(m: int, n: int, pairing: str = "tail") -> list[int]:
+    if pairing == "anchored" and n >= 2 and m > n:
+        return [0] + [min(max(m - n + k, 1), m - 1) for k in range(1, n)]
+    return [min(max(m - n + k, 0), m - 1) for k in range(n)]
+
+
 @torch.no_grad()
 def _fold_request_kv_maps(
     model,
@@ -242,6 +248,7 @@ def _fold_request_kv_maps(
     layer_to_gid: dict[str, int],
     req_idx: int,
     prompt_len: int,
+    pass_pairing: str = "tail",
 ) -> None:
     """Apply LoopBridge Cross-Pass Global-3 KV Fusion ONCE for a request right after its final prefill chunk.
 
@@ -292,13 +299,13 @@ def _fold_request_kv_maps(
         for c_start in range(0, prompt_len, chunk_sz):
             c_end = min(prompt_len, c_start + chunk_sz)
             cb, co = blk[c_start:c_end], off[c_start:c_end]
+            paired_passes = _aligned_pass_indices(m, n, pass_pairing)
             if cross_pass:
                 k_src = [k_caches[p][cb, co].float() for p in range(m)]
                 v_src = [v_caches[p][cb, co].float() for p in range(m)]
                 slot_offset = max_m - m
                 out_pairs = []
-                for k_pass in range(n):
-                    j = min(max(m - n + k_pass, 0), m - 1)
+                for k_pass, j in enumerate(paired_passes):
                     k_out = k_src[j].clone()
                     v_out = v_src[j].clone()
                     for p in range(m):
@@ -310,8 +317,7 @@ def _fold_request_kv_maps(
                     k_caches[j][cb, co] = k_out.to(k_caches[j].dtype)
                     v_caches[j][cb, co] = v_out.to(v_caches[j].dtype)
             else:
-                for k_pass in range(n):
-                    j = min(max(m - n + k_pass, 0), m - 1)
+                for k_pass, j in enumerate(paired_passes):
                     ks = k_caches[j][cb, co].float()
                     vs = v_caches[j][cb, co].float()
                     k_out = ks + torch.einsum("nhi,hoi->nho", ks, kd_loop[k_pass, idx])
@@ -355,6 +361,7 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
     m = int(cfg.get("m", 3))
     n = int(cfg.get("n", 1))
     ckpt_path = cfg.get("checkpoint")
+    cfg_pairing = cfg.get("pass_pairing")
 
     from vllm.distributed import tensor_model_parallel_all_reduce
     from vllm.forward_context import get_forward_context
@@ -381,21 +388,23 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
         self._lb_m = m
         self._lb_n = n
         self._lb_kv_bundle = None
+        self._lb_pass_pairing = cfg_pairing or "tail"
         if ckpt_path:
             saved = torch.load(ckpt_path, map_location="cpu", weights_only=False)
             state = saved["trainable_state"]
             sys_cfg = saved.get("system_config", {})
+            self._lb_pass_pairing = cfg_pairing or sys_cfg.get("pass_pairing", "tail")
             in_place = mode == "distilled"
             info = _apply_delta_to_vllm_model(self, state, sys_cfg, in_place=in_place)
             self._lb_kv_bundle = info["kv_bundle"]
             print(
-                f"[LoopBridge-vLLM] Loaded {mode} ({m}/{n}) from {ckpt_path} "
+                f"[LoopBridge-vLLM] Loaded {mode} ({m}/{n}, pairing={self._lb_pass_pairing}) from {ckpt_path} "
                 f"(in_place={in_place}, extra_vram={info['extra_mb']} MB, "
                 f"kv_maps={info['kv_bundle'] is not None})",
                 flush=True,
             )
         else:
-            print(f"[LoopBridge-vLLM] Active {mode} ({m}/{n}) without checkpoint", flush=True)
+            print(f"[LoopBridge-vLLM] Active {mode} ({m}/{n}, pairing={self._lb_pass_pairing}) without checkpoint", flush=True)
 
     ink_loop_mod.Inkling2LoopModel.process_weights_after_loading = _patched_process_weights_after_loading
 
@@ -551,8 +560,8 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
             if workspace is not None and conv_metadata(self.layers[0].conv_state) is not None:
                 plan = workspace.plan(num_tokens)
 
-            # Aligned pass indices: decode pass k in {0..n-1} reads KV/conv slot j = clip(m - n + k, 0, m - 1)
-            aligned_passes = [min(max(lb_m - lb_n + k, 0), lb_m - 1) for k in range(lb_n)]
+            # Aligned pass indices: 'tail' (j=m-n+k) or 'anchored' (k=0 -> Pass 0, k>=1 -> m-n+k)
+            aligned_passes = _aligned_pass_indices(lb_m, lb_n, getattr(self, "_lb_pass_pairing", "tail"))
             # (layer_id, kv_conv_pass_idx, is_looped_pass)
             visits = [(i, 0, False) for i in range(core.start)]
             for k, p_slot in enumerate(aligned_passes):
@@ -783,6 +792,7 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
                             self._lb_layer_to_gid,
                             req_idx,
                             plen,
+                            pass_pairing=getattr(inner, "_lb_pass_pairing", "tail"),
                         )
         return ret
 
@@ -817,6 +827,8 @@ def main() -> None:
     p_srv.add_argument("--m", type=int, default=3)
     p_srv.add_argument("--n", type=int, default=1)
     p_srv.add_argument("--checkpoint", default=None)
+    p_srv.add_argument("--pass-pairing", choices=("tail", "anchored"), default=None,
+                       help="Override pass pairing (defaults to checkpoint system_config or 'tail')")
     p_srv.add_argument("--port", type=int, default=8000)
     p_srv.add_argument("--max-model-len", type=int, default=196608)
     p_srv.add_argument("--gpu-memory-utilization", type=float, default=0.90)
@@ -835,6 +847,7 @@ def main() -> None:
         "m": args.m,
         "n": args.n,
         "checkpoint": args.checkpoint,
+        "pass_pairing": args.pass_pairing,
     }
     cfg_file = Path(tempfile.gettempdir()) / f"lb_vllm_{args.mode}_{args.m}_{args.n}_{args.port}.json"
     cfg_file.write_text(json.dumps(cfg, indent=2) + "\n")

@@ -89,6 +89,8 @@ def main():
                         help="Freeze sink_proj while keeping relative_position_bias (protects 1M attention sink calibration)")
     parser.add_argument("--jsd-beta", type=float, default=0.0,
                         help="0.0 = pure Forward KL; (0,1) e.g. 0.5 = Hessian-matched Generalized JSD for on-policy GKD")
+    parser.add_argument("--pass-pairing", choices=("tail", "anchored"), default="tail",
+                        help="Prefill->decode pass alignment: 'tail' (j=m-n+k) or 'anchored' (k=0->Pass 0, k>=1->m-n+k)")
     parser.add_argument("--length-bucket", action="store_true",
                         help="Bucket rows into equal-length global_batch blocks then shuffle blocks (zero straggler wait for 16K-56K long rows)")
     parser.add_argument("--micro", type=int, default=4)
@@ -155,6 +157,7 @@ def main():
         max_prefill_passes=max_prefill_passes,
         teacher_passes=args.teacher_passes,
         jsd_beta=args.jsd_beta,
+        pass_pairing=args.pass_pairing,
     )
     system = InklingLoopBridgeSystem(base, sys_cfg)
     if args.gradient_checkpointing:

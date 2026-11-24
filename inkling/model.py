@@ -374,6 +374,21 @@ def _clone_cache_layer(
     return dst
 
 
+def aligned_pass_indices(m: int, n: int, pairing: str = "tail") -> list[int]:
+    """Map decode pass k in {0..n-1} to prefill pass index j in {0..m-1}.
+
+    - 'tail' (default, legacy v1/v2 compat): j(k) = clip(m - n + k, 0, m - 1).
+    - 'anchored' (subspace-exact for Inkling/VarLoop when n >= 2): anchors decode
+      pass k=0 (looped=False, no MessageGate) to prefill Pass 0 (looped=False),
+      and maps k >= 1 (looped=True) to the deepest prefill passes m - n + k.
+      E.g. 4/2 -> [0, 3], 4/3 -> [0, 2, 3], 5/3 -> [0, 3, 4], 5/2 -> [0, 4].
+    """
+    assert pairing in ("tail", "anchored"), f"Unsupported pass pairing: {pairing}"
+    if pairing == "anchored" and n >= 2 and m > n:
+        return [0] + [min(max(m - n + k, 1), m - 1) for k in range(1, n)]
+    return [min(max(m - n + k, 0), m - 1) for k in range(n)]
+
+
 def build_aligned_decode_cache(
     prefill_cache: DynamicCache,
     m: int,
@@ -381,12 +396,12 @@ def build_aligned_decode_cache(
     config,
     kv_maps: InklingKVMapAdapter | None = None,
     training: bool = False,
+    pass_pairing: str = "tail",
 ) -> DynamicCache:
     """Align an m-pass prefill cache to an n-pass decode cache and optionally fold prompt KV maps.
 
-    Aligned pass rule (identical to LoopBridge):
-      decode pass k in {0..n-1} reads prefill pass j = clip(m - n + k, 0, m - 1),
-      inheriting BOTH its prompt KV cache and all four boundary short-conv states.
+    Supports both 'tail' (j = clip(m - n + k, 0, m - 1)) and 'anchored' (k=0 -> Pass 0
+    for exact looped=False subspace alignment, k>=1 -> m - n + k) pairing rules.
     """
     loop_start = config.loop_layer_index_start
     loop_end = config.loop_layer_index_end
@@ -402,8 +417,8 @@ def build_aligned_decode_cache(
         decode_cache.layers[l] = _clone_cache_layer(prefill_cache.layers[l], training=training)
 
     # 2. Looped core layers 6..17 across decode passes k = 0..n-1
-    for k in range(n):
-        j = min(max(m - n + k, 0), m - 1)
+    paired_passes = aligned_pass_indices(m, n, pairing=pass_pairing)
+    for k, j in enumerate(paired_passes):
         for l in range(loop_start, loop_end):
             src_slot = cache_slot(j, l, config)
             dst_slot = cache_slot(k, l, config)
@@ -507,6 +522,7 @@ class SystemConfig:
     max_prefill_passes: int = 3  # Max prefill loop depth supported by cross-pass KV maps (e.g. 4 or 5 for varloop)
     teacher_passes: int = 3  # Teacher loop depth for forward-KL distillation
     jsd_beta: float = 0.0  # 0.0 = pure Forward KL; (0,1) e.g. 0.5 = Hessian-matched Generalized JSD for GKD
+    pass_pairing: str = "tail"  # "tail" (legacy j=m-n+k) or "anchored" (k=0 -> Pass 0, k>=1 -> m-n+k)
 
 
 class InklingLoopBridgeSystem(nn.Module):
@@ -740,6 +756,7 @@ class InklingLoopBridgeSystem(nn.Module):
                 config=self.config,
                 kv_maps=self.kv_maps,
                 training=True,
+                pass_pairing=getattr(self.cfg, "pass_pairing", "tail"),
             )
             del student_pre_cache
             set_loop_passes(self.base, n)
@@ -858,6 +875,7 @@ class InklingRunner:
             config=self.system.config,
             kv_maps=self.system.kv_maps if mode == "loopbridge" else None,
             training=False,
+            pass_pairing=getattr(self.system.cfg, "pass_pairing", "tail"),
         )
         if self.time_adapter:
             torch.cuda.synchronize(input_ids.device)
