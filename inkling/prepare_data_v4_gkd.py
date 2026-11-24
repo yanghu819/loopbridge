@@ -51,27 +51,27 @@ def _make_ultralong_verbatim_recall(
     other_forms = [f for f in RECALL_FORMS if f != target_form]
     other_topics = [t for t in RECALL_TOPICS if t != target_topic]
 
-    # 8-12 needles of the target (form, topic) interleaved across 16K-52K tokens of hard distractors
-    n_needles = rng.randint(8, 12)
+    # 4-12 needles of the target (form, topic) interleaved across 16K-52K tokens of hard distractors
+    n_needles = rng.randint(4, 12)
     est_total_turns = max(n_needles + 20, int(target_tokens / 195))
     needle_slots = set(rng.sample(range(est_total_turns), min(n_needles, est_total_turns)))
 
     msgs: list[dict] = []
     est_tokens = 0
-    needle_turns = 0
+    needle_records: list[tuple[str, str]] = []
     turn_idx = 0
 
     while est_tokens < target_tokens - 200 and turn_idx < est_total_turns + 60:
         snippet = paras[rng.randrange(len(paras))]
-        if turn_idx in needle_slots or (needle_turns < n_needles and est_tokens > target_tokens * 0.85):
+        code = "".join(rng.choices(string.ascii_uppercase + string.digits, k=6))
+        if turn_idx in needle_slots or (len(needle_records) < n_needles and est_tokens > target_tokens * 0.85):
             form, topic = target_form, target_topic
-            needle_turns += 1
+            needle_records.append((code, snippet))
         else:
             if rng.random() < 0.5:
                 form, topic = target_form, rng.choice(other_topics)
             else:
                 form, topic = rng.choice(other_forms), target_topic
-        code = "".join(rng.choices(string.ascii_uppercase + string.digits, k=6))
         user_msg = f"Write a short {form} about {topic} (reference tag {code})."
         asst_msg = f"[{code}] {snippet}"
         msgs.append({"role": "user", "content": user_msg})
@@ -79,10 +79,12 @@ def _make_ultralong_verbatim_recall(
         est_tokens += int((len(user_msg) + len(asst_msg)) / 3.6) + 12
         turn_idx += 1
 
-    if needle_turns < 6:
+    needle_turns = len(needle_records)
+    if needle_turns < 4:
         return None
 
     k = rng.randint(1, needle_turns)
+    target_code, target_snippet = needle_records[k - 1]
     ord_suffix = {1: "st", 2: "nd", 3: "rd"}.get(k if k < 20 else k % 10, "th")
     rand_prefix = "".join(rng.choices(string.ascii_letters + string.digits, k=10))
     final_q = (
@@ -96,7 +98,8 @@ def _make_ultralong_verbatim_recall(
     p_ids = tok.encode(p_str, add_special_tokens=False)
     if len(p_ids) < 15000 or len(p_ids) > 54000:
         return None
-    return p_ids, f"ultralong_recall_k{k}_n{needle_turns}"
+    meta = {"verify_type": "recall", "expected_prefix": rand_prefix, "expected_code": target_code}
+    return p_ids, f"ultralong_recall_k{k}_n{needle_turns}", meta
 
 
 def _make_ultralong_graph_bfs(
@@ -104,8 +107,8 @@ def _make_ultralong_graph_bfs(
     rng: random.Random,
     target_tokens: int,
     effort: str,
-) -> tuple[list[int], str] | None:
-    """Procedurally generate a 16K-40K synthetic random-graph BFS prompt (zero test overlap)."""
+) -> tuple[list[int], str, dict] | None:
+    """Procedurally generate a 16K-42K synthetic random-graph BFS prompt with exact frontier ground truth."""
     n_nodes = max(700, min(1950, int(target_tokens / 19)))
     alphabet = string.ascii_lowercase + string.digits
     seen: set[str] = set()
@@ -130,7 +133,8 @@ def _make_ultralong_graph_bfs(
                 adj[v].append(u)
 
     start = None
-    target_dist = rng.choice([2, 3])
+    best_frontier: list[str] = []
+    target_dist = rng.choice([2, 3, 4])
     for _ in range(30):
         cand = rng.choice(nodes)
         dist = {cand: 0}
@@ -145,6 +149,7 @@ def _make_ultralong_graph_bfs(
         frontier = [u for u, d in dist.items() if d == target_dist]
         if 2 <= len(frontier) <= 20:
             start = cand
+            best_frontier = sorted(frontier)
             break
     if start is None:
         return None
@@ -172,7 +177,8 @@ def _make_ultralong_graph_bfs(
     p_ids = tok.encode(p_str, add_special_tokens=False)
     if len(p_ids) < 15000 or len(p_ids) > 42000:
         return None
-    return p_ids, f"ultralong_graph_bfs_d{target_dist}_n{n_nodes}"
+    meta = {"verify_type": "bfs", "expected_nodes": best_frontier}
+    return p_ids, f"ultralong_graph_bfs_d{target_dist}_n{n_nodes}", meta
 
 
 def cmd_prompts(args) -> None:
@@ -206,7 +212,7 @@ def cmd_prompts(args) -> None:
             res = _make_ultralong_verbatim_recall(tok, paras, rng, target_tok, effort)
             if res is None:
                 continue
-            p_ids, tag = res
+            p_ids, tag, _meta = res
             ultralong.append(
                 {
                     "id": f"v4_ul_recall/{len(ultralong):05d}",
@@ -229,7 +235,7 @@ def cmd_prompts(args) -> None:
             res = _make_ultralong_graph_bfs(tok, rng, target_tok, effort)
             if res is None:
                 continue
-            p_ids, tag = res
+            p_ids, tag, _meta = res
             ultralong.append(
                 {
                     "id": f"v4_ul_graph/{n_graph_done:05d}",
@@ -569,7 +575,7 @@ def cmd_targeted_v5_prompts(args) -> None:
     rng = random.Random(args.seed)
     leaks_skipped = 0
 
-    # 1. Targeted Ultra-Long Synthetic Prompts (MRCR-style 18K-52K recall + GraphWalks-style 16K-44K BFS)
+    # 1. Targeted Ultra-Long Synthetic Prompts (MRCR-style 18K-52K recall + GraphWalks-style 16K-44K BFS, ground-truth verified!)
     ul_path = args.output / "prompts_v5_ultralong.jsonl"
     paras = _load_paragraph_pool(args.v2_raw, forbidden, max_paras=16000)
     ultralong: list[dict] = []
@@ -577,11 +583,11 @@ def cmd_targeted_v5_prompts(args) -> None:
     while len(ultralong) < args.n_ultralong_recall and attempts < args.n_ultralong_recall * 4:
         attempts += 1
         target_tok = rng.randint(18000, 52000)
-        effort = rng.choice(["high", "medium", "high"])
+        effort = rng.choice(["medium", "medium", "high"])
         res = _make_ultralong_verbatim_recall(tok, paras, rng, target_tok, effort)
         if res is None:
             continue
-        p_ids, tag = res
+        p_ids, tag, meta = res
         ultralong.append(
             {
                 "id": f"v5_ul_recall/{len(ultralong):05d}",
@@ -589,7 +595,8 @@ def cmd_targeted_v5_prompts(args) -> None:
                 "tag": tag,
                 "effort": effort,
                 "prefix_ids": p_ids,
-                "max_tokens": 4096,
+                "max_tokens": 2560,
+                **meta,
             }
         )
     n_graph = 0
@@ -597,11 +604,11 @@ def cmd_targeted_v5_prompts(args) -> None:
     while n_graph < args.n_ultralong_graph and attempts < args.n_ultralong_graph * 4:
         attempts += 1
         target_tok = rng.randint(16500, 42000)
-        effort = rng.choice(["high", "high", "medium"])
+        effort = rng.choice(["medium", "medium", "high"])
         res = _make_ultralong_graph_bfs(tok, rng, target_tok, effort)
         if res is None:
             continue
-        p_ids, tag = res
+        p_ids, tag, meta = res
         ultralong.append(
             {
                 "id": f"v5_ul_graph/{n_graph:05d}",
@@ -609,7 +616,8 @@ def cmd_targeted_v5_prompts(args) -> None:
                 "tag": tag,
                 "effort": effort,
                 "prefix_ids": p_ids,
-                "max_tokens": 4096,
+                "max_tokens": 2560,
+                **meta,
             }
         )
         n_graph += 1
@@ -622,18 +630,22 @@ def cmd_targeted_v5_prompts(args) -> None:
         flush=True,
     )
 
-    # 2. Targeted Competitive Coding Prompts (OpenCodeReasoning -> Orig 4/4 on-policy rollouts)
+    # 2. Hardness-Curated Competitive Coding Prompts (OpenCodeReasoning -> Orig 4/4 on-policy rollouts)
     coding_path = args.output / "prompts_v5_coding.jsonl"
     ocr_path = args.v2_raw / "ocr_0.parquet"
     coding_rows: list[dict] = []
     if ocr_path.exists() and args.n_coding > 0:
-        t = pq.read_table(str(ocr_path), columns=["input"])
+        t = pq.read_table(str(ocr_path), columns=["input", "output"])
         indices = list(range(t.num_rows))
         rng.shuffle(indices)
         seen_u: set[str] = set()
         for idx in indices:
             if len(coding_rows) >= args.n_coding:
                 break
+            raw_out = t["output"][idx].as_py() or ""
+            # Curate genuinely challenging competitive coding problems (skip trivial short warmups)
+            if len(raw_out) < 3500:
+                continue
             u_txt = (t["input"][idx].as_py() or "").strip()
             if len(u_txt) < 120 or len(u_txt) > 14000 or u_txt[:200] in seen_u:
                 continue
@@ -641,7 +653,7 @@ def cmd_targeted_v5_prompts(args) -> None:
                 leaks_skipped += 1
                 continue
             seen_u.add(u_txt[:200])
-            effort = rng.choice(["high", "high", "medium"])
+            effort = rng.choice(["medium", "high", "high"])
             p_str = tok.apply_chat_template(
                 [{"role": "user", "content": u_txt}],
                 tokenize=False,
@@ -658,12 +670,13 @@ def cmd_targeted_v5_prompts(args) -> None:
                     "effort": effort,
                     "prefix_ids": p_ids,
                     "max_tokens": 4096,
+                    "verify_type": "code",
                 }
             )
     coding_path.write_text("".join(json.dumps(r) + "\n" for r in coding_rows))
-    print(f"[v5 prompts] Competitive coding: {len(coding_rows)} rows (leaks_skipped={leaks_skipped}) -> {coding_path}", flush=True)
+    print(f"[v5 prompts] Competitive coding (hard-curated): {len(coding_rows)} rows (leaks_skipped={leaks_skipped}) -> {coding_path}", flush=True)
 
-    # 3. Targeted Graduate STEM (OpenThoughts shard5) + Real Long-Doc QA (LongAlign 10K-48K)
+    # 3. Hardness-Curated Graduate STEM (OpenThoughts shard5) + Real Long-Doc QA (LongAlign 10K-48K)
     sl_path = args.output / "prompts_v5_stem_long.jsonl"
     sl_rows: list[dict] = []
     ot_dir = args.v2_raw / "openthoughts_114k"
@@ -692,7 +705,10 @@ def cmd_targeted_v5_prompts(args) -> None:
             if n_stem_done >= args.n_stem:
                 break
             convs = t["conversations"][idx].as_py()
-            if not convs:
+            if not convs or len(convs) < 2:
+                continue
+            a_txt = convs[1].get("value", "") or ""
+            if len(a_txt) < 3000:
                 continue
             u_txt = (convs[0].get("value", "") or "").strip()
             if len(u_txt) < 80 or len(u_txt) > 12000:
@@ -700,7 +716,7 @@ def cmd_targeted_v5_prompts(args) -> None:
             if _has_13gram_overlap(u_txt, forbidden):
                 leaks_skipped += 1
                 continue
-            effort = rng.choice(["high", "high", "medium"])
+            effort = rng.choice(["medium", "high", "high"])
             p_str = tok.apply_chat_template(
                 [{"role": "user", "content": u_txt}],
                 tokenize=False,
@@ -747,7 +763,7 @@ def cmd_targeted_v5_prompts(args) -> None:
             if _has_13gram_overlap(u_msgs[-1]["content"][-4000:], forbidden):
                 leaks_skipped += 1
                 continue
-            effort = rng.choice(["high", "medium"])
+            effort = rng.choice(["medium", "medium", "high"])
             p_str = tok.apply_chat_template(u_msgs, tokenize=False, add_generation_prompt=True, reasoning_effort=effort)
             p_ids = tok.encode(p_str, add_special_tokens=False)
             if not (10000 <= len(p_ids) <= 48000):
@@ -758,14 +774,14 @@ def cmd_targeted_v5_prompts(args) -> None:
                     "pillar": "v5_longdoc_t4",
                     "effort": effort,
                     "prefix_ids": p_ids,
-                    "max_tokens": 4096,
+                    "max_tokens": 2560,
                 }
             )
             n_la_done += 1
     rng.shuffle(sl_rows)
     sl_path.write_text("".join(json.dumps(r) + "\n" for r in sl_rows))
     print(
-        f"[v5 prompts] STEM + LongDoc: {len(sl_rows)} rows ({n_stem_done} STEM + {n_la_done} LongDoc 10K-48K, "
+        f"[v5 prompts] STEM + LongDoc (hard-curated): {len(sl_rows)} rows ({n_stem_done} STEM + {n_la_done} LongDoc 10K-48K, "
         f"leaks_skipped={leaks_skipped}) -> {sl_path}",
         flush=True,
     )
@@ -881,6 +897,23 @@ def cmd_rollout_vllm(args) -> None:
                             return None
                         if "<|content_text|>" not in txt and "<|content_invoke_tool_json|>" not in txt:
                             return None
+                        # Exact ground-truth / solution verification when prompt carries verify_type metadata
+                        vtype = row.get("verify_type")
+                        if vtype and "<|content_text|>" in txt:
+                            vis = txt.split("<|content_text|>", 1)[1].split("<|content_model_end_sampling|>", 1)[0]
+                            if vtype == "recall":
+                                if row.get("expected_prefix", "") not in vis or row.get("expected_code", "") not in vis:
+                                    return None
+                            elif vtype == "bfs":
+                                import re as _re
+                                exp = set(row.get("expected_nodes") or [])
+                                tail = vis.split("Final Answer:")[-1] if "Final Answer:" in vis else vis[-600:]
+                                found = set(_re.findall(r"\b[a-z0-9]{5}\b", tail))
+                                if not exp or found != exp:
+                                    return None
+                            elif vtype == "code":
+                                if "```" not in vis:
+                                    return None
                     # Re-encode exact raw text (preserving special tokens) + append EOS if stopped naturally
                     suffix_ids = tok.encode(txt, add_special_tokens=False)
                     if fr != "length" and tok.eos_token_id is not None:
@@ -952,11 +985,11 @@ def cmd_build(args) -> None:
             s_ids = r["suffix_ids"]
             if len(p_ids) < 16 or len(s_ids) < 24:
                 continue
-            # Cap ultra-long suffix at 1536 so 52K-prefix rows stay comfortably <150GB VRAM on B300
-            if len(p_ids) > 15000 and len(s_ids) > 1536:
-                s_ids = s_ids[:1536]
-            elif len(s_ids) > 3072:
-                s_ids = s_ids[:3072]
+            # Keep complete natural EOS without chopping answers (B300 288GB handles 52K+2560 and short+4096 cleanly)
+            if len(p_ids) > 15000 and len(s_ids) > 2560:
+                s_ids = s_ids[:2560]
+            elif len(s_ids) > 4096:
+                s_ids = s_ids[:4096]
             # Fast 13-gram audit on newly generated ultralong prompts (v3 prompts already audited, check anyway)
             if r.get("pillar", "").startswith("ultralong_"):
                 tail_txt = tok.decode(p_ids[-1024:], skip_special_tokens=True)
