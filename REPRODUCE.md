@@ -13,8 +13,8 @@ The paper's numbers come from these places, all in this commit:
 3. **Decision-model records** (`ouro/results/lev/`): per-depth LevBench development outputs for the Lev appendix.
 4. **26.4B sparse-MoE Day-0 vLLM records** (`inkling/results/eval_official_exact_avg4.json`, `eval_official_exact.json`, `eval_vllm_*.json`, `vllm_sse_*.json`):
    per-item official-exact scores (`GPQA Diamond` 198, `LiveCodeBench v6` 175, `MRCR v2 8n 256K–512K` 100,
-   `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; including the pre-registered 10-arm full `5×avg@4`
-   evaluation totaling 43,040 rollouts) and isolated single-GPU Day-0 vLLM Blackwell timing (`512..256K`).
+   `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; including the 12-arm full `5×avg@4` evaluation and
+   `2×2` causal factorial totaling 51,648 rollouts) and isolated single-GPU Day-0 vLLM Blackwell timing (`512..256K`).
    `uv run --with numpy --with matplotlib python inkling/make_figs.py` recomputes every 26.4B item-clustered paired
    bootstrap 95% / Holm-Bonferroni CI (5,000 resamples, seed 0) and redraws Figures 6, 16, and 17.
 
@@ -24,7 +24,7 @@ The paper's numbers come from these places, all in this commit:
 
 | Paper item | `paper_numbers.py` function | Runs (launcher in `ouro/runs_scripts/`) |
 |---|---|---|
-| Figure 1 (`fig_tps_teaser`, accuracy vs. end-to-end tokens/s) | `time_breakdown`, `thinking_batched` | `time_controls.sh`, `time_sweep.sh`, Thinking batched serving (`paper_figs.fig_tps_teaser`) |
+| Figure 1 (`fig_tps_teaser`, accuracy vs. end-to-end tokens/s) | `time_breakdown`, `thinking_batched`, `inkling/results/eval_official_exact_avg4.json`, `vllm_sse_vl_*.json` | Inkling Day-0 vLLM evals/timing, `time_controls.sh`, `time_sweep.sh`, Thinking batched serving (`paper_figs.fig_tps_teaser`) |
 | Figure 2 (method diagram `fig0_method`, pseudocode in Figure 11 / Appendix E) | none | `ouro/adapter_model.py`, `ouro/batched.py` |
 | Table 1, Section 5.2 (`tab_main`, LoopBridge vs. Original & Distilled baselines) and its seeds | `main_table`, `main_gains` | `launch_aligned.sh` (LoopBridge), `seed_main.sh`, `launch_x26_distill.sh` (`RANK`, `SEED`) |
 | Figure 3, Section 5.3 (`fig_taskmap`: all 16 pairs m, n in 1..4; full table: Table 9) | `aligned_cells` | `launch_aligned.sh` grid evaluations |

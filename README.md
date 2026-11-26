@@ -29,17 +29,62 @@ Looped (recurrent-depth) language models reuse one block of layers for the same 
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/teaser_horizontal_dark.png">
     <source media="(prefers-color-scheme: light)" srcset="docs/assets/teaser_horizontal.png">
-    <img src="docs/assets/teaser_horizontal.png" alt="LoopBridge accuracy vs end-to-end throughput on Ouro-2.6B and Ouro-2.6B-Thinking" width="96%">
+    <img src="docs/assets/teaser_horizontal.png" alt="LoopBridge accuracy vs end-to-end throughput across 26.4B Inkling-2, Ouro-2.6B, and Ouro-2.6B-Thinking" width="98%">
   </picture>
   <br/>
-  <sub><b>Higher accuracy at higher throughput (tokens/s).</b> (a) Ouro-2.6B on 800 CoT requests (batch 1): LoopBridge 4/1 adds <b>+17.2</b> points at ~28 tok/s; 4/2 runs at <b>2.1×</b> Original 4/4's throughput. (b) Ouro-2.6B-Thinking on all 1,319 GSM8K problems (batch 16): LoopBridge 4/2 reaches <b>94.6%</b> at <b>2.0×</b> Original 4/4's throughput.</sub>
+  <sub><b>Higher accuracy at higher throughput across 26.4B sparse-MoE and 2.6B dense models (one B300).</b> (a) <b>26.4B Inkling-2</b> (<code>TML-d24-varloop</code> in Day-0 vLLM across 5 reasoning &amp; 256K–1M benchmarks, 51,648 avg@4 rollouts at <code>n≥2</code>): 0.02% KV-Only maps hit <b>99.0% of 4/4</b> at 4/3, <b>+2.8* (+9.5* MRCR)</b> at 4/2 (<b>1.68×</b> E2E / <b>1.75×</b> decode), and <b>+7.8*</b> vs. Dist. 1/1 at 3/1; inset: fixed-3 <code>Inkling-2-Mini</code> 3/2 rescues a 2.2% TF collapse to <b>56.6% (+5.1*)</b>. (b) <b>Ouro-2.6B</b> (800 CoT reqs, B=1): 4/1 adds <b>+17.2</b> at ~28 tok/s; 4/2 is <b>2.1×</b> 4/4 TPS. (c) <b>Ouro-2.6B-Thinking</b> (1,319 GSM8K, B=16): 4/2 hits <b>94.6%</b> at <b>2.0×</b> 4/4 TPS.</sub>
 </p>
 
 ---
 
 ## Results
 
-Every number below is recomputed directly from released per-item scores and timing logs via [`paper_numbers.py`](ouro/scripts/paper_numbers.py) (`0 printed values differ`).
+Every number below is recomputed directly from released per-item scores and timing logs via [`inkling/make_figs.py`](inkling/make_figs.py) (26.4B sparse-MoE) and [`ouro/scripts/paper_numbers.py`](ouro/scripts/paper_numbers.py) (Ouro; `0 printed values differ`).
+
+### 26.4B Sparse-MoE Looped Models in Day-0 vLLM (`TML-d24-varloop` & `Inkling-2-Mini`)
+
+Evaluated in Thinking Machines' Day-0 vLLM Blackwell engine on five exact official splits (`GPQA Diamond` 198, `LiveCodeBench v6` 175, `MRCR v2 8n 256K–512K` 100, `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503), revealing a sharp **two-regime law** and verified by a **12-arm (`51,648` four-sample rollouts) 2×2 causal double dissociation**:
+
+<p align="center">
+  <img src="paper/figs/fig_inkling_main.png" alt="Scaling LoopBridge to Thinking Machines' two 26.4B sparse-MoE looped models (TML-d24-varloop and Inkling-2-Mini) in Day-0 vLLM" width="98%">
+  <br/>
+  <sub><b>Thinking Machines' two 26.4B sparse-MoE looped models at a glance.</b> (a) <code>TML-d24-varloop</code> accuracy–throughput frontier in Day-0 vLLM. (b) Regime I & 2×2 causal proof (<code>n ≥ 2</code>, 51,648 rollouts across 12 full 5×avg@4 arms): matched-data <code>KV-Only 2/2</code> (100% synth, <code>m=2</code>) stays flat at <b>67.0%</b> (<code>+0.1</code>), whereas zero-synthetic <code>LB 4/2 0%S</code> hits <b>68.7%*</b> (<code>+1.7*</code> vs. KV 2/2; <code>80.0%</code> MRCR, <code>64.6%</code> LBv2) and matched <code>LB 4/2 KV</code> (<code>r=0</code>, 17 MiB) hits <b>69.6%*</b> (<code>+2.7* [p&lt;1e-3]</code> vs. KV 2/2; <b>+2.8*</b> Holm-98.33% vs. Orig 2/2, <b>+9.5*</b> MRCR 512K); <code>LB 4/3 KV</code> recovers <b>99.0%</b> of Orig 4/4. (c) Regime II (locked 24M controls): fixed-3 <code>Inkling-2-Mini</code> TF 3/2 collapses (2.2%, 93% trunc), while parametric LoopBridge sweeps Distilled <b>5/5</b> on both <code>Mini 3/2</code> (<b>+5.1*</b>) and <code>VarLoop 3/1</code> (<b>+7.8*</b>).</sub>
+</p>
+
+- **Regime I & 2×2 Causal Control (`TML-d24-varloop`, `n ≥ 2`):** Training-free untying works natively, and ultra-compact **KV-Only maps** (`r=0`, `4.46M–6.55M` params = `17.0–25.0 MiB` = **`0.017–0.025%`** of 26.4B, zero decode weight drift) rank #1 at both `4/3` (`1.27×` decode vs. `4/4`) and `4/2` (`1.75×` decode vs. `4/4`). Holding corpus, `t=4` teacher, and `r=0` 100% identical, untying `m=2 → 4` alone yields **`+2.65 [+1.14, +4.16]` 5-Bench (`p < 1e-3`; `+5.49` MRCR, `+3.43` 3-Long)** over matched `KV-Only 2/2` (`2.36M` active params, `+0.1` 5B: `+4.0` MRCR offset by `-1.6` LCB & `-2.0` GW), and stripping **100% of synthetic templates** (`0% nosynth 4/2`, `68.7%`, matching zero-training `TF 4/2 Tail` `68.9%`) still beats full-synthetic `KV-Only 2/2` by **`+1.71 [+0.05, +3.35]` 5-Bench (`+2.60` 3-Long, `+2.39` 1M LBv2; `+3.99` on strictly 13-gram-clean LBv2 `N=307`)**, while synthetic recall/BFS lifts `m=4` (`69.6%`; `+3.34` on 13-gram-clean LBv2 `N=307` vs. `-0.13` on overlapped items) ahead of both.
+- **Regime II — Fixed-depth `Inkling-2-Mini` (`3/2`) & un-gated `n=1` (`3/1`):** All unadapted `n=2` variants collapse (`2.2%`, `93.2%` trunc. for Anchored TF 3/2; `5.6%` GPQA for Tail TF 3/2 & native Orig 2/2; `40.8%` on `VarLoop 3/1`), while parametric LoopBridge rescues accuracy and sweeps parameter-advantaged tied distillation **5/5** under locked 24M controls (`3.55–4.5×` faster training).
+- **All verified 26.4B & Ouro checkpoints** are released on [ModelScope](https://modelscope.cn/models/torushy/LoopBridge).
+
+<details>
+<summary><b>Full per-benchmark 26.4B numbers (12 full 5×avg@4 arms + Regime II) & isolated 512–256K decode speedup figure</b></summary>
+<br/>
+
+| Backbone (26.4B MoE) | Method | Params | GPQA | LCB v6 | MRCR 512K | GW 256K | LBv2 1M | 3-Long | 5-Bench | vLLM Decode (`256K B=2`) |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `TML-d24-varloop` (`@4`) | Original 4/4 (ceiling) | 0 | 82.6 | 76.7 | 94.0 | 56.3 | 64.9 | 71.7 | 74.9 | 1.00× (232 tok/s) |
+| `TML-d24-varloop` (`@4`) | Original 3/3 | 0 | 82.3 | 76.0 | 90.4 | 52.2 | 64.7 | 69.1 | 73.1 | 1.27× (294 tok/s) |
+| `TML-d24-varloop` (`@4`) | TF 4/3 (Tail / Anchored) | 0 | 83.0 / 83.1 | 75.7 / 74.9 | 91.0 / 93.4 | 50.9 / 52.0 | 65.9 / **66.5** | 69.2 / **70.6** | 73.3 / 74.0 | 1.27× (295 tok/s) |
+| `TML-d24-varloop` (`@4`) | **LoopBridge 4/3 KV-Only (`r=0`, 25 MiB)** | **6.55M** | 82.5 | **76.4** | 91.7 | **54.5** | 65.6 | 70.6 | **74.1** | **1.27× (296 tok/s)** |
+| `TML-d24-varloop` (`@4`) | Original 2/2 | 0 | 81.1 | 68.3 | 72.6 | 50.6 | 61.7 | 61.6 | 66.9 | 1.74× (404 tok/s) |
+| `TML-d24-varloop` (`@4`) | KV-Only 2/2 (`m=2`, matched `v5_t4`, 100% synth) | 2.36M‡ | 80.7 | 66.7 | 76.7 | 48.6 | 62.2 | 62.5 | 67.0 | 1.74× |
+| `TML-d24-varloop` (`@4`) | TF 4/2 (Anchored / Tail) | 0 | 81.2 / 80.6 | 69.1 / 67.9 | 77.7 / 78.9 | 51.8 / 52.1 | 62.4 / **64.9** | 64.0 / 65.3 | 68.4 / 68.9 | 1.74× (403 tok/s) |
+| `TML-d24-varloop` (`@4`) | **LoopBridge 4/2 KV-Only (`0% nosynth`, `r=0`)** | **4.46M** | 79.4 | 68.7 | 80.0 | 50.7 | 64.6 | 65.1 | 68.7 | **1.75×** |
+| `TML-d24-varloop` (`@4`) | **LoopBridge 4/2 KV-Only (`r=0`, 17 MiB)** | **4.46M** | 80.9 | **69.4** | **82.2†** | 51.9 | 63.7 | **65.9†** | **69.6†** | **1.75× (406 tok/s)** |
+| `TML-d24-varloop` (`@1`) | Orig 1/1 / TF 3/1 | 0 | 74.7 / 72.7 | 39.4 / 40.6 | 20.7 / 19.5 | 20.0 / 14.4 | 48.9 / 56.7 | 29.9 / 30.2 | 40.8 / 40.8 | 2.76× (642 tok/s) |
+| `TML-d24-varloop` (`@1`) | Distilled 1/1 (24M ctrl) | 43.7M | 69.2 | 44.6 | 24.3 | 25.3 | 53.5 | 34.3 | 43.4 | 2.76× |
+| `TML-d24-varloop` (`@1`) | **LoopBridge 3/1 (24M ctrl, 3.55× faster train)** | **34.6M** | **70.7** | **46.9** | **30.2** | **46.0** | **62.0** | **46.1\*** | **51.2\*** | **2.76× (641 tok/s)** |
+| `Inkling-2-Mini` (`@1`) | Original 3/3 (teacher, symmetric 57K cap) | 0 | 84.3 | 78.3 | 55.9 | 48.0 | 65.8 | 56.6 | 66.5 | 1.00× (295 tok/s) |
+| `Inkling-2-Mini` (`@1`) | TF 3/2 Anchored (93.2% trunc collapse) | 0 | 3.0 | 2.9 | 0.2 | 0.0 | 4.8 | 1.7 | 2.2 | 1.37× |
+| `Inkling-2-Mini` (`@1`) | Orig 2/2 / TF 3/2 Tail (GPQA collapse) | 0 | 5.6 / 5.6 | – | – | – | – | – | – | 1.37× |
+| `Inkling-2-Mini` (`@1`) | Distilled 2/2 (24M ctrl) | 47.4M | 79.3 | 63.4 | 16.6 | 38.3 | 60.0 | 38.3 | 51.5 | 1.36× (401 tok/s) |
+| `Inkling-2-Mini` (`@1`) | **LoopBridge 3/2 (24M ctrl / v2 48M)** | **39.9M** | **79.8** / 82.8 | **65.1** / 66.9 | **27.5** / 29.9 | **50.0** / 49.0 | **60.6** / 63.0 | **46.0\*** / 47.3 | **56.6\*** / 58.3 | **1.37× (403 tok/s)** |
+
+<sub><i>(`@4`): 12-arm full 5×avg@4 across all five splits (51,648 rollouts); TF 5/2 Anchored = 67.8%. ‡<code>KV-Only 2/2</code> has 2.36M active params (4.46M allocated in 4-slot <code>ParameterDict</code>; 2 slots identically zero at <code>m=2</code>). 2×2 causal control: <code>LB 4/2 KV</code> vs. matched <code>KV-Only 2/2</code> = <code>+2.65 [+1.14, +4.16]</code> 5-Bench (<code>p&lt;1e-3</code>), <code>+3.43 [+1.28, +5.60]</code> 3-Long, <code>+5.49 [+0.59, +10.72]</code> MRCR; <code>0% nosynth LB 4/2</code> vs. full-synthetic <code>KV-Only 2/2</code> = <code>+1.71 [+0.05, +3.35]</code> 5-Bench, <code>+2.60 [+0.27, +5.00]</code> 3-Long, <code>+2.39 [+0.80, +4.03]</code> LBv2. †LoopBridge 4/2 KV-Only clears zero vs. Orig 2/2 under both 95% and strict k=3 Holm-Bonferroni 98.33% clustered CIs (<code>+2.78 [+0.82, +4.67]</code> 5-Bench, <code>+4.29 [+1.37, +7.18]</code> 3-Long, <code>+9.54 [+2.91, +16.49]</code> MRCR 512K) plus uncloned 1M LBv2 (<code>+1.99 [+0.25, +3.73]</code>; <code>+3.34 [+0.98, +5.78]</code> on strictly 13-gram-clean N=307 vs. <code>-0.13</code> on overlapped items). Controlled 24M sweeps (*95% CI, avg@1): <code>+7.8 [+4.4, +11.2]</code> on VarLoop 3/1; <code>+5.1 [+2.0, +8.1]</code> on Mini 3/2.</i></sub>
+
+<p align="center">
+  <img src="paper/figs/fig_inkling_pareto.png" alt="26.4B sparse-MoE Pareto frontier and isolated Day-0 vLLM decode speedup" width="96%">
+</p>
+</details>
 
 ### Ouro-2.6B (11-Benchmark Average & Batch-1 Serving)
 
@@ -68,49 +113,6 @@ Every number below is recomputed directly from released per-item scores and timi
 - **Transfers across scales & families:** Works on **Ouro-1.4B** (`34.7 → 44.5` at 4/1; `44.2 ± 0.2` over 3 seeds vs `40.5` distilled) and **Lev looped decision models** (`+4.4` to `+7.5` at one decision loop across all 13/13 *m* > *n* pairs).
 - **Maps matter for long context:** Across 3 seeds on RULER-16K (4/1), LoopBridge scores **63.9 ± 1.0** vs **57.6 ± 1.6** for a parameter-matched rank-80 LoRA and **44.7 ± 4.4** for rank-16 LoRA.
 - **Baselines are tuned:** Scaling the learning rate by `0.3×–3×` shifts Distilled baselines by at most **0.9** points; LoopBridge's weakest LR (`56.8`) stays far above the best distilled baseline (`49.5`).
-
-### 26.4B Sparse-MoE Looped Models in Day-0 vLLM (`TML-d24-varloop` & `Inkling-2-Mini`)
-
-Evaluated in Thinking Machines' Day-0 vLLM Blackwell engine on five exact official splits (`GPQA Diamond` 198, `LiveCodeBench v6` 175, `MRCR v2 8n 256K–512K` 100, `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; recomputable via [`inkling/make_figs.py`](inkling/make_figs.py)), revealing a clean **two-regime law**:
-
-<p align="center">
-  <img src="paper/figs/fig_inkling_main.png" alt="Scaling LoopBridge to Thinking Machines' two 26.4B sparse-MoE looped models (TML-d24-varloop and Inkling-2-Mini) in Day-0 vLLM" width="98%">
-  <br/>
-  <sub><b>Thinking Machines' two 26.4B sparse-MoE looped models at a glance.</b> (a) <code>TML-d24-varloop</code> accuracy–throughput frontier in Day-0 vLLM. (b) Regime I (<code>n ≥ 2</code>, 43,040 rollouts across all 5 benchmarks: 5×avg@4): 0.017–0.025% pure-prompt KV-Only maps (<code>r=0</code>, 17–25 MiB) lead at <code>n=2</code> (<b>+2.8*</b> 5-Bench, <b>+4.3*</b> 3-Long, <b>+9.5*</b> 512K MRCR; Holm-98.33% CI; plus <b>+2.0</b> 1M LBv2) and <code>n=3</code> (<b>99.0%</b> of Orig 4/4). (c) Regime II (locked 24M controls): fixed-3 <code>Inkling-2-Mini</code> TF 3/2 collapses (2.2%, 93% trunc), while parametric LoopBridge sweeps Distilled <b>5/5</b> on both <code>Mini 3/2</code> (<b>+5.1*</b>) and <code>VarLoop 3/1</code> (<b>+7.8*</b>).</sub>
-</p>
-
-- **Regime I — Variable-depth `TML-d24-varloop` (`n ≥ 2`):** Training-free untying works natively, and ultra-compact **KV-Only maps** (`r=0`, `4.46M–6.55M` params = `17.0–25.0 MiB` = **`0.017–0.025%`** of 26.4B, zero decode weight drift) rank #1 on 5-Bench and Pure-4 at both `4/3` (`1.27×` decode vs. `4/4`) and `4/2` (`1.75×` decode vs. `4/4`)—beating `Orig 4/4` even in end-to-end throughput up to `262K`!
-- **Regime II — Fixed-depth `Inkling-2-Mini` (`3/2`) & un-gated `n=1` (`3/1`):** All unadapted `n=2` variants collapse (`2.2%`, `93.2%` trunc. for Anchored TF 3/2; `5.6%` GPQA for Tail TF 3/2 & native Orig 2/2; `40.8%` on `VarLoop 3/1`), while parametric LoopBridge rescues accuracy and sweeps parameter-advantaged tied distillation **5/5** under locked 24M controls (`3.55–4.5×` faster training).
-- **All 8 verified 26.4B checkpoints (16 total with Ouro)** are released on [ModelScope](https://modelscope.cn/models/torushy/LoopBridge).
-
-<details>
-<summary><b>Full per-benchmark 26.4B numbers & isolated 512–256K decode speedup figure</b></summary>
-<br/>
-
-| Backbone (26.4B MoE) | Method | Params | GPQA | LCB v6 | MRCR 512K | GW 256K | LBv2 1M | 3-Long | 5-Bench | vLLM Decode (`256K B=2`) |
-| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `TML-d24-varloop` (`@4`) | Original 4/4 (ceiling) | 0 | 82.6 | 76.7 | 94.0 | 56.3 | 64.9 | 71.7 | 74.9 | 1.00× (232 tok/s) |
-| `TML-d24-varloop` (`@4`) | Original 3/3 | 0 | 82.3 | 76.0 | 90.4 | 52.2 | 64.7 | 69.1 | 73.1 | 1.27× (294 tok/s) |
-| `TML-d24-varloop` (`@4`) | TF 4/3 (Tail / Anchored) | 0 | 83.0 / 83.1 | 75.7 / 74.9 | 91.0 / 93.4 | 50.9 / 52.0 | 65.9 / **66.5** | 69.2 / **70.6** | 73.3 / 74.0 | 1.27× (295 tok/s) |
-| `TML-d24-varloop` (`@4`) | **LoopBridge 4/3 KV-Only (`r=0`, 25 MiB)** | **6.55M** | 82.5 | **76.4** | 91.7 | **54.5** | 65.6 | 70.6 | **74.1** | **1.27× (296 tok/s)** |
-| `TML-d24-varloop` (`@4`) | Original 2/2 | 0 | 81.1 | 68.3 | 72.6 | 50.6 | 61.7 | 61.6 | 66.9 | 1.74× (404 tok/s) |
-| `TML-d24-varloop` (`@4`) | TF 4/2 (Anchored / Tail) | 0 | 81.2 / 80.6 | 69.1 / 67.9 | 77.7 / 78.9 | 51.8 / 52.1 | 62.4 / **64.9** | 64.0 / 65.3 | 68.4 / 68.9 | 1.74× (403 tok/s) |
-| `TML-d24-varloop` (`@4`) | **LoopBridge 4/2 KV-Only (`r=0`, 17 MiB)** | **4.46M** | 80.9 | **69.4** | **82.2†** | 51.9 | 63.7 | **65.9†** | **69.6†** | **1.75× (406 tok/s)** |
-| `TML-d24-varloop` (`@1`) | Orig 1/1 / TF 3/1 | 0 | 74.7 / 72.7 | 39.4 / 40.6 | 20.7 / 19.5 | 20.0 / 14.4 | 48.9 / 56.7 | 29.9 / 30.2 | 40.8 / 40.8 | 2.76× (642 tok/s) |
-| `TML-d24-varloop` (`@1`) | Distilled 1/1 (24M ctrl) | 43.7M | 69.2 | 44.6 | 24.3 | 25.3 | 53.5 | 34.3 | 43.4 | 2.76× |
-| `TML-d24-varloop` (`@1`) | **LoopBridge 3/1 (24M ctrl, 3.55× faster train)** | **34.6M** | **70.7** | **46.9** | **30.2** | **46.0** | **62.0** | **46.1\*** | **51.2\*** | **2.76× (641 tok/s)** |
-| `Inkling-2-Mini` (`@1`) | Original 3/3 (teacher, symmetric 57K cap) | 0 | 84.3 | 78.3 | 55.9 | 48.0 | 65.8 | 56.6 | 66.5 | 1.00× (295 tok/s) |
-| `Inkling-2-Mini` (`@1`) | TF 3/2 Anchored (93.2% trunc collapse) | 0 | 3.0 | 2.9 | 0.2 | 0.0 | 4.8 | 1.7 | 2.2 | 1.37× |
-| `Inkling-2-Mini` (`@1`) | Orig 2/2 / TF 3/2 Tail (GPQA collapse) | 0 | 5.6 / 5.6 | – | – | – | – | – | – | 1.37× |
-| `Inkling-2-Mini` (`@1`) | Distilled 2/2 (24M ctrl) | 47.4M | 79.3 | 63.4 | 16.6 | 38.3 | 60.0 | 38.3 | 51.5 | 1.36× (401 tok/s) |
-| `Inkling-2-Mini` (`@1`) | **LoopBridge 3/2 (24M ctrl / v2 48M)** | **39.9M** | **79.8** / 82.8 | **65.1** / 66.9 | **27.5** / 29.9 | **50.0** / 49.0 | **60.6** / 63.0 | **46.0\*** / 47.3 | **56.6\*** / 58.3 | **1.37× (403 tok/s)** |
-
-<sub><i>(`@4`): pre-registered full 5×avg@4 across all five splits (43,040 rollouts); TF 5/2 Anchored = 67.8%. †LoopBridge 4/2 KV-Only clears zero vs. Orig 2/2 under both 95% and strict k=3 Holm-Bonferroni 98.33% clustered CIs (<code>+2.78 [+0.82, +4.67]</code> 5-Bench, <code>+4.29 [+1.37, +7.18]</code> 3-Long, <code>+9.54 [+2.91, +16.49]</code> MRCR 512K) plus uncloned 1M LBv2 (<code>+1.99 [+0.25, +3.73]</code>, 95% CI, 3.7× lower truncation). On clean non-exploratory confirmatory seeds <code>s1–s3</code>, gains widen further (<code>+3.77</code> 5-Bench / <code>+6.40</code> 3-Long vs. 2/2; <code>+2.34</code> 5-Bench / <code>+3.82</code> 3-Long Holm-sig. vs. TF 4/2 Anchored). Controlled 24M sweeps (*95% CI excludes zero vs. Distilled): <code>+7.8 [+4.4, +11.2]</code> on VarLoop 3/1; <code>+5.1 [+2.0, +8.1]</code> on Mini 3/2.</i></sub>
-
-<p align="center">
-  <img src="paper/figs/fig_inkling_pareto.png" alt="26.4B sparse-MoE Pareto frontier and isolated Day-0 vLLM decode speedup" width="96%">
-</p>
-</details>
 
 ---
 

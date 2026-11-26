@@ -80,14 +80,75 @@ def legend(fig, ours, labels, y=1.1, native="Original n/n (tied)", ncol=3, ours_
                handlelength=1.6, frameon=False)
 
 
+def _load_inkling_teaser_data():
+    """Load verified 26.4B Inkling-2 numbers dynamically from inkling/results/ (zero hardcoding)."""
+    ires = ROOT.parent / "inkling" / "results"
+    ea4 = json.loads((ires / "eval_official_exact_avg4.json").read_text())
+    eo = json.loads((ires / "eval_official_exact.json").read_text())
+    ev3 = json.loads((ires / "eval_vllm_official_v3.json").read_text())
+    elcb = json.loads((ires / "eval_vllm_lcb_fixed_v3.json").read_text())
+    evl = json.loads((ires / "eval_vllm_varloop.json").read_text())
+    bks = ["gpqa_diamond_high", "livecodebench_v6_high", "mrcr_8n_256k_512k", "graphwalks_bfs_256k", "longbench_v2_1m"]
+
+    def m5(src, arm):
+        return float(np.mean([100.0 * src[arm][b]["score"] for b in bks]))
+
+    def m5_mix(arm, fb_v3=None, fb_lcb=None, fb_vl=None):
+        vals = []
+        for b in bks:
+            if arm in eo and b in eo[arm]:
+                vals.append(100.0 * eo[arm][b]["score"])
+            elif b == "livecodebench_v6_high" and fb_lcb and fb_lcb in elcb:
+                vals.append(100.0 * elcb[fb_lcb][b]["score"])
+            elif fb_v3 and fb_v3 in ev3 and b in ev3[fb_v3]:
+                vals.append(100.0 * ev3[fb_v3][b]["score"])
+            else:
+                vals.append(100.0 * evl[fb_vl][b]["score"])
+        return float(np.mean(vals))
+
+    def e2e_cot(arm):
+        rows = json.loads((ires / f"vllm_sse_vl_vl_{arm}_short.json").read_text())["results"]
+        r = next(x for x in rows if (x["L"], x["B"], x["gen_len"]) == (512, 16, 1024))
+        return r["agg_e2e_tok_s"] / 1000.0
+
+    def dec_256k(arm):
+        rows = json.loads((ires / f"vllm_sse_vl_vl_{arm}_long.json").read_text())["results"]
+        r = next(x for x in rows if (x["L"], x["B"], x["gen_len"]) == (262144, 2, 512))
+        return r["agg_decode_tok_s"]
+
+    d44 = dec_256k("orig_4_4")
+    return {
+        "nat4": [(e2e_cot(t), m5(ea4, k), lab) for t, k, lab in (
+            ("orig_4_4", "vl_native_4_4", "4/4"),
+            ("orig_3_3", "vl_native_3_3", "3/3"),
+            ("orig_2_2", "vl_native_2_2", "2/2"),
+        )],
+        "orig_11": (e2e_cot("orig_1_1"), m5_mix("vl_native_1_1", fb_vl="vl_native_1_1")),
+        "dist_11": (e2e_cot("orig_1_1"), m5_mix("vl_distilled_1_1_24m")),
+        "lb_43": (e2e_cot("lb_4_3_kvonly_12m"), m5(ea4, "vl_lb_4_3_kvonly_12m"), dec_256k("lb_4_3_kvonly_12m") / d44),
+        "lb_42": (e2e_cot("lb_4_2_kvonly_12m"), m5(ea4, "vl_lb_4_2_kvonly_12m"), dec_256k("lb_4_2_kvonly_12m") / d44),
+        "lb_31": (e2e_cot("lb_3_1_24m"), m5_mix("vl_lb_3_1_24m"), dec_256k("lb_3_1_24m") / d44),
+        "tf_43": (e2e_cot("tf_4_3_anchored"), m5(ea4, "vl_tf_4_3_anchored")),
+        "tf_42": (e2e_cot("tf_4_2_anchored"), m5(ea4, "vl_tf_4_2_tail")),
+        "e2e_42_vs_44": e2e_cot("lb_4_2_kvonly_12m") / e2e_cot("orig_4_4"),
+        "mrcr_gain_42": 100.0 * (ea4["vl_lb_4_2_kvonly_12m"]["mrcr_8n_256k_512k"]["score"] - ea4["vl_native_2_2"]["mrcr_8n_256k_512k"]["score"]),
+        "mini_tf": m5_mix("mini_tf_3_2_anchored"),
+        "mini_dist": m5_mix("mini_distilled_2_2_v3", fb_v3="distilled_2_2_v3"),
+        "mini_lb": m5_mix("mini_lb_3_2_24m", fb_v3="lb_3_2_24m", fb_lcb="lb_3_2_24m"),
+    }
+
+
 def fig_tps_teaser():
-    """Figure 1 (teaser): accuracy against measured end-to-end throughput (output tokens/s) on the exact same scored
-    requests. Top (a): Ouro-2.6B base, 4 chain-of-thought tasks (800 requests, batch 1, mean of two passes). Bottom (b):
-    Ouro-2.6B-Thinking, all 1,319 GSM8K problems served with continuous batching (batch 16, mean of three passes)."""
+    """Figure 1 (teaser): accuracy vs. measured end-to-end throughput across BOTH model families.
+    Top (a): 26.4B Thinking Machines Inkling-2 (TML-d24-varloop in Day-0 vLLM across 5 reasoning & 256K-1M
+    benchmarks, 51,648 avg@4 rollouts, plus fixed-3 Inkling-2-Mini 3/2 rescue callout).
+    Middle (b): Ouro-2.6B base, 4 CoT tasks (800 requests, batch 1).
+    Bottom (c): Ouro-2.6B-Thinking, all 1,319 GSM8K problems (batch 16)."""
     tasks = [t for t in TIMED if _time(t, "native1st")]
     T = PN.get("thinking_batched", {})
     if not tasks or "gsmthink a4x2pm@16" not in T:
         return drop("fig_tps_teaser")
+    INKL = _load_inkling_teaser_data()
 
     def base_pt(cond):
         rs = [_time(t, cond) for t in tasks]
@@ -101,123 +162,196 @@ def fig_tps_teaser():
         r = T[f"gsmthink {cond}@16"]
         return r["tokens"] / r["s_per_request"], r["acc"]
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(3.3, 3.45), gridspec_kw=dict(height_ratios=[1.15, 0.90]))
+    fig, (ax0, ax1, ax2) = plt.subplots(3, 1, figsize=(3.34, 3.74), gridspec_kw=dict(height_ratios=[1.28, 0.82, 0.70]))
 
-    # --- Panel (a): Ouro-2.6B Base, 4 CoT tasks, batch 1 (all points on the exact same 800 requests) ---
+    # --- Panel (a): 26.4B Inkling-2 (TML-d24-varloop in Day-0 vLLM + Mini 3/2 callout) ---
+    nat4 = INKL["nat4"]
+    nx4, ny4 = [p[0] for p in nat4], [p[1] for p in nat4]
+    x11, y11 = INKL["orig_11"]
+    xd11, yd11 = INKL["dist_11"]
+    x43, y43, sp43 = INKL["lb_43"]
+    x42, y42, sp42 = INKL["lb_42"]
+    x31, y31, sp31 = INKL["lb_31"]
+
+    ax0.plot(nx4, ny4, "-", color=NAT_LIGHT, marker="o", ms=3.8, lw=1.35, zorder=2)
+    ax0.plot([nx4[-1], x11], [ny4[-1], y11], ":", color=NAT_LIGHT, lw=1.05, zorder=1)
+    ax0.scatter([x11], [y11], s=20, facecolor="white", edgecolor=NAT, lw=0.95, zorder=3)
+    ax0.axhline(ny4[0], color=NAT_LIGHT, lw=0.65, ls=":", zorder=0)
+
+    nat0_offs = {"4/4": (0, -9.5), "3/3": (-4, -9.5), "2/2": (-6, -8.5)}
+    for x, y, lab in nat4:
+        ox, oy = nat0_offs[lab]
+        ax0.annotate(lab, (x, y), xytext=(ox, oy), textcoords="offset points", fontsize=6.1, color=NAT, ha="center")
+    ax0.annotate("1/1", (x11, y11), xytext=(-5.5, -1), textcoords="offset points", fontsize=5.9, color=NAT, ha="right", va="center")
+
+    # Distilled 1/1
+    ax0.scatter([xd11], [yd11], marker="^", s=24, color=DIST, zorder=4)
+    ax0.annotate("Dist. 1/1", (xd11, yd11), xytext=(5.0, 0.5), textcoords="offset points", fontsize=5.6, color=DIST, ha="left", va="center")
+
+    # Zero-training TF 4/n (honest comparison right on Page 1!)
+    xtf43, ytf43 = INKL["tf_43"]
+    xtf42, ytf42 = INKL["tf_42"]
+    ax0.scatter([xtf43, xtf42], [ytf43, ytf42], marker="D", s=22, facecolor="none", edgecolor=INK, lw=0.9, zorder=7)
+
+    # Ours LoopBridge (4/3 KV, 4/2 KV, 3/1)
+    ax0.plot([x43, x42], [y43, y42], "-", color=OURS, lw=1.55, zorder=3)
+    ax0.scatter([x43, x42], [y43, y42], marker="s", s=27, color=OURS, zorder=5)
+    ax0.scatter([x31], [y31], marker="s", s=26, facecolor="white", edgecolor=OURS, lw=1.3, zorder=5)
+
+    # Gain arrows & crisp annotations
+    ax0.annotate("", xy=(x42, y42 - 1.3), xytext=(nx4[2], ny4[2] + 1.3),
+                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=0.9, mutation_scale=7.0), zorder=4)
+    ax0.annotate("", xy=(x31 - 0.01, y31 - 1.8), xytext=(xd11 + 0.01, yd11 + 1.9),
+                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=0.95, mutation_scale=7.2), zorder=4)
+
+    rec43 = 100.0 * y43 / ny4[0]
+    ax0.annotate(f"4/3 KV ({rec43:.0f}% of 4/4; TF {ytf43:.0f}%)", (x43, y43), xytext=(7, 6.5), textcoords="offset points",
+                 fontsize=5.75, color=OURS, fontweight="bold", ha="left", va="bottom",
+                 arrowprops=dict(arrowstyle="-", color=OURS, lw=0.55, shrinkA=0, shrinkB=2.5))
+    ax0.annotate(f"4/2 KV (+{y42 - ny4[2]:.1f}*, +{INKL['mrcr_gain_42']:.1f} MRCR)\n{INKL['e2e_42_vs_44']:.2f}x E2E ({sp42:.2f}x dec.)",
+                 (x42, y42), xytext=(8, 0.8), textcoords="offset points", fontsize=5.55, color=OURS,
+                 fontweight="bold", ha="left", va="center", linespacing=1.08)
+    ax0.annotate(f"3/1 (+{y31 - yd11:.1f}* vs Dist.)", (x31, y31), xytext=(0, 6.5), textcoords="offset points",
+                 fontsize=5.6, color=OURS, fontweight="bold", ha="center", va="bottom",
+                 bbox=dict(fc="white", ec="none", alpha=0.85, pad=0.2), zorder=6)
+
+    # Compact Fixed-3 Inkling-2-Mini callout card cleanly tucked in bottom-left whitespace (zero overlap!)
+    mini_txt = (f"Fixed-3 Inkling-2-Mini 3/2 (26.4B):\n"
+                f"TF collapses ({INKL['mini_tf']:.1f}%) → LB {INKL['mini_lb']:.1f}%\n"
+                f"(+{INKL['mini_lb'] - INKL['mini_dist']:.1f}* vs Dist. 2/2)")
+    ax0.text(1.73, 40.2, mini_txt, fontsize=5.2, color=INK, ha="left", va="bottom", linespacing=1.15,
+             bbox=dict(boxstyle="round,pad=0.25", fc="#FEF3EE", ec=OURS, lw=0.6), zorder=5)
+
+    ax0.set_title("(a) 26.4B Inkling-2 (Day-0 vLLM, 5 benches to 1M)", fontsize=7.2, color=INK, fontweight="bold", loc="left", pad=2.5)
+    ax0.set_xlabel("Day-0 vLLM E2E throughput (k tokens/s)", fontsize=6.7, color=INK, labelpad=1.0)
+    ax0.set_ylabel("5-bench acc. (%)", fontsize=6.8)
+    ax0.set_xlim(1.65, 5.20); ax0.set_ylim(37.5, 85.5)
+    ax0.set_xticks([2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0])
+    ax0.set_yticks([40, 50, 60, 70, 80])
+    ax0.grid(color="#EDEDED", lw=0.5); ax0.set_axisbelow(True)
+    ax0.tick_params(labelsize=6.5)
+
+    # --- Panel (b): Ouro-2.6B Base, 4 CoT tasks, batch 1 (all points on the exact same 800 requests) ---
     nat_b = [(base_pt(f"native{d}st"), f"{d}/{d}") for d in (4, 2, 1)]
-    ax1.plot([p[0][0] for p in nat_b], [p[0][1] for p in nat_b], "-", color=NAT_LIGHT, marker="o", ms=4.4, lw=1.5, zorder=2)
-    nat_offs = {"4/4": (0, -11), "2/2": (-8, -10), "1/1": (0, -10)}
+    ax1.plot([p[0][0] for p in nat_b], [p[0][1] for p in nat_b], "-", color=NAT_LIGHT, marker="o", ms=3.8, lw=1.35, zorder=2)
+    nat_offs = {"4/4": (0, -9.5), "2/2": (-8, -8.5), "1/1": (0, -8.5)}
     for (x, y), lab in nat_b:
         ox, oy = nat_offs[lab]
-        ax1.annotate(lab, (x, y), xytext=(ox, oy), textcoords="offset points", fontsize=6.9, color=NAT, ha="center")
+        ax1.annotate(lab, (x, y), xytext=(ox, oy), textcoords="offset points", fontsize=6.1, color=NAT, ha="center")
 
     lb2, lb1 = base_pt("a4x2pm"), base_pt("a4x1pm")
-    ax1.plot([lb2[0], lb1[0]], [lb2[1], lb1[1]], "-", color=OURS, lw=1.7, zorder=3)
+    ax1.plot([lb2[0], lb1[0]], [lb2[1], lb1[1]], "-", color=OURS, lw=1.55, zorder=3)
     for (x, y) in (lb2, lb1):
-        ax1.scatter(x, y, marker="s", s=32, color=OURS, zorder=4)
-    ax1.annotate("4/2", lb2, xytext=(5, 3), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="left", va="bottom")
-    ax1.annotate("4/1", lb1, xytext=(0, 6), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold", ha="center")
+        ax1.scatter(x, y, marker="s", s=26, color=OURS, zorder=4)
+    ax1.annotate("4/2", lb2, xytext=(5, -1.5), textcoords="offset points", fontsize=6.2, color=OURS, fontweight="bold", ha="left", va="top")
+    ax1.annotate("4/1", lb1, xytext=(0, 5.0), textcoords="offset points", fontsize=6.2, color=OURS, fontweight="bold", ha="center")
 
-    # Gain callouts (printed-value differences: 45.0 - 27.8 = +17.2; TPS ratio: 14.3 / 6.7 = 2.1x)
     g1 = round(lb1[1], 1) - round(nat_b[2][0][1], 1)
     ax1.annotate("", xy=(nat_b[2][0][0], lb1[1] - 0.6), xytext=(nat_b[2][0][0], nat_b[2][0][1] + 2.4),
-                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.05, mutation_scale=8), zorder=4)
-    ax1.text(nat_b[2][0][0] + 0.65, (lb1[1] + nat_b[2][0][1]) / 2, f"+{g1:.1f}", fontsize=7.1, color=OURS,
+                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=0.9, mutation_scale=7.0), zorder=4)
+    ax1.text(nat_b[2][0][0] + 0.65, (lb1[1] + nat_b[2][0][1]) / 2, f"+{g1:.1f}", fontsize=6.4, color=OURS,
              fontweight="bold", ha="left", va="center")
-    # Horizontal TPS callout linking 4/4 -> 4/2 (matching Panel b's arrow grammar)
     x44, y44 = nat_b[0][0]
-    ax1.vlines(x44, y44 + 2.0, 73.0, color=NAT_LIGHT, lw=0.65, ls=":", zorder=1)
-    ax1.annotate("", xy=(lb2[0], 72.2), xytext=(x44 + 0.3, 72.2),
-                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.0, mutation_scale=7.5), zorder=4)
-    ax1.text(lb2[0] + 0.5, 72.2, rf"{lb2[0] / x44:.1f}$\times$ TPS of 4/4", fontsize=6.9, color=OURS,
+    ax1.vlines(x44, y44 + 2.0, 74.8, color=NAT_LIGHT, lw=0.6, ls=":", zorder=1)
+    ax1.annotate("", xy=(lb2[0], 73.8), xytext=(x44 + 0.3, 73.8),
+                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=0.9, mutation_scale=6.8), zorder=4)
+    ax1.text(lb2[0] + 0.5, 73.8, rf"{lb2[0] / x44:.1f}$\times$ TPS of 4/4", fontsize=6.1, color=OURS,
              fontweight="bold", ha="left", va="center")
 
-    ax1.set_title("(a) Ouro-2.6B, 4 CoT tasks (batch 1)", fontsize=8.0, color=INK, fontweight="bold", loc="left", pad=4)
-    ax1.set_xlabel("end-to-end throughput (output tokens/s)", fontsize=7.8, color=INK, labelpad=2.5)
-    ax1.set_ylabel("mean accuracy (%)", fontsize=7.8)
+    ax1.set_title("(b) Ouro-2.6B, 4 CoT tasks (batch 1)", fontsize=7.2, color=INK, fontweight="bold", loc="left", pad=2.5)
+    ax1.set_xlabel("end-to-end throughput (output tokens/s)", fontsize=6.7, color=INK, labelpad=1.0)
+    ax1.set_ylabel("mean acc. (%)", fontsize=6.8)
     ax1.set_xlim(4.5, 33.4); ax1.set_ylim(19.5, 78.5)
     ax1.set_xticks([5, 10, 15, 20, 25, 30])
     ax1.grid(color="#EDEDED", lw=0.5); ax1.set_axisbelow(True)
-    ax1.tick_params(labelsize=7.2)
+    ax1.tick_params(labelsize=6.5)
 
-    # --- Panel (b): Ouro-2.6B-Thinking, GSM8K (all 1,319), batch 16 ---
+    # --- Panel (c): Ouro-2.6B-Thinking, GSM8K (all 1,319), batch 16 ---
     n4, n2, o42 = think_pt("native4st"), think_pt("native2st"), think_pt("a4x2pm")
-    ax2.plot([n4[0], n2[0]], [n4[1], n2[1]], "-", color=NAT_LIGHT, marker="o", ms=4.2, lw=1.5, zorder=2)
-    ax2.axhline(n4[1], color=NAT_LIGHT, lw=0.7, ls=":", zorder=1)
-    ax2.annotate("Original 4/4", n4, xytext=(0, -13), textcoords="offset points", fontsize=6.8, color=NAT, ha="left")
-    ax2.annotate("Original 2/2", n2, xytext=(-4, -11), textcoords="offset points", fontsize=6.8, color=NAT, ha="right")
-    ax2.scatter(*o42, marker="s", s=34, color=OURS, zorder=4)
-    ax2.annotate("Ours 4/2", o42, xytext=(0, 6), textcoords="offset points", fontsize=7.0, color=OURS, fontweight="bold",
-                 ha="center", bbox=dict(fc="white", ec="none", alpha=0.85, pad=0.35), zorder=5)
+    ax2.plot([n4[0], n2[0]], [n4[1], n2[1]], "-", color=NAT_LIGHT, marker="o", ms=3.6, lw=1.35, zorder=2)
+    ax2.axhline(n4[1], color=NAT_LIGHT, lw=0.65, ls=":", zorder=1)
+    ax2.annotate("Original 4/4", n4, xytext=(0, -10.0), textcoords="offset points", fontsize=6.0, color=NAT, ha="left")
+    ax2.annotate("Original 2/2", n2, xytext=(-4, -9.0), textcoords="offset points", fontsize=6.0, color=NAT, ha="right")
+    ax2.scatter(*o42, marker="s", s=27, color=OURS, zorder=4)
+    ax2.annotate("Ours 4/2", o42, xytext=(0, 5.0), textcoords="offset points", fontsize=6.2, color=OURS, fontweight="bold",
+                 ha="center", bbox=dict(fc="white", ec="none", alpha=0.85, pad=0.25), zorder=5)
 
-    # Horizontal speedup arrow at Original 4/4 accuracy level
     ax2.annotate("", xy=(o42[0] - 5, n4[1] + 0.14), xytext=(n4[0] + 5, n4[1] + 0.14),
-                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=1.1, mutation_scale=8), zorder=4)
+                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=0.95, mutation_scale=7.0), zorder=4)
     ax2.text((n4[0] + o42[0]) / 2 - 4, n4[1] + 0.36, rf"{o42[0] / n4[0]:.1f}$\times$ TPS, +{o42[1] - n4[1]:.1f} acc",
-             fontsize=7.0, color=OURS, fontweight="bold", ha="center", va="bottom")
+             fontsize=6.3, color=OURS, fontweight="bold", ha="center", va="bottom")
 
-    ax2.set_title("(b) Ouro-2.6B-Thinking, GSM8K (batch 16)", fontsize=8.0, color=INK, fontweight="bold", loc="left", pad=4)
-    ax2.set_xlabel("end-to-end throughput (output tokens/s)", fontsize=7.8, color=INK, labelpad=2.5)
-    ax2.set_ylabel("accuracy (%)", fontsize=7.8)
+    ax2.set_title("(c) Ouro-2.6B-Thinking, GSM8K (batch 16)", fontsize=7.2, color=INK, fontweight="bold", loc="left", pad=2.5)
+    ax2.set_xlabel("end-to-end throughput (output tokens/s)", fontsize=6.7, color=INK, labelpad=1.0)
+    ax2.set_ylabel("acc. (%)", fontsize=6.8)
     ax2.set_xlim(105, 272); ax2.set_ylim(91.7, 95.9)
     ax2.set_yticks([92, 93, 94, 95])
     ax2.grid(color="#EDEDED", lw=0.5); ax2.set_axisbelow(True)
-    ax2.tick_params(labelsize=7.2)
+    ax2.tick_params(labelsize=6.5)
 
     L = plt.Line2D
-    h = [L([], [], color=OURS, marker="s", ms=4.5, lw=1.6),
-         L([], [], color=NAT_LIGHT, marker="o", ms=4.4, lw=1.5)]
-    l = ["Ours (LoopBridge 4/n)", "Original n/n (tied)"]
-    fig.legend(h, l, loc="upper center", ncol=2, fontsize=7.0, bbox_to_anchor=(0.52, 1.015),
-               handlelength=1.5, columnspacing=1.2, frameon=False)
-    fig.subplots_adjust(left=0.16, right=0.98, top=0.875, bottom=0.105, hspace=0.58)
+    h = [L([], [], color=OURS, marker="s", ms=3.8, lw=1.3),
+         L([], [], color=NAT_LIGHT, marker="o", ms=3.6, lw=1.3),
+         L([], [], color=INK, marker="D", mfc="none", ms=3.6, lw=0),
+         L([], [], color=DIST, marker="^", ms=3.8, lw=0)]
+    l = ["Ours (LB)", "Orig n/n", "TF 4/n", "Dist. (a)"]
+    fig.legend(h, l, loc="upper center", ncol=4, fontsize=5.8, bbox_to_anchor=(0.52, 1.015),
+               handlelength=1.0, columnspacing=0.65, handletextpad=0.3, frameon=False)
+    fig.subplots_adjust(left=0.16, right=0.98, top=0.915, bottom=0.085, hspace=0.74)
     save(fig, "fig_tps_teaser")
 
 
 def fig0():
-    """Figure 3 (method, timed form): the frozen model prefills the prompt once with m loops; LoopBridge maps the prompt
-    KV of prefill loop max(m-n+k, 1) once per prompt into a cache for decode loop k (key scale per rotary pair, value
-    map); every token then runs n decode loops (frozen model + LoRA), loop k attending to its own cache and answer KV."""
+    """Figure 2 (method, unified RoPE Ouro & NoPE 26.4B Inkling-2): frozen backbone prefills once with m loops;
+    LoopBridge folds prompt KV maps once per prompt (RoPE complex scale c_k / W_k on Ouro; NoPE Global-3
+    cross-pass residual fusion I + Delta on K and V for 26.4B Inkling-2); decode runs n loops per token with
+    zero decode overhead (Regime I: r=0 frozen decoder; Regime II: merged decoder LoRA)."""
     from matplotlib.patches import FancyBboxPatch
-    fig, ax = plt.subplots(figsize=(6.9, 2.1))
-    ax.set_xlim(0, 128); ax.set_ylim(0, 31.5); ax.axis("off")
+    fig, ax = plt.subplots(figsize=(6.9, 2.38))
+    ax.set_xlim(0, 140); ax.set_ylim(0, 36.5); ax.axis("off")
     LIGHT = "#FDEBE3"   # light tint of OURS: the adapter's parts
     GREY = "#F2F2F2"
 
-    def box(x, y, w, h, text, fc=GREY, ec=NAT_LIGHT, lw=0.7, size=6.9, color=INK, weight="normal"):
+    def box(x, y, w, h, text, fc=GREY, ec=NAT_LIGHT, lw=0.7, size=6.3, color=INK, weight="normal"):
         ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.2,rounding_size=0.8", fc=fc, ec=ec, lw=lw))
-        ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=size, color=color, fontweight=weight)
+        ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=size, color=color, fontweight=weight, linespacing=1.18)
 
     def arrow(x0, y0, x1, y1, c=NAT, lw=0.85):
         ax.annotate("", xy=(x1, y1), xytext=(x0, y0),
                     arrowprops=dict(arrowstyle="-|>", lw=lw, color=c, mutation_scale=8, shrinkA=1, shrinkB=1))
 
-    dots = lambda x, y: ax.text(x, y, "$\\vdots$", ha="center", va="center", fontsize=10, color=NAT)
-    for x, t in ((12.5, "Prefill: once, $m$ loops"), (51.0, "LoopBridge: once per prompt"), (94.0, "Decode: $n$ loops per token")):
-        ax.text(x, 29.5, t, ha="center", va="center", fontsize=7.5, color=INK, fontweight="bold")
-    # prefill column (frozen model)
-    box(1.5, 21.0, 22, 4.2, "prefill loop $m$")
-    dots(12.5, 17.5); arrow(12.5, 19.1, 12.5, 20.8)
-    box(1.5, 11.0, 22, 4.2, "prefill loop $m{-}n{+}1$")
-    dots(12.5, 7.6); arrow(12.5, 9.2, 12.5, 10.8)
-    box(1.5, 1.5, 22, 4.2, "prefill loop $1$")
-    # maps column (adapter)
-    box(37.0, 20.7, 28, 4.8, "cache $n$:  $c_n \\odot K$,  $W_n V$", fc=LIGHT, ec=OURS, lw=1.0)
-    dots(51.0, 18.0)
-    box(37.0, 10.7, 28, 4.8, "cache $1$:  $c_1 \\odot K$,  $W_1 V$", fc=LIGHT, ec=OURS, lw=1.0)
-    ax.text(51.0, 5.4, "key scale per rotary pair, value map;\nfolded into the prompt cache once", ha="center",
-            va="center", fontsize=7.0, color=OURS)
-    arrow(24.0, 23.1, 36.5, 23.1, OURS); arrow(24.0, 13.1, 36.5, 13.1, OURS)
-    ax.text(30.2, 24.6, "$K, V$", ha="center", fontsize=7.0, color=NAT); ax.text(30.2, 14.6, "$K, V$", ha="center", fontsize=7.0, color=NAT)
-    # decode column (frozen model + LoRA)
-    box(80.0, 21.0, 28, 4.2, "decode loop $n$ (+ LoRA)", ec=OURS, lw=0.9)
-    dots(94.0, 17.5); arrow(94.0, 19.1, 94.0, 20.8)
-    box(80.0, 11.0, 28, 4.2, "decode loop $1$ (+ LoRA)", ec=OURS, lw=0.9)
-    box(87.5, 1.5, 13, 3.8, "token", fc="white")
-    arrow(94.0, 5.6, 94.0, 10.8)
-    arrow(65.5, 23.1, 79.5, 23.1, OURS); arrow(65.5, 13.1, 79.5, 13.1, OURS)
-    arrow(108.5, 23.1, 113.0, 23.1); ax.text(113.8, 23.1, "next\ntoken", ha="left", va="center", fontsize=7.0, color=INK)
-    ax.text(102.5, 5.4, "loop $k$ attends to cache $k$\nand to the answer's KV", ha="left", va="center", fontsize=6.8, color=NAT)
+    dots = lambda x, y: ax.text(x, y, "$\\vdots$", ha="center", va="center", fontsize=9.5, color=NAT)
+    for x, t in ((12.0, "Prefill: once, $m$ loops"), (57.5, "LoopBridge: once per prompt"), (107.0, "Decode: $n$ loops per token")):
+        ax.text(x, 34.5, t, ha="center", va="center", fontsize=7.3, color=INK, fontweight="bold")
+    # prefill column (frozen model; unified 1-indexed loops 1..m)
+    box(1.0, 25.5, 22, 4.4, "prefill loop $m$")
+    dots(12.0, 21.8); arrow(12.0, 23.4, 12.0, 25.2)
+    box(1.0, 15.2, 22, 4.4, "prefill loop $j(1)$")
+    dots(12.0, 11.6); arrow(12.0, 13.2, 12.0, 14.9)
+    box(1.0, 5.4, 22, 4.4, "prefill loop $1$")
+    ax.text(12.0, 1.8, "tail: $j(k){=}m{-}n{+}k$\nanchored: $j(1){=}1$ (1-idx)", ha="center", va="center", fontsize=5.7, color=NAT, linespacing=1.15)
+
+    # maps column (adapter: unified RoPE Ouro + NoPE 26.4B Inkling-2, both K and V)
+    box(34.5, 25.0, 46, 5.4, "cache $n$:  RoPE $c_n\\odot K,\\, W_n V$\nNoPE: $K_{j(n)}+\\Sigma_p\\Delta^K_{n,p}K_p$ (+ $V$)", fc=LIGHT, ec=OURS, lw=1.0, size=6.0)
+    dots(57.5, 22.0)
+    box(34.5, 14.7, 46, 5.4, "cache $1$:  RoPE $c_1\\odot K,\\, W_1 V$\nNoPE: $K_{j(1)}+\\Sigma_p\\Delta^K_{1,p}K_p$ (+ $V$)", fc=LIGHT, ec=OURS, lw=1.0, size=6.0)
+    ax.text(57.5, 8.2, "Folded once into prompt KV (0% decode overhead)\nOuro: all layers (RoPE)  |  Inkling-2: Global-3 (L11/17/23)",
+            ha="center", va="center", fontsize=5.75, color=OURS, linespacing=1.22)
+    arrow(23.5, 27.7, 34.0, 27.7, OURS); arrow(23.5, 17.4, 34.0, 17.4, OURS)
+    ax.annotate("", xy=(34.0, 15.8), xytext=(23.5, 8.4),
+                arrowprops=dict(arrowstyle="-|>", lw=0.7, ls="--", color=OURS, alpha=0.65, mutation_scale=7))
+    ax.text(28.8, 29.2, "$K,V$", ha="center", fontsize=6.4, color=NAT); ax.text(28.8, 18.9, "$K,V$", ha="center", fontsize=6.4, color=NAT)
+
+    # decode column (Two-Regime Law: Regime I r=0 frozen vs Regime II + LoRA)
+    box(89.5, 25.5, 35, 4.4, "decode loop $n$ ($r{=}0$ or +LoRA)", ec=OURS, lw=0.9, size=6.0)
+    dots(107.0, 21.8); arrow(107.0, 23.4, 107.0, 25.2)
+    box(89.5, 15.2, 35, 4.4, "decode loop $1$ ($r{=}0$ or +LoRA)", ec=OURS, lw=0.9, size=6.0)
+    box(100.5, 6.2, 13, 3.6, "token", fc="white", size=6.3)
+    arrow(107.0, 10.1, 107.0, 14.9)
+    arrow(81.0, 27.7, 89.0, 27.7, OURS); arrow(81.0, 17.4, 89.0, 17.4, OURS)
+    arrow(125.0, 27.7, 129.5, 27.7); ax.text(130.5, 27.7, "next\ntoken", ha="left", va="center", fontsize=6.4, color=INK)
+    ax.text(107.0, 2.0, "Regime I (varloop $n\\geq 2$): $r{=}0$ frozen decoder (0.02% KV)\nRegime II (fixed-depth / $n{=}1$): merged decoder LoRA",
+            ha="center", va="center", fontsize=5.65, color=NAT, linespacing=1.18)
     save(fig, "fig0_method")
 
 

@@ -72,9 +72,11 @@ LONG_KEYS = BENCH_KEYS[2:]
 
 AVG4_ARMS = [
     "vl_native_2_2",
+    "vl_kvonly_2_2_t4_12m",
     "vl_tf_4_2_tail",
     "vl_tf_4_2_anchored",
     "vl_tf_5_2_anchored",
+    "vl_lb_4_2_kvonly_nosynth_12m",
     "vl_lb_4_2_kvonly_12m",
     "vl_native_3_3",
     "vl_tf_4_3_tail",
@@ -94,8 +96,8 @@ def save(fig, name: str) -> None:
 def load_evals() -> tuple[dict[str, dict[str, dict]], dict[str, dict[str, dict]]]:
     """Load (evals_avg1, evals_avg4) directly from archived official-exact JSONs.
 
-    evals_avg4 holds the 10 pre-registered TML-d24-varloop arms evaluated with
-    4x symmetric sampling (#s0..#s3) on {GPQA, LCB, MRCR, GW} plus LBv2@1 (N=503).
+    evals_avg4 holds all 12 full 5xavg@4 TML-d24-varloop arms (51,648 rollouts,
+    including the 2x2 causal factorial controls) evaluated with 4x symmetric sampling.
     evals_avg1 holds all single-sample (seed=42) official-exact arms across
     TML-d24-varloop and Inkling-2-Mini.
     """
@@ -168,7 +170,7 @@ def load_evals() -> tuple[dict[str, dict[str, dict]], dict[str, dict[str, dict]]
     add1("mini_lb_3_1_24m", "mini_lb_3_1_24m", fb_v3="lb_3_1_24m")
     add1("mini_distilled_1_1_v3", "mini_distilled_1_1_v3", fb_v3="distilled_1_1_v3", fb_lcb="distilled_1_1_v3")
 
-    # TML-d24-varloop-research (TRUE 5/5 symmetric avg@4 across ALL 5 benchmarks = 43,040 rollouts)
+    # TML-d24-varloop-research (12-arm TRUE 5/5 symmetric avg@4 across ALL 5 benchmarks = 51,648 rollouts)
     evals_avg4: dict[str, dict[str, dict]] = {}
     for arm in AVG4_ARMS:
         entry = {}
@@ -442,8 +444,8 @@ def make_pareto_and_speed_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dict)
 def make_ablate_and_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
     """Two-panel figure proving the Two-Regime Law on 26.4B sparse-MoEs:
     (a) Regime I (variable-depth TML-d24-varloop, n >= 2, symmetric avg@4,
-        27,950 rollouts): n=2 (1.75x) and n=3 (1.27x) ladders comparing Orig n/n,
-        zero-training Tail/Anchored, and pure-prompt KV-Only (17-25 MiB, r=0).
+        51,648 rollouts): n=2 (1.75x) and n=3 (1.27x) ladders comparing Orig n/n,
+        matched KV-Only 2/2, zero-training Tail/Anchored, and pure-prompt KV-Only (17-25 MiB, r=0).
     (b) Regime II (fixed-depth Inkling-2-Mini 3/2 & un-gated VarLoop 3/1, avg@1):
         training-free collapse (Mini TF 3/2 = 2.2%, 93% trunc; VarLoop TF 3/1 = 40.8%)
         rescued by parametric LoopBridge, sweeping tied Distilled 5/5 on both backbones.
@@ -452,22 +454,22 @@ def make_ablate_and_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
         1, 2, figsize=(6.95, 2.75), gridspec_kw={"width_ratios": [1.06, 1.04], "wspace": 0.25}
     )
 
-    # --- Panel (a): Regime I symmetric avg@4 ladders ---
+    # --- Panel (a): Regime I symmetric avg@4 ladders + 2x2 causal dissociation ---
     n2_arms = [
         ("vl_native_2_2", "Orig\n2/2", NAT_LIGHT),
-        ("vl_tf_4_2_anchored", "TF 4/2\nAnch.", "#B5B5B5"),
-        ("vl_tf_4_2_tail", "TF 4/2\nTail", "#9A9A9A"),
-        ("vl_lb_4_2_kvonly_12m", "LB 4/2\nKV", OURS_DARK),
+        ("vl_kvonly_2_2_t4_12m", "KV\n2/2", DIST),
+        ("vl_tf_4_2_tail", "TF\nTail", "#9A9A9A"),
+        ("vl_lb_4_2_kvonly_nosynth_12m", "4/2\n0%S", OURS_LIGHT),
+        ("vl_lb_4_2_kvonly_12m", "4/2\nKV", OURS_DARK),
     ]
     n3_arms = [
         ("vl_native_3_3", "Orig\n3/3", NAT_LIGHT),
-        ("vl_tf_4_3_tail", "TF 4/3\nTail", "#B5B5B5"),
-        ("vl_tf_4_3_anchored", "TF 4/3\nAnch.", "#9A9A9A"),
-        ("vl_lb_4_3_kvonly_12m", "LB 4/3\nKV", OURS_DARK),
+        ("vl_tf_4_3_anchored", "TF\nAnch.", "#9A9A9A"),
+        ("vl_lb_4_3_kvonly_12m", "4/3\nKV", OURS_DARK),
     ]
-    pos1 = [0.0, 1.05, 2.10, 3.15, 4.65, 5.70, 6.75, 7.80]
+    pos1 = [0.0, 1.06, 2.12, 3.18, 4.24, 5.66, 6.72, 7.78]
     all_a = n2_arms + n3_arms
-    w = 0.40
+    w = 0.35
     m5_a = [macro_pct(evals_avg4, a, BENCH_KEYS) for a, _, _ in all_a]
     m3_a = [macro_pct(evals_avg4, a, LONG_KEYS) for a, _, _ in all_a]
     cols_a = [c for _, _, c in all_a]
@@ -481,37 +483,39 @@ def make_ablate_and_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
 
     for i, bar in enumerate(bars5_a):
         h = bar.get_height()
-        suf = "*" if i == 3 else ""
+        suf = "*" if i in (3, 4) else ""
         ax1.annotate(
             f"{h:.1f}{suf}",
             (bar.get_x() + bar.get_width() / 2, h),
-            xytext=(-1.0, 1.8),
+            xytext=(-1.2, 1.8),
             textcoords="offset points",
             ha="center",
             va="bottom",
-            fontsize=5.4,
-            fontweight="bold" if i in (3, 7) else "normal",
-            color=OURS_DARK if i in (3, 7) else INK,
+            fontsize=5.2,
+            fontweight="bold" if i in (3, 4, 7) else "normal",
+            color=OURS_DARK if i in (3, 4, 7) else INK,
             bbox=dict(facecolor="white", edgecolor="none", pad=0.35, alpha=0.88) if i in (6, 7) else None,
             zorder=6,
         )
     for i, bar in enumerate(bars3_a):
         h = bar.get_height()
-        suf = "*" if i == 3 else ""
+        suf = "*" if i in (3, 4) else ""
         ax1.annotate(
             f"{h:.1f}{suf}",
             (bar.get_x() + bar.get_width() / 2, h),
-            xytext=(1.8, 1.5),
+            xytext=(2.2, 1.5),
             textcoords="offset points",
             ha="center",
             va="bottom",
-            fontsize=5.0,
-            color=OURS_DARK if i in (3, 7) else NAT,
+            fontsize=4.5,
+            color=OURS_DARK if i in (3, 4, 7) else NAT,
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.15, alpha=0.80),
+            zorder=5,
         )
 
-    ax1.axvline(3.90, color=GRID, lw=1.0)
-    ax1.text(1.58, 77.6, "$n=2$ (1.75x vs 4/4)", fontsize=6.3, fontweight="bold", color=INK, ha="center")
-    ax1.text(6.22, 77.6, "$n=3$ (1.27x vs 4/4)", fontsize=6.3, fontweight="bold", color=INK, ha="center")
+    ax1.axvline(4.95, color=GRID, lw=1.0)
+    ax1.text(2.12, 77.6, "$n=2$ 2x2 causal (1.75x)", fontsize=6.1, fontweight="bold", color=INK, ha="center")
+    ax1.text(6.72, 77.6, "$n=3$ (1.27x)", fontsize=6.1, fontweight="bold", color=INK, ha="center")
 
     ax1.set_xticks(pos1)
     ax1.set_xticklabels([lab for _, lab, _ in all_a], fontsize=5.9)
@@ -562,12 +566,14 @@ def make_ablate_and_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
         ax2.annotate(
             f"{h:.1f}",
             (bar.get_x() + bar.get_width() / 2, h),
-            xytext=(1.8, 1.5),
+            xytext=(2.6, 1.5),
             textcoords="offset points",
             ha="center",
             va="bottom",
-            fontsize=5.0,
+            fontsize=4.9,
             color=OURS_DARK if i in (2, 3, 7) else NAT,
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.15, alpha=0.78),
+            zorder=5,
         )
 
     ax2.annotate(
@@ -698,35 +704,39 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
     ax1.legend(loc="lower left", fontsize=5.1, handletextpad=0.25, borderaxespad=0.15, labelspacing=0.22)
 
     # =========================================================================
-    # Panel (b): TML-d24-varloop Regime I (n=2 & n=3, avg@4, zoomed clean bars)
+    # Panel (b): TML-d24-varloop Regime I + 2x2 Causal Double Dissociation (avg@4)
+    # Restores zero-training TF 4/2 Tail (68.9%) right next to 4/2 0%S & 4/2 KV!
     # =========================================================================
     g_n2 = [
         ("vl_native_2_2", "Orig\n2/2", NAT_LIGHT, False),
+        ("vl_kvonly_2_2_t4_12m", "KV\n2/2", DIST, False),
         ("vl_tf_4_2_tail", "TF\nTail", "#B8B8B8", False),
-        ("vl_lb_4_2_kvonly_12m", "LB 4/2\nKV", OURS_DARK, True),
+        ("vl_lb_4_2_kvonly_nosynth_12m", "4/2\n0%S", OURS_LIGHT, True),
+        ("vl_lb_4_2_kvonly_12m", "4/2\nKV", OURS_DARK, True),
     ]
     g_n3 = [
         ("vl_native_3_3", "Orig\n3/3", NAT_LIGHT, False),
         ("vl_tf_4_3_anchored", "TF\nAnch.", "#B8B8B8", False),
-        ("vl_lb_4_3_kvonly_12m", "LB 4/3\nKV", OURS_DARK, True),
+        ("vl_lb_4_3_kvonly_12m", "4/3\nKV", OURS_DARK, True),
     ]
-    pos_b = [0.0, 0.96, 1.92, 3.36, 4.32, 5.28]
+    pos_b = [0.0, 0.86, 1.72, 2.58, 3.44, 4.66, 5.52, 6.38]
     all_b = g_n2 + g_n3
     vals_5b = [macro_pct(evals_avg4, a, BENCH_KEYS) for a, _, _, _ in all_b]
     vals_3l = [macro_pct(evals_avg4, a, LONG_KEYS) for a, _, _, _ in all_b]
     cols_b = [c for _, _, c, _ in all_b]
 
-    bars_b = ax2.bar(pos_b, vals_5b, width=0.62, color=cols_b, edgecolor="white", lw=0.5, zorder=2, label="Bars: 5-Bench macro")
-    ax2.scatter(pos_b, vals_3l, s=26, marker="D", facecolor="white", edgecolor=INK, lw=0.95, zorder=5, label="Diamonds: 3-Long (256K-1M)")
-    ax2.plot(pos_b[:3], vals_3l[:3], "-", color=INK, lw=0.7, alpha=0.55, zorder=4)
-    ax2.plot(pos_b[3:], vals_3l[3:], "-", color=INK, lw=0.7, alpha=0.55, zorder=4)
+    bars_b = ax2.bar(pos_b, vals_5b, width=0.58, color=cols_b, edgecolor="white", lw=0.45, zorder=2, label="Bars: 5-Bench macro")
+    ax2.scatter(pos_b, vals_3l, s=21, marker="D", facecolor="white", edgecolor=INK, lw=0.85, zorder=5, label="Diamonds: 3-Long (256K-1M)")
+    ax2.plot(pos_b[:5], vals_3l[:5], "-", color=INK, lw=0.6, alpha=0.55, zorder=4)
+    ax2.plot(pos_b[5:], vals_3l[5:], "-", color=INK, lw=0.6, alpha=0.55, zorder=4)
 
     ceil44 = macro_pct(evals_avg4, "vl_native_4_4", BENCH_KEYS)
     ax2.axhline(ceil44, color=NAT, ls=":", lw=0.85, zorder=1)
-    ax2.text(-0.35, ceil44 + 0.35, f"Orig 4/4 ({ceil44:.1f}%)", fontsize=5.2, color=NAT, ha="left", va="bottom")
+    ax2.text(-0.35, ceil44 + 0.35, f"Orig 4/4 ({ceil44:.1f}%)", fontsize=5.0, color=NAT, ha="left", va="bottom")
 
     for i, (bar, v5, v3, (_, _, _, is_ours)) in enumerate(zip(bars_b, vals_5b, vals_3l, all_b)):
-        suf = "*" if i == 2 else ""
+        suf = "*" if i in (3, 4) else ""
+        is_dark = i in (4, 7)
         ax2.annotate(
             f"{v5:.1f}{suf}",
             (bar.get_x() + bar.get_width() / 2, v5),
@@ -734,36 +744,36 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
             textcoords="offset points",
             ha="center",
             va="bottom",
-            fontsize=5.6,
+            fontsize=4.7,
             fontweight="bold" if is_ours else "normal",
             color=OURS_DARK if is_ours else INK,
-            bbox=dict(facecolor="white", edgecolor="none", pad=0.35, alpha=0.88) if i in (4, 5) else None,
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.25, alpha=0.88) if i in (6, 7) else None,
             zorder=6,
         )
         ax2.annotate(
             f"{v3:.1f}",
             (pos_b[i], v3),
-            xytext=(0, -8.5),
+            xytext=(0, -7.8),
             textcoords="offset points",
             ha="center",
             va="center",
-            fontsize=4.6,
+            fontsize=4.0,
             fontweight="bold" if is_ours else "normal",
-            color="white" if is_ours else INK,
+            color="white" if (is_dark or i == 1) else INK,
         )
 
-    d5_n2 = vals_5b[2] - vals_5b[0]
-    d3_n2 = vals_3l[2] - vals_3l[0]
-    rec_n3 = 100.0 * vals_5b[5] / ceil44
-    ax2.axvline(2.64, color=GRID, lw=0.9)
-    ax2.text(0.96, 80.5, f"$n=2$ (1.75x)\n+{d5_n2:.1f}* / +{d3_n2:.1f}* 3L", fontsize=5.4, fontweight="bold", color=OURS_DARK, ha="center", va="top")
-    ax2.text(4.32, 80.5, f"$n=3$ (1.27x)\n{rec_n3:.1f}% of 4/4", fontsize=5.4, fontweight="bold", color=OURS_DARK, ha="center", va="top")
+    d5_n2 = vals_5b[4] - vals_5b[1]
+    d3_n2 = vals_3l[4] - vals_3l[1]
+    rec_n3 = 100.0 * vals_5b[7] / ceil44
+    ax2.axvline(4.05, color=GRID, lw=0.9)
+    ax2.text(1.72, 80.7, f"$n=2$ causal (1.75x)\n+{d5_n2:.1f}* 5B / +{d3_n2:.1f}* 3L", fontsize=4.75, fontweight="bold", color=OURS_DARK, ha="center", va="top")
+    ax2.text(5.52, 80.7, f"$n=3$ (1.27x)\n{rec_n3:.1f}% of 4/4", fontsize=4.8, fontweight="bold", color=OURS_DARK, ha="center", va="top")
 
     ax2.set_xticks(pos_b)
-    ax2.set_xticklabels([lab for _, lab, _, _ in all_b], fontsize=5.6)
-    ax2.set_ylim(58.5, 81.6)
+    ax2.set_xticklabels([lab for _, lab, _, _ in all_b], fontsize=4.7)
+    ax2.set_ylim(58.5, 81.8)
     ax2.grid(axis="y", color=GRID, lw=0.55)
-    ax2.set_title("(b) Regime I: varloop ($n\\geq 2$)", fontsize=7.5, fontweight="bold", pad=6)
+    ax2.set_title("(b) Regime I & 2x2 causal ($n\\geq 2$)", fontsize=7.4, fontweight="bold", pad=6)
 
     # =========================================================================
     # Panel (c): Regime II — Inkling-2-Mini (fixed-3) & TML-varloop (n=1)
@@ -862,7 +872,7 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
 
 
 def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
-    print("=== 10-ARM TRUE 5/5 SYMMETRIC AVG@4 SCORES (43,040 ROLLOUTS) ===")
+    print("=== 12-ARM TRUE 5/5 SYMMETRIC AVG@4 SCORES (51,648 ROLLOUTS) ===")
     for arm in AVG4_ARMS:
         vals = [score_pct(evals_avg4, arm, bk) for bk in BENCH_KEYS]
         p4 = macro_pct(evals_avg4, arm, PURE4_KEYS)
