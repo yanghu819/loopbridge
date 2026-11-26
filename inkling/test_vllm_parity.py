@@ -80,6 +80,7 @@ def main() -> None:
     parser.add_argument("--m", type=int, default=3)
     parser.add_argument("--n", type=int, default=1)
     parser.add_argument("--checkpoint", type=Path, default=None)
+    parser.add_argument("--pass-pairing", choices=("tail", "anchored"), default=None)
     parser.add_argument("--steps", type=int, default=32)
     parser.add_argument("--device", default="cuda:1")
     args = parser.parse_args()
@@ -94,6 +95,8 @@ def main() -> None:
         device=args.device,
         merge_distilled=(args.mode == "distilled"),
     )
+    if args.pass_pairing is not None:
+        runner.system.cfg.pass_pairing = args.pass_pairing
 
     test_cases = [
         ("short_128", "Solve step by step: what is the remainder when 7^2026 is divided by 13?"),

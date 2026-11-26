@@ -265,7 +265,7 @@ def main() -> None:
     payload = {
         "mode": "loopbridge",
         "cells": [(m, n)],
-        "model_path": str(args.model),
+        "model_path": str(args.model_path),
         "system_config": sys_cfg.__dict__,
         "trainable_state": system.trainable_state(),
         "meta": {
