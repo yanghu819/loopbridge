@@ -18,11 +18,12 @@ Architecture:
       * Pure Decode (`num_prefill_tokens == 0`, including CUDA Graph capture & replay): runs ONLY n
         core passes reading from aligned KV/conv slots `j = m-n+k` using static decode-side buffers.
 
-Activation:
+  Activation:
   Set `LOOPBRIDGE_VLLM_CFG=/path/to/lb_vllm_cfg.json` (or run `python -m inkling.vllm_loopbridge serve ...`)
   and ensure `inkling` is importable (with the 2-line site hook active when `LOOPBRIDGE_VLLM_CFG` is set).
-  For mathematically exact single-shot prompt KV folding (no chunk-2 seeing chunk-1's folded KV),
-  launch LoopBridge servers with `--no-enable-chunked-prefill --no-enable-prefix-caching`.
+  Chunked prefill is supported with 100% mathematical exactness: `_fold_request_kv_maps` runs once over
+  positions `0..prompt_len-1` only after a request's final prefill chunk completes (`new_c >= plen`);
+  prefix caching is disabled (`--no-enable-prefix-caching`) so folded prompt blocks are never cross-reused.
 """
 
 from __future__ import annotations

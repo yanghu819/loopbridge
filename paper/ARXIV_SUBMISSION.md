@@ -13,7 +13,7 @@ Primary category: cs.CL (Computation and Language)
 Cross-list: cs.LG (Machine Learning)
 
 Comments:
-32 pages, 16 figures. Code, per-item results and a script that recomputes every number: https://github.com/yanghu819/loopbridge
+33 pages, 17 figures. Code, per-item results and a script that recomputes every number: https://github.com/yanghu819/loopbridge
 
 License: CC BY 4.0
 
