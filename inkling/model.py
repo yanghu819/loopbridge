@@ -279,6 +279,7 @@ class InklingKVMapAdapter(nn.Module):
         loop_layer_offset: int,
         keys_all: list[torch.Tensor],
         values_all: list[torch.Tensor],
+        pass_pairing: str = "tail",
     ):
         idx = self.loop_offset_to_idx.get(loop_layer_offset)
         if idx is None:
@@ -291,7 +292,10 @@ class InklingKVMapAdapter(nn.Module):
         vd_all = self.v_loop[str(n)][k, idx]
         slot_offset = self.max_prefill_passes - m_cur
         for p in range(m_cur):
-            slot = max(0, min(self.max_prefill_passes - 1, slot_offset + p))
+            if pass_pairing == "anchored" and m_cur < self.max_prefill_passes and p == 0:
+                slot = 0
+            else:
+                slot = max(0, min(self.max_prefill_passes - 1, slot_offset + p))
             k_out = k_out + torch.einsum("bhti,hoi->bhto", keys_all[p].float(), kd_all[slot])
             v_out = v_out + torch.einsum("bhti,hoi->bhto", values_all[p].float(), vd_all[slot])
         return k_out.to(dtype), v_out.to(dtype)
@@ -427,7 +431,9 @@ def build_aligned_decode_cache(
                 if kv_maps.cross_pass:
                     keys_all = [prefill_cache.layers[cache_slot(p, l, config)].keys.detach() for p in range(m)]
                     vals_all = [prefill_cache.layers[cache_slot(p, l, config)].values.detach() for p in range(m)]
-                    mk, mv = kv_maps.map_loop_cross(n, k, j, l - loop_start, keys_all, vals_all)
+                    mk, mv = kv_maps.map_loop_cross(
+                        n, k, j, l - loop_start, keys_all, vals_all, pass_pairing=pass_pairing
+                    )
                 else:
                     mk, mv = kv_maps.map_loop(n, k, l - loop_start, src_layer.keys.detach(), src_layer.values.detach())
                 decode_cache.layers[dst_slot] = _clone_cache_layer(src_layer, keys=mk, values=mv, training=training)

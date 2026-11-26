@@ -153,13 +153,13 @@ def load_evals() -> tuple[dict[str, dict[str, dict]], dict[str, dict[str, dict]]
     add1("vl_tf_3_1", "vl_tf_3_1", fb_vl="vl_tf_3_1")
     add1("vl_native_1_1", "vl_native_1_1", fb_vl="vl_native_1_1")
 
-    # Inkling-2-Mini (avg@1)
+    # Inkling-2-Mini (avg@1, 100% symmetric caps: 65K/65K/65K/98K/57K)
     evals_avg1["mini_orig_3_3"] = {
         "gpqa_diamond_high": ev3["native_3_3"]["gpqa_diamond_high"],
         "livecodebench_v6_high": elcb["native_3_3"]["livecodebench_v6_high"],
         "mrcr_8n_256k_512k": eo["mini_orig_3_3_cap65k"]["mrcr_8n_256k_512k"],
         "graphwalks_bfs_256k": eo["mini_orig_3_3_cap65k"]["graphwalks_bfs_256k"],
-        "longbench_v2_1m": eo["mini_orig_3_3_cap32k"]["longbench_v2_1m"],
+        "longbench_v2_1m": eo["mini_orig_3_3_cap57k"]["longbench_v2_1m"],
     }
     add1("mini_tf_3_2_anchored", "mini_tf_3_2_anchored")
     add1("mini_lb_3_2_v2_48m", "mini_lb_3_2_v2_48m")
@@ -168,13 +168,12 @@ def load_evals() -> tuple[dict[str, dict[str, dict]], dict[str, dict[str, dict]]
     add1("mini_lb_3_1_24m", "mini_lb_3_1_24m", fb_v3="lb_3_1_24m")
     add1("mini_distilled_1_1_v3", "mini_distilled_1_1_v3", fb_v3="distilled_1_1_v3", fb_lcb="distilled_1_1_v3")
 
-    # TML-d24-varloop-research (4x avg@4 + LBv2@1)
+    # TML-d24-varloop-research (TRUE 5/5 symmetric avg@4 across ALL 5 benchmarks = 43,040 rollouts)
     evals_avg4: dict[str, dict[str, dict]] = {}
     for arm in AVG4_ARMS:
         entry = {}
-        for bk in PURE4_KEYS:
+        for bk in BENCH_KEYS:
             entry[bk] = ea4[arm][bk]
-        entry["longbench_v2_1m"] = evals_avg1[arm]["longbench_v2_1m"]
         evals_avg4[arm] = entry
 
     return evals_avg1, evals_avg4
@@ -351,8 +350,10 @@ def make_pareto_and_speed_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dict)
         label="LB 3/1 (24M, @1)",
     )
 
+    rec_43 = 100.0 * y_43 / ny4[0]
+    d5_42 = y_42 - ny4[2]
     ax1.annotate(
-        f"LB 4/3 KV-Only ({y_43:.1f})\n99.8% of 4/4",
+        f"LB 4/3 KV-Only ({y_43:.1f})\n{rec_43:.1f}% of 4/4",
         (x_43, y_43),
         xytext=(6, 13),
         textcoords="offset points",
@@ -363,7 +364,7 @@ def make_pareto_and_speed_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dict)
         arrowprops=dict(arrowstyle="-", color=OURS_DARK, lw=0.6, shrinkA=0, shrinkB=3),
     )
     ax1.annotate(
-        f"LB 4/2 KV-Only ({y_42:.1f}*)\n+2.6* vs 2/2",
+        f"LB 4/2 KV-Only ({y_42:.1f}*)\n+{d5_42:.1f}* vs 2/2",
         (x_42, y_42),
         xytext=(15, 2),
         textcoords="offset points",
@@ -491,6 +492,8 @@ def make_ablate_and_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
             fontsize=5.4,
             fontweight="bold" if i in (3, 7) else "normal",
             color=OURS_DARK if i in (3, 7) else INK,
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.35, alpha=0.88) if i in (6, 7) else None,
+            zorder=6,
         )
     for i, bar in enumerate(bars3_a):
         h = bar.get_height()
@@ -632,10 +635,10 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
     for (_, _, lab, (dx, dy), ha), x, y in zip(nat4_pts, nx4, ny4):
         ax1.annotate(lab, (x, y), xytext=(dx, dy), textcoords="offset points", fontsize=5.8, color=NAT, ha=ha)
 
-    # Zero-training TF points
+    # Zero-training TF points (high zorder so hollow diamonds stay visible next to LB squares)
     x_tf43, y_tf43 = e2e["tf_4_3_anchored"], macro_pct(evals_avg4, "vl_tf_4_3_anchored")
     x_tf42, y_tf42 = e2e["tf_4_2_anchored"], macro_pct(evals_avg4, "vl_tf_4_2_tail")
-    ax1.scatter([x_tf43, x_tf42], [y_tf43, y_tf42], s=24, marker="D", facecolor="white", edgecolor=NAT, lw=0.85, zorder=4, label="Training-free 4/$n$")
+    ax1.scatter([x_tf43, x_tf42], [y_tf43, y_tf42], s=26, marker="D", facecolor="none", edgecolor=INK, lw=1.0, zorder=7, label="Training-free 4/$n$")
 
     # Distilled 1/1
     ax1.scatter([x11], [y_d11], s=32, marker="^", color=DIST, edgecolor="white", lw=0.45, zorder=4, label="Distilled 1/1")
@@ -699,12 +702,12 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
     # =========================================================================
     g_n2 = [
         ("vl_native_2_2", "Orig\n2/2", NAT_LIGHT, False),
-        ("vl_tf_4_2_tail", "TF\n4/2", "#B8B8B8", False),
+        ("vl_tf_4_2_tail", "TF\nTail", "#B8B8B8", False),
         ("vl_lb_4_2_kvonly_12m", "LB 4/2\nKV", OURS_DARK, True),
     ]
     g_n3 = [
         ("vl_native_3_3", "Orig\n3/3", NAT_LIGHT, False),
-        ("vl_tf_4_3_anchored", "TF\n4/3", "#B8B8B8", False),
+        ("vl_tf_4_3_anchored", "TF\nAnch.", "#B8B8B8", False),
         ("vl_lb_4_3_kvonly_12m", "LB 4/3\nKV", OURS_DARK, True),
     ]
     pos_b = [0.0, 0.96, 1.92, 3.36, 4.32, 5.28]
@@ -734,6 +737,8 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
             fontsize=5.6,
             fontweight="bold" if is_ours else "normal",
             color=OURS_DARK if is_ours else INK,
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.35, alpha=0.88) if i in (4, 5) else None,
+            zorder=6,
         )
         ax2.annotate(
             f"{v3:.1f}",
@@ -742,14 +747,17 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
             textcoords="offset points",
             ha="center",
             va="center",
-            fontsize=5.0,
+            fontsize=4.6,
             fontweight="bold" if is_ours else "normal",
             color="white" if is_ours else INK,
         )
 
+    d5_n2 = vals_5b[2] - vals_5b[0]
+    d3_n2 = vals_3l[2] - vals_3l[0]
+    rec_n3 = 100.0 * vals_5b[5] / ceil44
     ax2.axvline(2.64, color=GRID, lw=0.9)
-    ax2.text(0.96, 80.5, "$n=2$ (1.75x)\n+2.6* / +4.0* 3L", fontsize=5.4, fontweight="bold", color=OURS_DARK, ha="center", va="top")
-    ax2.text(4.32, 80.5, "$n=3$ (1.27x)\n99.8% of 4/4", fontsize=5.4, fontweight="bold", color=OURS_DARK, ha="center", va="top")
+    ax2.text(0.96, 80.5, f"$n=2$ (1.75x)\n+{d5_n2:.1f}* / +{d3_n2:.1f}* 3L", fontsize=5.4, fontweight="bold", color=OURS_DARK, ha="center", va="top")
+    ax2.text(4.32, 80.5, f"$n=3$ (1.27x)\n{rec_n3:.1f}% of 4/4", fontsize=5.4, fontweight="bold", color=OURS_DARK, ha="center", va="top")
 
     ax2.set_xticks(pos_b)
     ax2.set_xticklabels([lab for _, lab, _, _ in all_b], fontsize=5.6)
@@ -808,7 +816,7 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
                 textcoords="offset points",
                 ha="center",
                 va="center",
-                fontsize=5.0,
+                fontsize=4.4,
                 fontweight="bold" if is_ours else "normal",
                 color="white" if is_ours or i in (1, 4) else INK,
             )
@@ -854,7 +862,7 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
 
 
 def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
-    print("=== 10-ARM SYMMETRIC AVG@4 (+ LBv2@1) SCORES (27,950 ROLLOUTS) ===")
+    print("=== 10-ARM TRUE 5/5 SYMMETRIC AVG@4 SCORES (43,040 ROLLOUTS) ===")
     for arm in AVG4_ARMS:
         vals = [score_pct(evals_avg4, arm, bk) for bk in BENCH_KEYS]
         p4 = macro_pct(evals_avg4, arm, PURE4_KEYS)

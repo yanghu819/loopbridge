@@ -57,10 +57,10 @@ loops lift the 11-benchmark average from 44.2 to 58.2 (vs. 49.5 for tied distill
 within 0.8 points of 4/4 across eight benchmarks and matches its GSM8K accuracy at $2.0\times$ throughput. At 26.4B
 sparse-MoE scale in vLLM across five reasoning and 256K--1M benchmarks, LoopBridge sweeps tied distillation 5/5 under
 controlled 24M budgets (+7.8 on 3/1; +5.1 on fixed-depth Inkling-2-Mini 3/2, rescuing a 2.2\% training-free collapse).
-On variable-depth 26.4B MoEs at two or three decode loops (27,950 four-sample rollouts), training-free untying works
-natively, and 0.017--0.025\%-parameter prompt KV-only maps (zero decode overhead) lift 4/2 by +2.6 points (+4.0 on
-256K--1M tasks, +9.5 on 512K MRCR) over 2/2 at $1.75\times$ decode speed vs. 4/4, while 4/3 recovers 99.8\% of 4/4
-(74.5 vs. 74.7) at $1.27\times$--$1.29\times$ speed.
+On variable-depth 26.4B MoEs at two or three decode loops (43,040 four-sample rollouts across all five benchmarks), training-free untying works
+natively, and 0.017--0.025\%-parameter prompt KV-only maps (zero decode overhead) lift 4/2 by +2.8 points (+4.3 on
+256K--1M tasks, +9.5 on 512K MRCR, +2.0 on 1M LongBench~v2) over 2/2 at $1.75\times$ decode speed vs. 4/4, while 4/3 recovers 99.0\% of 4/4
+(74.1 vs. 74.9) at $1.27\times$--$1.29\times$ speed.
 \end{abstract}
 
 \section{Introduction}
@@ -116,8 +116,8 @@ At 26.4B scale across five reasoning and 256K--1M benchmarks, our experiments re
 fixed-depth \texttt{Inkling-2-Mini} collapses under training-free 3/2 untying (2.2\%, 93.2\% truncation), where
 parametric LoopBridge rescues accuracy and sweeps tied distillation 5/5 ($+5.1$ points; $+7.8$ on variable-depth 3/1);
 conversely, on variable-depth \texttt{TML-d24-varloop} at $n\ge2$, training-free untying works natively and
-0.017--0.025\%-parameter prompt KV-only maps (zero decode LoRA) lift 4/2 by $+2.6$ points over 2/2 ($+9.5$ on 512K MRCR)
-at $1.75\times$ decode speed vs.\ 4/4 while 4/3 recovers 99.8\% of 4/4 at $1.27$--$1.29\times$ speed
+0.017--0.025\%-parameter prompt KV-only maps (zero decode LoRA) lift 4/2 by $+2.8$ points over 2/2 ($+9.5$ on 512K MRCR)
+at $1.75\times$ decode speed vs.\ 4/4 while 4/3 recovers 99.0\% of 4/4 at $1.27$--$1.29\times$ speed
 (Figure~\ref{fig:inkling_main}).
 
 \section{Related Work}
@@ -384,8 +384,8 @@ and 56.9 at 4/1 and 67.8 and 68.1 at 4/2. (c) Scaling the learning-rate schedule
 \includegraphics[width=0.91\textwidth]{../figs/fig_inkling_main.pdf}
 \caption{\textbf{Thinking Machines' two 26.4B sparse-MoE looped models in Day-0 vLLM: the two-regime law.}
 (a)~\texttt{TML-d24-varloop} Pareto frontier (5-bench macro vs.\ 1$\times$ B300 E2E, $L{=}512, B{=}16$; decode vs.\ 4/4 at 262K).
-(b)~Regime~I ($n{\ge}2$, 27,950 rollouts: $4\times$avg@4+LBv2@1): 0.017--0.025\% KV-Only maps ($r{=}0$) lead at $n{=}2$
-($^\ast$Holm-98.33\% CI vs.\ 2/2: $+2.6$\ci{0.6}{4.7} 5B, $+4.0$\ci{0.8}{7.1} 3L, $+9.5$\ci{2.9}{16.5} MRCR) and $n{=}3$ (99.8\% of 4/4).
+(b)~Regime~I ($n{\ge}2$, 43,040 rollouts: $5\times$avg@4): 0.017--0.025\% KV-Only maps ($r{=}0$) lead at $n{=}2$
+($^\ast$Holm-98.33\% CI vs.\ 2/2: $+2.8$\ci{0.8}{4.7} 5B, $+4.3$\ci{1.4}{7.2} 3L, $+9.5$\ci{2.9}{16.5} MRCR; $+2.0$ 1M LBv2) and $n{=}3$ (99.0\% of 4/4).
 (c)~Regime~II (fixed-3 \texttt{Inkling-2-Mini} 3/2 \& \texttt{TML-d24-varloop} 3/1, locked 24M, avg@1): TF~3/2 collapses
 (2.2\%, 93\% trunc.); LoopBridge sweeps Distilled 5/5 ($^\ast$95\% CI). Tables~\ref{tab:varloop}--\ref{tab:vllm_speed}.}
 \label{fig:inkling_main}
@@ -470,13 +470,13 @@ $+5.1$\ci{2.0}{8.1} ($+7.7$\ci{3.6}{12.0} 3L; $4.5\times$ faster train) on \text
 v2), and $+7.8$\ci{4.4}{11.2} ($+11.7$\ci{7.1}{16.4} 3L; $3.55\times$ faster) on \texttt{TML-varloop} 3/1.
 
 \paragraph{Regime I (variable-depth at $n\ge2$).}
-On \texttt{TML-d24-varloop} ($m\in\{1,\dots,5\}$), TF untying works natively across 27,950 rollouts
-($4\times$avg@4+LBv2@1; 4/2: 68.3--68.9 vs.\ 67.1; 4/3: 73.2--74.1 vs.\ 73.1). Pure-prompt \emph{KV-only} maps ($r{=}0$,
-4.5--6.6M = 0.017--0.025\%, folded once into L11/L17/L23, zero decode drift) top every composite: 4/2 KV-Only
-($1.75\times$ decode vs.\ 4/4) reaches 69.7\%, beating Orig~2/2 by $+2.6$ 5B, $+3.0$ Pure-4, $+4.0$ 3L, and $+9.5$ MRCR
-(Holm-98.33\% CI; Figure~\ref{fig:inkling_main}b); 4/3 KV-Only ($1.27$--$1.29\times$) reaches 74.5\%, sweeping 3/3 5/5
-($+2.24$ 3L, 95\% \ci{0.12}{4.30}, Holm \ci{-0.16}{4.61}) and recovering 99.8\% of 4/4 ($-0.14$\ci{-1.53}{1.26}). Both
-beat 4/4 E2E to 262K ($1.03$--$1.14\times$, $G{=}512$; Table~\ref{tab:vllm_speed}).
+On \texttt{TML-d24-varloop} ($m\in\{1,\dots,5\}$), TF untying works natively across 43,040 rollouts
+($5\times$avg@4; 4/2: 68.4--68.9 vs.\ 66.9; 4/3: 73.3--74.0 vs.\ 73.1). Pure-prompt \emph{KV-only} maps ($r{=}0$,
+4.5--6.6M = 0.017--0.025\%, L11/L17/L23, zero decode drift) lead at both depths: 4/2 KV-Only
+($1.75\times$ vs.\ 4/4) hits 69.6\%, beating 2/2 by $+2.8$ 5B, $+4.3$ 3L, $+9.5$ MRCR
+(Holm-98.33\% CI; Figure~\ref{fig:inkling_main}b) and $+2.0$ LBv2 (95\% CI), widening on clean seeds $s_1$--$s_3$
+($+3.8$ vs.\ 2/2; $+2.3$ Holm-sig.\ vs.\ TF~Anch., $+1.1$ vs.\ TF~Tail). At $n{=}3$, TF~4/3 Anch.\ already hits
+74.0\% (0 params) and 4/3 KV-Only hits 74.1\% (99.0\% of 4/4); both beat 4/4 E2E to 262K (Table~\ref{tab:vllm_speed}).
 
 \section{Conclusion}
 
@@ -1282,9 +1282,9 @@ $m=1$, $+1.0$B per additional pass) and serve natively in Thinking Machines' Day
 \caption{\textbf{26.4B sparse-MoE Pareto frontier and zero-overhead Day-0 vLLM speedup (\texttt{TML-d24-varloop}).}
 (a)~Official 5-benchmark macro accuracy vs.\ isolated single-GPU Day-0 vLLM end-to-end throughput on batched chain-of-thought
 generation ($L{=}512$, $B{=}16$, $G{=}1024$; one B300). Native 4/4--2/2, TF~4/$n$, and LoopBridge~4/$n$ KV-Only points
-use symmetric four-sample evaluation ($4\times$avg@4 + LBv2@1; 27,950 rollouts); $n{=}1$ arms use avg@1.
-LoopBridge~4/3 KV-Only (25.0~MiB) recovers 99.8\% of Original~4/4 (74.5\% vs.\ 74.7\%); LoopBridge~4/2 KV-Only (17.0~MiB)
-lifts Original~2/2 by $+2.6^\ast$ (Holm-Bonferroni significant) at $1.68\times$ E2E ($1.75\times$ decode) throughput vs.\
+use full five-benchmark four-sample evaluation ($5\times$avg@4; 43,040 rollouts); $n{=}1$ arms use avg@1.
+LoopBridge~4/3 KV-Only (25.0~MiB) recovers 99.0\% of Original~4/4 (74.1\% vs.\ 74.9\%); LoopBridge~4/2 KV-Only (17.0~MiB)
+lifts Original~2/2 by $+2.8^\ast$ (Holm-Bonferroni significant; $+4.3^\ast$ 3-Long, $+2.0$ 1M LBv2) at $1.68\times$ E2E ($1.75\times$ decode) throughput vs.\
 4/4; under locked 24M controls, LoopBridge~3/1 beats Distilled~1/1 by $+7.8^\ast$.
 (b)~Isolated single-GPU pure decode speedup vs.\ Original~4/4 across $L{=}512$ to 256K: LoopBridge~4/3 KV-Only
 ($1.26$--$1.28\times$), 4/2 KV-Only ($1.70$--$1.75\times$), and 3/1 ($2.35$--$2.76\times$) track equal-$n$ native engines
@@ -1312,12 +1312,13 @@ LiveCodeBench~v6~\citep[175 items, cap 65,536;][]{livecodebench}, MRCR~v2 8-need
 65,536;][]{openai_mrcr}, GraphWalks BFS~256K~\citep[100 items, cap 98,304;][]{openai_mrcr}, and LongBench~v2~1M
 ($\le 990$K tokens)~\citep[503 items, cap 57,344;][]{longbenchv2}. Because stochastic $T{=}1.0$ sampling on $N{=}100$
 long-context splits exhibits $\pm 3\text{--}4$~pp single-seed variance, we pre-registered and ran a symmetric
-\textbf{10-arm four-sample evaluation} ($4\times$avg@4 on \{GPQA, LCB, MRCR, GW\} $+$ single-sample LBv2~1M at seed~42 =
-$10\times(2{,}292+503)=27{,}950$ rollouts, archived in \path{inkling/results/eval_official_exact_avg4.json}) across both
+\textbf{10-arm full five-benchmark four-sample evaluation} ($5\times$avg@4 across all five splits =
+$10\times 4{,}304 = 43{,}040$ rollouts, archived in \path{inkling/results/eval_official_exact_avg4.json}) across both
 $n{=}3$ (\{Orig~3/3, TF~4/3 Tail, TF~4/3 Anchored, LB~4/3 KV-Only, Orig~4/4\}) and $n{=}2$ (\{Orig~2/2, TF~4/2 Tail,
 TF~4/2 Anchored, TF~5/2 Anchored, LB~4/2 KV-Only\}), computing item-clustered stratified paired bootstrap CIs (5,000
 resamples, seed~0, preserving base item $N$) alongside Holm-Bonferroni corrections for multi-recipe searches ($k{=}2$ at
-4/3: 97.5\% CI; $k{=}3$ at 4/2: 98.33\% CI).
+4/3: 97.5\% CI; $k{=}3$ at 4/2: 98.33\% CI), as well as a clean non-exploratory confirmatory split ($s_1$--$s_3$, excluding
+the exploratory $\#\text{s0}$ seed).
 
 We strictly separate three training tiers:
 (i)~\emph{Pure on-policy KV-Only (12M, $r{=}0$)}: forward-KL distillation from frozen Original~4/4 on 12M pure on-policy
@@ -1340,20 +1341,20 @@ archived below alongside single-sample (\texttt{avg@1}) diagnostics.
 \toprule
 Model (\texttt{TML-d24-varloop}, 26.4B MoE) & Params & GPQA & LCB~v6 & MRCR & GW~256K & LBv2~1M & Pure-4 & 3-Long & 5-Bench \\
 \midrule
-\multicolumn{10}{@{}l}{\emph{(a) Pre-registered 10-arm symmetric $4\times$avg@4 + LBv2@1 evaluation (27,950 rollouts; primary results)}} \\
-Original 4/4 ($1.00\times$ decode ceiling) & 0 & 82.6 & 76.7 & 94.0 & 56.3 & 63.8 & 77.4 & 71.4 & 74.7 \\
-Original 3/3 ($1.27\times$ vs.\ 4/4) & 0 & 82.3 & 76.0 & 90.4 & 52.2 & 64.4 & 75.3 & 69.0 & 73.1 \\
-Training-free 4/3 Tail $[1,2,3]$ & 0 & 83.0 & 75.7 & 91.0 & 50.9 & 65.6 & 75.1 & 69.2 & 73.2 \\
-Training-free 4/3 Anchored $[0,2,3]$ & 0 & \textbf{83.1} & 74.9 & \textbf{93.4} & 52.0 & 67.4 & 75.8 & 70.9 & 74.1 \\
+\multicolumn{10}{@{}l}{\emph{(a) Pre-registered 10-arm full $5\times$avg@4 evaluation (43,040 rollouts; primary results)}} \\
+Original 4/4 ($1.00\times$ decode ceiling) & 0 & 82.6 & 76.7 & 94.0 & 56.3 & 64.9 & 77.4 & 71.7 & 74.9 \\
+Original 3/3 ($1.27\times$ vs.\ 4/4) & 0 & 82.3 & 76.0 & 90.4 & 52.2 & 64.7 & 75.3 & 69.1 & 73.1 \\
+Training-free 4/3 Tail $[1,2,3]$ & 0 & 83.0 & 75.7 & 91.0 & 50.9 & 65.9 & 75.1 & 69.2 & 73.3 \\
+Training-free 4/3 Anchored $[0,2,3]$ & 0 & \textbf{83.1} & 74.9 & \textbf{93.4} & 52.0 & \textbf{66.5} & 75.8 & \textbf{70.6} & 74.0 \\
 \rowcolor{oursbg}
-\textbf{LoopBridge 4/3 KV-Only} (12M, $r{=}0$, $1.27\times$) & 6.55M & 82.5 & \textbf{76.4} & 91.7 & \textbf{54.5} & \textbf{67.6} & \textbf{76.3} & \textbf{71.3} & \textbf{74.5} \\
+\textbf{LoopBridge 4/3 KV-Only} (12M, $r{=}0$, $1.27\times$) & 6.55M & 82.5 & \textbf{76.4} & 91.7 & \textbf{54.5} & 65.6 & \textbf{76.3} & 70.6 & \textbf{74.1} \\
 \addlinespace[2pt]
-Original 2/2 ($1.74\times$ vs.\ 4/4) & 0 & 81.1 & 68.3 & 72.6 & 50.6 & 62.8 & 68.1 & 62.0 & 67.1 \\
-Training-free 5/2 Anchored $[0,4]$ ($2.10\times$ vs.\ 5/5) & 0 & 80.4 & 67.9 & 74.3 & \textbf{53.4} & \textbf{65.6} & 69.0 & 64.4 & 68.3 \\
-Training-free 4/2 Anchored $[0,3]$ & 0 & \textbf{81.2} & 69.1 & 77.7 & 51.8 & 61.8 & 70.0 & 63.8 & 68.3 \\
-Training-free 4/2 Tail $[2,3]$ & 0 & 80.6 & 67.9 & 78.9 & 52.1 & 65.2 & 69.9 & 65.4 & 68.9 \\
+Original 2/2 ($1.74\times$ vs.\ 4/4) & 0 & 81.1 & 68.3 & 72.6 & 50.6 & 61.7 & 68.1 & 61.6 & 66.9 \\
+Training-free 5/2 Anchored $[0,4]$ ($2.10\times$ vs.\ 5/5) & 0 & 80.4 & 67.9 & 74.3 & \textbf{53.4} & 63.3 & 69.0 & 63.6 & 67.8 \\
+Training-free 4/2 Anchored $[0,3]$ & 0 & \textbf{81.2} & 69.1 & 77.7 & 51.8 & 62.4 & 70.0 & 64.0 & 68.4 \\
+Training-free 4/2 Tail $[2,3]$ & 0 & 80.6 & 67.9 & 78.9 & 52.1 & \textbf{64.9} & 69.9 & 65.3 & 68.9 \\
 \rowcolor{oursbg}
-\textbf{LoopBridge 4/2 KV-Only} (12M, $r{=}0$, $1.75\times$) & 4.46M & 80.9 & \textbf{69.4} & \textbf{82.2}$^\dagger$ & 51.9 & 64.0 & \textbf{71.1}$^\dagger$ & \textbf{66.0}$^\dagger$ & \textbf{69.7}$^\dagger$ \\
+\textbf{LoopBridge 4/2 KV-Only} (12M, $r{=}0$, $1.75\times$) & 4.46M & 80.9 & \textbf{69.4} & \textbf{82.2}$^\dagger$ & 51.9 & 63.7 & \textbf{71.1}$^\dagger$ & \textbf{65.9}$^\dagger$ & \textbf{69.6}$^\dagger$ \\
 \midrule
 \multicolumn{10}{@{}l}{\emph{(b) Controlled 24M $n{=}1$ sweep \& mechanistic ablations (avg@1, seed 42; identical v3 corpus, $r{=}64$, $2.76\times$ vs.\ 4/4)}} \\
 Original 1/1 / Training-free 3/1 & 0 & 74.7 / 72.7 & 39.4 / 40.6 & 20.7 / 19.5 & 20.0 / 14.4 & 48.9 / 56.7 & 38.7 / 36.8 & 29.9 / 30.2 & 40.8 / 40.8 \\
@@ -1374,16 +1375,19 @@ LB 3/2 v2 (48M, $r{=}128$) / LB 3/1 v2 & 65.8 / 60.5M & 83.8 / 72.7 & 75.4 / 54.
 \bottomrule
 \end{tabular}
 \caption{\textbf{Full \texttt{TML-d24-varloop-research} (26.4B sparse-MoE) evaluation in Day-0 vLLM.}
-Panel~(a) reports all 10 pre-registered $4\times$avg@4 + LBv2@1 arms (27,950 rollouts; Pure-4 averages the four avg@4
-benchmarks). $^\dagger$LoopBridge~4/2 KV-Only clears zero vs.\ Original~2/2 under both 95\% and $k{=}3$ Holm-Bonferroni
-98.33\% clustered CIs (5-Bench $+2.62$\ci{0.56}{4.65}, Pure-4 $+2.98$\ci{0.43}{5.41}, 3-Long $+4.03$\ci{0.81}{7.10},
-MRCR $+9.54$\ci{2.91}{16.49}). At $n{=}3$, LoopBridge~4/3 KV-Only recovers 99.8\% of Original~4/4 ($-0.14$\ci{-1.53}{1.26};
-3-Long $-0.10$\ci{-2.11}{1.86}) and sweeps Original~3/3 5/5 ($+1.45$ 5-Bench, 95\% \ci{-0.01}{2.88}; $+2.24$ 3-Long,
-unadjusted 95\% \ci{0.12}{4.30}, $k{=}2$ Holm 97.5\% \ci{-0.16}{4.61}). Panel~(b) reports strict 24M $n{=}1$ controls
+Panel~(a) reports all 10 pre-registered full $5\times$avg@4 arms (43,040 rollouts; Pure-4 averages GPQA, LCB, MRCR, and GW).
+$^\dagger$LoopBridge~4/2 KV-Only clears zero vs.\ Original~2/2 under both 95\% and $k{=}3$ Holm-Bonferroni
+98.33\% clustered CIs (5-Bench $+2.78$\ci{0.82}{4.67}, Pure-4 $+2.98$\ci{0.43}{5.41}, 3-Long $+4.29$\ci{1.37}{7.18},
+MRCR $+9.54$\ci{2.91}{16.49}; plus uncloned 1M LBv2 $+1.99$, 95\% \ci{0.25}{3.73}, cutting trunc.\ $1.64\%\to 0.45\%$). On
+clean non-exploratory seeds $s_1$--$s_3$, gains widen to $+3.77$ 5-Bench ($k{=}3$ Holm \ci{1.54}{5.96}) and $+6.40$
+3-Long (\ci{3.10}{9.72}) vs.\ 2/2, and $+2.34$ 5-Bench (\ci{0.28}{4.40}) / $+3.82$ 3-Long (\ci{0.94}{6.62}) vs.\ TF~4/2
+Anchored. At $n{=}3$, LoopBridge~4/3 KV-Only recovers 99.0\% of Original~4/4 ($-0.77$\ci{-2.04}{0.52}; 56.4\% of the
+3/3--4/4 gap; 99.4\% on $s_1$--$s_3$) and sweeps Original~3/3 5/5 ($+1.00$\ci{-0.37}{2.33} 5-Bench, $+1.48$\ci{-0.44}{3.37}
+3-Long). Panel~(b) reports strict 24M $n{=}1$ controls
 ($^\star$95\% CI excludes zero vs.\ Distilled~1/1: $+7.81$\ci{4.43}{11.16} 5-Bench, $+11.74$\ci{7.05}{16.40} 3-Long).
 Panel~(c) transparently archives all single-sample (\texttt{avg@1}) exploratory recipes, illustrating both the
-$m_{\text{student}}\le m_{\text{teacher}}$ law (LB~5/3 from $t{=}4$ dips below TF~5/3) and why $4\times$avg@4 is critical
-under $T{=}1.0$ sampling (LB~4/2 KV-Only $\#\text{s0}$ was 68.0\% vs.\ 69.7\% avg@4).}
+$m_{\text{student}}\le m_{\text{teacher}}$ law (LB~5/3 from $t{=}4$ dips below TF~5/3) and why $5\times$avg@4 is critical
+under $T{=}1.0$ sampling (LB~4/2 KV-Only $\#\text{s0}$ was 68.0\% vs.\ 69.6\% avg@4).}
 \label{tab:varloop}
 \end{table*}
 
@@ -1391,10 +1395,10 @@ under $T{=}1.0$ sampling (LB~4/2 KV-Only $\#\text{s0}$ was 68.0\% vs.\ 69.7\% av
 \centering
 \includegraphics[width=0.94\textwidth]{../figs/fig_inkling_ablate.pdf}
 \caption{\textbf{Empirical proof of the two-regime law on 26.4B sparse-MoEs.}
-(a)~Regime~I (variable-depth \texttt{TML-d24-varloop} at $n\ge2$, symmetric $4\times$avg@4 + LBv2@1): training-free
+(a)~Regime~I (variable-depth \texttt{TML-d24-varloop} at $n\ge2$, full $5\times$avg@4, 43,040 rollouts): training-free
 untying improves natively over Original~$n/n$ at both $n{=}2$ and $n{=}3$, and adding ultra-compact pure-prompt KV-Only
-maps ($r{=}0$, 17--25~MiB) ranks first on every composite ($^\ast$Holm-Bonferroni 98.33\% CI excludes zero vs.\ Orig~2/2;
-4/3 KV-Only matches the 74.7\% Orig~4/4 ceiling at 99.8\%).
+maps ($r{=}0$, 17--25~MiB) ranks first on 5-Bench and Pure-4 at both depths ($^\ast$Holm-Bonferroni 98.33\% CI excludes
+zero vs.\ Orig~2/2; 4/3 KV-Only recovers 99.0\% of the 74.9\% Orig~4/4 ceiling).
 (b)~Regime~II (fixed-depth \texttt{Inkling-2-Mini} 3/2 and un-gated \texttt{TML-d24-varloop} 3/1, avg@1): training-free
 untying collapses on \texttt{Inkling-2-Mini} (2.2\%, 93.2\% truncation) and stalls at $n{=}1$ (40.8\%), while parametric
 LoopBridge rescues accuracy and sweeps parameter-advantaged tied distillation 5/5 under locked 24M controls ($^\ast$95\%
@@ -1403,26 +1407,33 @@ CI excludes zero: $+5.1$ on Mini 3/2, $+7.8$ on VarLoop 3/1).}
 \end{figure*}
 
 \paragraph{Key findings, two-regime mechanism, and ablation diagnostics.}
-Tables~\ref{tab:varloop}--\ref{tab:mini} and Figures~\ref{fig:inkling_pareto}--\ref{fig:inkling_ablate} establish five
+Tables~\ref{tab:varloop}--\ref{tab:mini} and Figures~\ref{fig:inkling_pareto}--\ref{fig:inkling_ablate} establish six
 results across both 26.4B backbones:
 \begin{enumerate}
 \item \emph{Two-regime law (fixed-depth / $n{=}1$ vs.\ variable-depth $n\ge2$):} On fixed-3 \texttt{Inkling-2-Mini},
-training-free 3/2 untying collapses completely even with anchored pairing (2.2\%, 93.2\% truncation; Table~\ref{tab:mini}),
-and on \texttt{TML-d24-varloop} at un-gated $n{=}1$, training-free 3/1 stalls at Original~1/1 (40.8\%, $+0.01$\ci{-3.0}{3.0}).
-By contrast, when the backbone's coda and \texttt{MessageGate} were midtrained across variable depths ($n\ge2$ on
-\texttt{TML-d24-varloop}), both tail and anchored training-free pairings work natively (at 4/2, Tail scores 68.9\%
-[$+1.85$\ci{0.12}{3.52} vs.\ 2/2] and Anchored 68.3\% [Pure-4 tied 70.0\% vs.\ 69.9\%]; at 4/3, Anchored reaches 74.1\%
-vs.\ Tail 73.2\% and Orig~3/3 73.1\%).
-\item \emph{Pure-prompt KV-Only maps ($r{=}0$, 17--25~MiB) top every composite at $n{=}2$ and $n{=}3$:} Freeing decode
-weights from LoRA drift (\texttt{-\/-lora-rank 0}) and training only global-3 cross-pass KV maps on 12M pure on-policy
-teacher rollouts yields strict first place on every metric at both decode depths. At $n{=}2$ ($1.75\times$ decode vs.\
-4/4), LoopBridge~4/2 KV-Only (4.46M params, 0.017\%) achieves 69.7\% 5-Bench ($+2.62$), 71.1\% Pure-4 ($+2.98$), 66.0\%
-3-Long ($+4.03$, recovering 57.3\% of the 3/3--2/2 long-context gap), and 82.2\% MRCR~512K ($+9.54$, cutting truncation
-from 4.8\% to 1.5\%)---every gain excluding zero under both 95\% and $k{=}3$ Holm-Bonferroni 98.33\% CIs. Relative to
-training-free 4/2, KV-Only adds directional gains ($+1.36$ 5-Bench, $+2.26$ 3-Long [95\% \ci{0.20}{4.24}, Holm
-\ci{-0.34}{4.67}], $+4.52$ MRCR [95\% \ci{0.12}{8.98}, Holm \ci{-0.97}{9.94}] vs.\ Anchored; $+0.77$ 5-Bench vs.\ Tail).
-At $n{=}3$ ($1.27$--$1.29\times$ decode vs.\ 4/4), LoopBridge~4/3 KV-Only (6.55M params, 0.025\%) sweeps Original~3/3 5/5
-and recovers 99.8\% of Original~4/4 (74.5\% vs.\ 74.7\%, $-0.14$\ci{-1.53}{1.26}; 99.9\% of 3-Long).
+all unadapted $n{=}2$ variants collapse completely---Anchored TF~3/2 (2.2\%, 93.2\% truncation across all 5 splits;
+Table~\ref{tab:mini}), Tail TF~3/2 (5.6\%, 86.9\% trunc.\ on GPQA), and tied Original~2/2 (5.6\%, 88.9\% trunc.\ on
+GPQA)---and on \texttt{TML-d24-varloop} at un-gated $n{=}1$, training-free 3/1 stalls at Original~1/1 (40.8\%,
+$+0.01$\ci{-3.0}{3.0}). By contrast, when the backbone's coda and \texttt{MessageGate} were midtrained across variable
+depths ($n\ge2$ on \texttt{TML-d24-varloop}), both tail and anchored training-free pairings work natively (at 4/2, Tail
+scores 68.9\% [$+2.01$\ci{0.40}{3.57} vs.\ 2/2] and Anchored 68.4\% [$+1.59$\ci{0.01}{3.14}; Pure-4 tied 70.0\% vs.\
+69.9\%]; at 4/3, Anchored reaches 74.0\% vs.\ Tail 73.3\% and Orig~3/3 73.1\%).
+\item \emph{Pure-prompt KV-Only maps ($r{=}0$, 17--25~MiB) lead at both $n{=}2$ and $n{=}3$:} Freeing decode weights from
+LoRA drift (\texttt{-\/-lora-rank 0}) and training only global-3 cross-pass KV maps on 12M pure on-policy teacher
+rollouts ranks first on 5-Bench and Pure-4 at both decode depths. At $n{=}2$ ($1.75\times$ decode vs.\ 4/4),
+LoopBridge~4/2 KV-Only (4.46M params, 0.017\%) achieves 69.6\% 5-Bench ($+2.78$), 71.1\% Pure-4 ($+2.98$), 65.9\% 3-Long
+($+4.29$, recovering 57.5\% of the 2/2--3/3 long-context gap), and 82.2\% MRCR~512K ($+9.54$, cutting truncation from
+4.8\% to 1.5\%)---every gain excluding zero under both 95\% and $k{=}3$ Holm-Bonferroni 98.33\% CIs---and also
+significantly improves uncloned 1M natural LongBench~v2 ($+1.99$, 95\% \ci{0.25}{3.73}, cutting truncation $3.7\times$
+from 1.64\% to 0.45\%). Relative to training-free 4/2, KV-Only adds $+1.19$ 5-Bench, $+1.98$ 3-Long (95\%
+\ci{0.13}{3.78}), and $+4.52$ MRCR (95\% \ci{0.12}{8.98}) vs.\ Anchored (same $[0,3]$ pairing), and a directional $+0.77$
+5-Bench (\ci{-0.77}{2.38}) vs.\ Tail; restricting to the clean non-exploratory confirmatory split ($s_1$--$s_3$, dropping
+$\#\text{s0}$) strengthens both contrasts ($+3.77$ 5-Bench / $+6.40$ 3-Long vs.\ 2/2; $+2.34$ 5-Bench \ci{0.28}{4.40} /
+$+3.82$ 3-Long \ci{0.94}{6.62} Holm-significant vs.\ TF~4/2 Anchored; $+1.06$ \ci{-0.74}{2.90} vs.\ TF~4/2 Tail). At
+$n{=}3$ ($1.27$--$1.29\times$ decode vs.\ 4/4), zero-training TF~4/3 Anchored already reaches 74.0\% (0 params), while
+LoopBridge~4/3 KV-Only (6.55M params, 0.025\%) reaches 74.1\% ($+0.17$\ci{-1.23}{1.52} vs.\ TF~4/3 Anchored), sweeping
+Original~3/3 5/5 ($+1.00$\ci{-0.37}{2.33}) and recovering 99.0\% of Original~4/4 (74.1\% vs.\ 74.9\%,
+$-0.77$\ci{-2.04}{0.52}; 56.4\% of the 3/3--4/4 gap; 99.4\% on $s_1$--$s_3$).
 \item \emph{Strict 24M sweeps in Regime~II:} Under identical 24M \texttt{v3} budgets, LoopBridge sweeps tied distillation
 5/5 on both \texttt{TML-d24-varloop} 3/1 ($+7.8$\ci{4.4}{11.2} 5-Bench, $+11.7$\ci{7.1}{16.4} 3-Long, $3.55\times$ faster
 training, 21\% fewer params) and fixed-3 \texttt{Inkling-2-Mini} 3/2 ($+5.1$\ci{2.0}{8.1} 5-Bench, $+7.7$\ci{3.6}{12.0}
@@ -1435,11 +1446,11 @@ KV maps add $+2.1$\ci{-0.9}{5.4} ($+3.5$ 3-Long; single-pass vs.\ cross-pass tie
 (Table~\ref{tab:varloop}c), mixing off-policy R1-style SFT (\texttt{v5}) with full LoRA inflates coding truncation
 (LCB~v6 73.1\% on 4/3~\texttt{v5} vs.\ 77.7\% on KV-Only), whereas pure on-policy KV-Only eliminates decode drift.
 Finally, distilling $m{>}m_{\text{teacher}}$ consistently degrades quality (LB~4/1 from $t{=}3$: $-2.1$ vs.\ 3/1; LB~5/3
-from $t{=}4$: 73.6\% vs.\ TF~5/3's 74.4\%), and zero-training $m{=}5$ saturates on MRCR/LCB (TF~5/2 Anchored 68.3\%,
-matching TF~4/2 Anchored while gaining on GraphWalks 53.4\% and LBv2 65.6\%).
+from $t{=}4$: 73.6\% vs.\ TF~5/3's 74.4\%), and zero-training $m{=}5$ saturates on MRCR/LCB (TF~5/2 Anchored 67.8\%,
+trailing TF~4/2 Anchored's 68.4\% while leading GraphWalks at 53.4\%).
 \item \emph{Hybrid v2 3/2 frontier:} Scaling to 48M hybrid GKD+SFT ($r{=}128$) lifts \texttt{TML-d24-varloop} 3/2 to
-70.7\% (@1, 96.2\% of Orig~3/3's 73.5\% @1; $+7.4$\ci{1.7}{13.1} LCB~v6 vs.\ 2/2's 68.0\% @1) and \texttt{Inkling-2-Mini} 3/2 to 58.3\% (88.1\%
-of 3/3, $+6.8$\ci{3.6}{9.8} over Distilled~2/2).
+70.7\% (@1, 96.2\% of Orig~3/3's 73.5\% @1; $+7.4$\ci{1.7}{13.1} LCB~v6 vs.\ 2/2's 68.0\% @1) and \texttt{Inkling-2-Mini} 3/2 to 58.3\% (87.7\%
+of symmetric 3/3, $+6.8$\ci{3.6}{9.8} over Distilled~2/2).
 \item \emph{KV-map geometry \& intra-model ``dark memories'' (connection to Plato's Key~\citep{platoskey}):}
 Inspecting our unconstrained $128{\times}128$ \texttt{KV-Only} maps ($r{=}0$) reveals three striking geometric invariants
 echoing Plato's Key's cross-model Procrustes findings:
@@ -1450,11 +1461,15 @@ $\|F^\top F / s^2 - I\|_F/\sqrt{d} \le 0.023$), preserving the frozen decoder's 
 Plato's Key's low-dimensional shared subspace; yet
 (iii)~$74.4\text{--}75.2\%$ of total delta energy resides in off-diagonal cross-pass terms ($p{\neq}j$), confirming that
 $m{\to}n$ depth untying performs genuine many-to-few pass fusion rather than $1{\to}1$ rotation alone.
-Functionally, across the 30 Pure-4 items where Original~4/4 succeeds ($\ge 75\%$) yet Original~2/2 fails ($<50\%$),
-100\%-frozen-decoder \texttt{LB 4/2 KV-Only} ($r{=}0$) unlocks \textbf{25/30 (83.3\%, $+43.5$~pp mean gain)}---vs.\
-17/30 (56.7\%, $+28.1$~pp) for unmapped TF~4/2---showing that shallow decoders retain latent reasoning and 512K retrieval
-capability in their weights and fail primarily from weaker shallow-prefill keys (closed-form Procrustes baseline in
-\path{inkling/fit_procrustes_kv.py}).
+Functionally, to guard against regression-to-the-mean when identifying ``depth-dark'' items where Original~4/4 succeeds
+($\ge 75\%$) yet Original~2/2 fails ($<50\%$), we perform 2-fold split-half cross-validation across disjoint seed halves
+($\{s_0,s_1\}$ vs.\ $\{s_2,s_3\}$; $N{=}71$ held-out item-folds across all five benchmarks). On held-out seeds, Original~2/2
+scores 53.9\% vs.\ 77.5\% for Original~4/4; unmapped TF~4/2 Tail recovers 16.2\% of this gap (57.7\%, $+3.8$~pp) and
+exact-pairing unmapped TF~4/2 Anchored recovers 26.7\% (60.2\%, $+6.3$~pp), whereas 100\%-frozen-decoder
+\texttt{LB 4/2 KV-Only} ($r{=}0$) reaches \textbf{67.9\% ($+14.0$~pp, 59.2\% held-out gap recovery---$>2\times$ unmapped
+Anchored}; 62.5\% vs.\ 38.4\% on Pure-4, $N{=}50$), showing that shallow decoders retain latent reasoning and 512K--1M
+retrieval capability in their frozen weights and fail primarily from weaker shallow-prefill keys (closed-form Procrustes
+baseline in \path{inkling/fit_procrustes_kv.py}).
 \end{enumerate}
 
 \begin{table*}[t]
@@ -1464,8 +1479,9 @@ capability in their weights and fail primarily from weaker shallow-prefill keys 
 \toprule
 Model (\texttt{Inkling-2-Mini}, fixed-3 26.4B MoE) & Params & GPQA & LCB~v6 & MRCR & GW~256K & LBv2~1M & 3-Long & 5-Bench \\
 \midrule
-Original 3/3 ($1.00\times$ teacher) & 0 & 84.3 & 78.3 & 55.9 & 48.0 & 64.2$^*$ & 56.0 & 66.2 \\
+Original 3/3 ($1.00\times$ teacher) & 0 & 84.3 & 78.3 & 55.9 & 48.0 & 65.8 & 56.6 & 66.5 \\
 Training-free 3/2 Anchored $[0,2]$ (93.2\% trunc) & 0 & 3.0 & 2.9 & 0.2 & 0.0 & 4.8 & 1.7 & 2.2 \\
+Original 2/2 / TF 3/2 Tail $[1,2]$ (GPQA collapse) & 0 & 5.6 / 5.6 & -- & -- & -- & -- & -- & -- \\
 \midrule
 \multicolumn{9}{@{}l}{\emph{(a) Controlled 24M comparisons (identical v3 corpus, $r=64$)}} \\
 Distilled 2/2 (24M, $1.36\times$ decode) & 47.4M & 79.3 & 63.4 & 16.6 & 38.3 & 60.0 & 38.3 & 51.5 \\
@@ -1481,11 +1497,13 @@ Distilled 1/1 (24M, $2.17\times$ decode) & 43.7M & 41.4 & 18.3 & 5.2 & 5.1 & 32.
 \bottomrule
 \end{tabular}
 \caption{\textbf{\texttt{Inkling-2-Mini} (26.4B fixed-3 sparse-MoE) on five official benchmarks in Day-0 vLLM.}
-$^*$Original~3/3 LongBench~v2~1M used \texttt{max\_new\_tokens}=32,768 (4.97\% trunc) vs.\ 57,344 for all other arms;
-GraphWalks~256K EOS-only score for Original~3/3 is 66.7\% (28\% trunc). Training-free 3/2 collapses completely (2.2\%,
-93.2\% truncation), proving fixed-depth backbones require parametric adaptation. Under controlled 24M training,
-LoopBridge~3/2 beats Distilled~2/2 on all 5 benchmarks ($+5.1$\ci{2.0}{8.1} 5-Bench, $+7.7$\ci{3.6}{12.0} 3-Long), and
-LoopBridge~3/1 beats Distilled~1/1 ($+3.8$\ci{1.2}{6.3} 5-Bench, $+7.8$\ci{4.6}{10.9} 3-Long).}
+All arms share identical symmetric generation caps (65,536 GPQA/LCB/MRCR, 98,304 GW, 57,344 LBv2~1M; Original~3/3
+LongBench~v2~1M is 65.8\% with 1.79\% trunc.\ at 57,344 vs.\ 64.2\% at 32,768; GraphWalks~256K EOS-only score for
+Original~3/3 is 66.7\%, 28\% trunc.). Every unadapted $n{=}2$ variant collapses (TF~3/2 Anchored 2.2\%, 93.2\% trunc.;
+Original~2/2 5.6\%, 88.9\% trunc.\ on GPQA; TF~3/2 Tail 5.6\%, 86.9\% trunc.\ on GPQA), proving fixed-depth backbones
+require parametric adaptation. Under controlled 24M training, LoopBridge~3/2 beats Distilled~2/2 on all 5 benchmarks
+($+5.1$\ci{2.0}{8.1} 5-Bench, $+7.7$\ci{3.6}{12.0} 3-Long), and LoopBridge~3/1 beats Distilled~1/1 ($+3.8$\ci{1.2}{6.3}
+5-Bench, $+7.8$\ci{4.6}{10.9} 3-Long).}
 \label{tab:mini}
 \end{table*}
 
@@ -1538,8 +1556,8 @@ curtails rambling loops (mean 26.7K vs.\ 29.5K / 34.1K tokens; normalized $B{=}1
 GPU-s/item: 31.2~s vs.\ 34.3~s / 40.3~s). Under batched throughput cost (GPU-s/item), LoopBridge~3/1 (31.2~s; 3/1~v2:
 27.7~s) forms the fastest frontier point ahead of Original~2/2 (32.9~s). However, under \emph{unconstrained single-stream
 ($B{=}1$) high-effort reasoning}, all $n{=}1$ decoders inflate output length by $1.4$--$1.8\times$ over $n{=}2$, so
-$n\ge2$ models---led by LoopBridge~4/3 KV-Only (matching Original~4/4 accuracy at $1.27$--$1.29\times$ speed) and
-LoopBridge~4/2 KV-Only ($+2.6^\ast$ over Original~2/2 at $1.75\times$ speed vs.\ 4/4)---dominate $n{=}1$ on both
+$n\ge2$ models---led by LoopBridge~4/3 KV-Only (recovering 99.0\% of Original~4/4 accuracy at $1.27$--$1.29\times$ speed) and
+LoopBridge~4/2 KV-Only ($+2.8^\ast$ over Original~2/2 at $1.75\times$ speed vs.\ 4/4)---dominate $n{=}1$ on both
 single-request wall time and accuracy.
 \item \emph{Short-output 256K E2E and KV slots:} Against equal-$m$ Original~4/4, LoopBridge~4/3 and 4/2 KV-Only win
 end-to-end even at $L{=}262\text{K}, G{=}512$ ($51.9$--$56.2$ vs.\ $49.3$~tok/s at $B{=}1$, $1.05$--$1.14\times$) because

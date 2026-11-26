@@ -310,7 +310,10 @@ def _fold_request_kv_maps(
                     k_out = k_src[j].clone()
                     v_out = v_src[j].clone()
                     for p in range(m):
-                        ps = max(0, min(max_m - 1, slot_offset + p))
+                        if pass_pairing == "anchored" and m < max_m and p == 0:
+                            ps = 0
+                        else:
+                            ps = max(0, min(max_m - 1, slot_offset + p))
                         k_out.add_(torch.einsum("nhi,hoi->nho", k_src[p], kd_loop[k_pass, idx, ps]))
                         v_out.add_(torch.einsum("nhi,hoi->nho", v_src[p], vd_loop[k_pass, idx, ps]))
                     out_pairs.append((j, k_out, v_out))

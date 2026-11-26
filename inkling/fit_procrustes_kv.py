@@ -239,14 +239,14 @@ def main() -> None:
             if args.method == "procrustes":
                 Wk = fit_procrustes_map(None, k_xy_loop[kp, li].cpu(), k_x2_loop[kp, li].cpu(), k_y2_loop[kp, li].cpu())
                 Wv = fit_procrustes_map(None, v_xy_loop[kp, li].cpu(), v_x2_loop[kp, li].cpu(), v_y2_loop[kp, li].cpu())
-                ps = slot_offset + j
+                ps = 0 if (args.pass_pairing == "anchored" and m < max_m and j == 0) else (slot_offset + j)
                 kl[kp, li, ps] = (Wk - eye_d).to(kl.device)
                 vl[kp, li, ps] = (Wv - eye_d).to(vl.device)
             else:
                 Wk_cat = fit_rescaled_ridge_cross(k_xx_loop[kp, li].cpu(), k_xy_loop[kp, li].cpu(), k_y2_loop[kp, li].cpu(), lam=args.ridge_lam)
                 Wv_cat = fit_rescaled_ridge_cross(v_xx_loop[kp, li].cpu(), v_xy_loop[kp, li].cpu(), v_y2_loop[kp, li].cpu(), lam=args.ridge_lam)
                 for p_i in range(m):
-                    ps = slot_offset + p_i
+                    ps = 0 if (args.pass_pairing == "anchored" and m < max_m and p_i == 0) else (slot_offset + p_i)
                     wk_sub = Wk_cat[:, :, p_i * D : (p_i + 1) * D]
                     wv_sub = Wv_cat[:, :, p_i * D : (p_i + 1) * D]
                     if p_i == j:
@@ -263,8 +263,11 @@ def main() -> None:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload = {
+        "mode": "loopbridge",
+        "cells": [(m, n)],
+        "model_path": str(args.model),
         "system_config": sys_cfg.__dict__,
-        "trainable_state": system.trainable_state_dict(),
+        "trainable_state": system.trainable_state(),
         "meta": {
             "method": args.method,
             "m": m,
