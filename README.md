@@ -23,7 +23,7 @@
 
 Looped (recurrent-depth) language models reuse one block of layers for the same number of loops during prefill and decode. Yet generation is heavily asymmetric: at batch 1, prefill reads the prompt once in parallel (**<3%** of wall time), while decoding steps token by token (**>97%**).
 
-**LoopBridge** unties prefill depth (*m*) from decode depth (*n* < *m*) with a lightweight adapter (**2.4%** on Ouro-2.6B; **0.13–0.25%** on 26.4B sparse-MoE looped models) that combines decoder LoRA with prompt KV maps. It serves every trained (*m*, *n*) pair, preserves long-context retrieval up to 256K–1M tokens, and **folds once into the prompt KV cache at prefill**—keeping Original *n*/*n*'s per-token decode speed intact in both custom PyTorch runners and Thinking Machines' Day-0 vLLM Blackwell engine.
+**LoopBridge** unties prefill depth (*m*) from decode depth (*n* < *m*) with a lightweight adapter (**2.4%** on Ouro-2.6B; **0.017–0.25%** on 26.4B sparse-MoE looped models) that combines cache-foldable prompt KV maps (and optional decoder LoRA). It serves every trained (*m*, *n*) pair, preserves long-context retrieval up to 256K–1M tokens, and **folds once into the prompt KV cache at prefill**—keeping Original *n*/*n*'s per-token decode speed intact in both custom PyTorch runners and Thinking Machines' Day-0 vLLM Blackwell engine.
 
 <p align="center">
   <picture>
@@ -71,22 +71,29 @@ Every number below is recomputed directly from released per-item scores and timi
 
 ### 26.4B Sparse-MoE Looped Models in Day-0 vLLM (`TML-d24-varloop` & `Inkling-2-Mini`)
 
-Evaluated in Thinking Machines' Day-0 vLLM Blackwell engine on five exact official splits (`GPQA Diamond` 198, `LiveCodeBench v6` 175, `MRCR v2 8n 256K–512K` 100, `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; recomputable via [`inkling/make_figs.py`](inkling/make_figs.py)). Folded NoPE global-3 KV maps (`0.13–0.25%` trainable params) add **<1% decode overhead** up to `256K` context:
+Evaluated in Thinking Machines' Day-0 vLLM Blackwell engine on five exact official splits (`GPQA Diamond` 198, `LiveCodeBench v6` 175, `MRCR v2 8n 256K–512K` 100, `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; recomputable via [`inkling/make_figs.py`](inkling/make_figs.py)), revealing a clean **two-regime law**:
+
+- **Regime I — Variable-depth `TML-d24-varloop` at `n ≥ 2` (`4×avg@4 + LBv2@1`, 27,950 rollouts):** Training-free untying works natively, and ultra-compact **pure-prompt KV-Only maps** (`lora_rank=0`, `4.46M–6.55M` params = `17.0–25.0 MiB` = **`0.017–0.025%`** of 26.4B, zero decode weight drift or overhead) rank #1 on every composite at both `n=3` and `n=2`—beating `Orig 4/4` even in end-to-end throughput up to `262K`!
+- **Regime II — Fixed-depth `Inkling-2-Mini` (`3/2`) & un-gated `n=1` (`3/1`):** Training-free untying collapses (`2.2%`, `93.2%` truncation on `Inkling-2-Mini 3/2`; `40.8%` on `VarLoop 3/1`), while parametric LoopBridge rescues accuracy and sweeps parameter-advantaged tied distillation **5/5** under locked 24M controls.
 
 | Backbone (26.4B MoE) | Method | Params | GPQA | LCB v6 | MRCR 512K | GW 256K | LBv2 1M | 3-Long | 5-Bench | vLLM Decode (`256K B=2`) |
 | :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `TML-d24-varloop` | Original 3/3 (teacher) | 0 | 84.3 | 77.1 | 90.6 | 51.0 | 64.4 | 68.7 | 73.5 | 1.00× (294 tok/s) |
-| `TML-d24-varloop` | Original 2/2 | 0 | 79.8 | 68.0 | 76.7 | 53.9 | 62.8 | 64.5 | 68.2 | 1.37× (404 tok/s) |
-| `TML-d24-varloop` | **LoopBridge 3/2 v2 (48M, r128)** | **65.8M** | **83.8** | **75.4** | **75.9** | **54.0** | **64.2** | **64.7** | **70.7** | **1.37× (404 tok/s)** |
-| `TML-d24-varloop` | Original 1/1 / TF 3/1 | 0 | 74.7 / 72.7 | 39.4 / 40.6 | 20.7 / 19.5 | 20.0 / 14.4 | 48.9 / 56.7 | 29.9 / 30.2 | 40.8 / 40.8 | 2.18× (642 tok/s) |
-| `TML-d24-varloop` | Distilled 1/1 (24M ctrl) | 43.7M | 69.2 | 44.6 | 24.3 | 25.3 | 53.5 | 34.3 | 43.4 | 2.18× |
-| `TML-d24-varloop` | **LoopBridge 3/1 (24M ctrl, 3.55× faster train)** | **34.6M** | **70.7** | **46.9** | **30.2** | **46.0** | **62.0** | **46.1** | **51.2** | **2.18× (641 tok/s)** |
-| `Inkling-2-Mini` | Original 3/3 (teacher) | 0 | 84.3 | 78.3 | 55.9 | 48.0 | 64.2* | 56.0 | 66.2 | 1.00× (295 tok/s) |
-| `Inkling-2-Mini` | Distilled 2/2 (24M ctrl) | 47.4M | 79.3 | 63.4 | 16.6 | 38.3 | 60.0 | 38.3 | 51.5 | 1.36× (401 tok/s) |
-| `Inkling-2-Mini` | **LoopBridge 3/2 (24M ctrl, 4.5× faster train)** | **39.9M** | **79.8** | **65.1** | **27.5** | **50.0** | **60.6** | **46.0** | **56.6** | **1.37× (403 tok/s)** |
-| `Inkling-2-Mini` | **LoopBridge 3/2 v2 (48M, r128)** | **65.8M** | **82.8** | **66.9** | **29.9** | **49.0** | **63.0** | **47.3** | **58.3** | **1.37× (403 tok/s)** |
+| `TML-d24-varloop` (`@4`) | Original 4/4 (ceiling) | 0 | 82.6 | 76.7 | 94.0 | 56.3 | 63.8 | 71.4 | 74.7 | 1.00× (232 tok/s) |
+| `TML-d24-varloop` (`@4`) | Original 3/3 | 0 | 82.3 | 76.0 | 90.4 | 52.2 | 64.4 | 69.0 | 73.1 | 1.27× (294 tok/s) |
+| `TML-d24-varloop` (`@4`) | TF 4/3 (Tail / Anchored) | 0 | 83.0 / 83.1 | 75.7 / 74.9 | 91.0 / 93.4 | 50.9 / 52.0 | 65.6 / 67.4 | 69.2 / 70.9 | 73.2 / 74.1 | 1.27× (295 tok/s) |
+| `TML-d24-varloop` (`@4`) | **LoopBridge 4/3 KV-Only (`r=0`, 25 MiB)** | **6.55M** | 82.5 | **76.4** | 91.7 | **54.5** | **67.6** | **71.3** | **74.5** | **1.27× (296 tok/s)** |
+| `TML-d24-varloop` (`@4`) | Original 2/2 | 0 | 81.1 | 68.3 | 72.6 | 50.6 | 62.8 | 62.0 | 67.1 | 1.74× (404 tok/s) |
+| `TML-d24-varloop` (`@4`) | TF 4/2 (Anchored / Tail) | 0 | 81.2 / 80.6 | 69.1 / 67.9 | 77.7 / 78.9 | 51.8 / 52.1 | 61.8 / 65.2 | 63.8 / 65.4 | 68.3 / 68.9 | 1.74× (403 tok/s) |
+| `TML-d24-varloop` (`@4`) | **LoopBridge 4/2 KV-Only (`r=0`, 17 MiB)** | **4.46M** | 80.9 | **69.4** | **82.2†** | 51.9 | 64.0 | **66.0†** | **69.7†** | **1.75× (406 tok/s)** |
+| `TML-d24-varloop` (`@1`) | Orig 1/1 / TF 3/1 | 0 | 74.7 / 72.7 | 39.4 / 40.6 | 20.7 / 19.5 | 20.0 / 14.4 | 48.9 / 56.7 | 29.9 / 30.2 | 40.8 / 40.8 | 2.76× (642 tok/s) |
+| `TML-d24-varloop` (`@1`) | Distilled 1/1 (24M ctrl) | 43.7M | 69.2 | 44.6 | 24.3 | 25.3 | 53.5 | 34.3 | 43.4 | 2.76× |
+| `TML-d24-varloop` (`@1`) | **LoopBridge 3/1 (24M ctrl, 3.55× faster train)** | **34.6M** | **70.7** | **46.9** | **30.2** | **46.0** | **62.0** | **46.1\*** | **51.2\*** | **2.76× (641 tok/s)** |
+| `Inkling-2-Mini` (`@1`) | Original 3/3 (teacher) | 0 | 84.3 | 78.3 | 55.9 | 48.0 | 64.2‡ | 56.0 | 66.2 | 1.00× (295 tok/s) |
+| `Inkling-2-Mini` (`@1`) | TF 3/2 Anchored (93.2% trunc collapse) | 0 | 3.0 | 2.9 | 0.2 | 0.0 | 4.8 | 1.7 | 2.2 | 1.37× |
+| `Inkling-2-Mini` (`@1`) | Distilled 2/2 (24M ctrl) | 47.4M | 79.3 | 63.4 | 16.6 | 38.3 | 60.0 | 38.3 | 51.5 | 1.36× (401 tok/s) |
+| `Inkling-2-Mini` (`@1`) | **LoopBridge 3/2 (24M ctrl / v2 48M)** | **39.9M** | **79.8** / 82.8 | **65.1** / 66.9 | **27.5** / 29.9 | **50.0** / 49.0 | **60.6** / 63.0 | **46.0\*** / 47.3 | **56.6\*** / 58.3 | **1.37× (403 tok/s)** |
 
-<sub><i>*Original 3/3 LongBench v2 1M used <code>max_new_tokens=32,768</code> (4.97% trunc) vs. 57,344 for all other arms. Controlled 24M sweeps: LoopBridge beats parameter-advantaged tied distillation on 5/5 tasks on both backbones (<code>+7.8 [4.4, 11.2]</code> on TML-d24-varloop 3/1; <code>+5.1 [2.0, 8.1]</code> on Inkling-2-Mini 3/2). LoopBridge v2 (48M hybrid GKD+SFT, <code>--freeze-sink</code>, no 48M Distilled v2 control) reaches 96.2% of Original 3/3 on TML-d24-varloop 3/2. All 6 verified 26.4B checkpoints are released on <a href="https://modelscope.cn/models/torushy/LoopBridge">ModelScope</a>.</i></sub>
+<sub><i>(`@4`): pre-registered 4× symmetric sampling on {GPQA, LCB, MRCR, GW} + LBv2@1 (N=503); TF 5/2 Anchored = 68.3%. †LoopBridge 4/2 KV-Only clears zero vs. Orig 2/2 under both 95% and strict k=3 Holm-Bonferroni 98.33% clustered CIs (<code>+2.62 [+0.56, +4.65]</code> 5-Bench, <code>+4.03 [+0.81, +7.10]</code> 3-Long, <code>+9.54 [+2.91, +16.49]</code> MRCR 512K). LoopBridge 4/3 KV-Only recovers <b>99.8%</b> of Orig 4/4 (<code>-0.14 [-1.53, +1.26]</code>; 99.9% 3-Long) and sweeps Orig 3/3 5/5. Controlled 24M sweeps (*95% CI excludes zero vs. Distilled): <code>+7.8 [+4.4, +11.2]</code> on VarLoop 3/1; <code>+5.1 [+2.0, +8.1]</code> on Mini 3/2. ‡Mini Orig 3/3 LBv2-1M used <code>max_new_tokens=32,768</code> vs. 57,344 for all other arms. All 8 verified 26.4B checkpoints (16 total with Ouro) are released on <a href="https://modelscope.cn/models/torushy/LoopBridge">ModelScope</a>.</i></sub>
 
 <p align="center">
   <img src="paper/figs/fig_inkling_pareto.png" alt="26.4B sparse-MoE Pareto frontier and isolated Day-0 vLLM decode speedup" width="96%">
@@ -168,8 +175,8 @@ def decode_step(token, Kp, Vp, kv_ans, n):
   </tr>
   <tr>
     <td align="center" colspan="2">
-      <img src="paper/figs/fig_inkling_ablate.png" alt="26.4B sparse-MoE controlled 24M 5/5 sweeps and mechanistic ablation" width="90%"><br/>
-      <sub><b>26.4B sparse-MoE controlled 24M 5/5 sweeps</b> &amp; mechanistic ablation ladder</sub>
+      <img src="paper/figs/fig_inkling_ablate.png" alt="26.4B sparse-MoE two-regime law: Regime I avg@4 ladders and Regime II TF collapse + 24M sweeps" width="90%"><br/>
+      <sub><b>26.4B sparse-MoE two-regime law:</b> Regime I avg@4 ladders (<i>n</i> ≥ 2) &amp; Regime II TF collapse + 24M sweeps</sub>
     </td>
   </tr>
 </table>
@@ -204,7 +211,7 @@ uv run --with numpy --with matplotlib python inkling/make_figs.py
 
 ### 3. Download released checkpoints & distillation data (ModelScope)
 
-All 14 core LoopBridge adapters (8 Ouro + 6 26.4B sparse-MoE, every file SHA256-verified) and the GPQA-free 48M-token Ouro distillation mix + RULER/HELMET evaluation archives are publicly hosted on ModelScope:
+All 16 core LoopBridge adapters (8 Ouro + 8 26.4B sparse-MoE, including the flagship `loopbridge-4x3-kvonly-12m` and `loopbridge-4x2-kvonly-12m` zero-LoRA checkpoints, every file SHA256-verified) and the GPQA-free 48M-token Ouro distillation mix + RULER/HELMET evaluation archives are publicly hosted on ModelScope:
 
 - **Adapter Checkpoints:** [`torushy/LoopBridge`](https://modelscope.cn/models/torushy/LoopBridge) (`ouro-2.6b`, `ouro-2.6b-thinking`, `ouro-1.4b`, `ouro-1.4b-thinking`, `tml-d24-varloop`, `inkling-2-mini`)
 - **Distillation & Eval Data:** [`torushy/LoopBridge-Data`](https://modelscope.cn/datasets/torushy/LoopBridge-Data) (`mix-data-48m.tar.gz`, `bench.tar.gz`, `bench-mini.tar.gz`)
@@ -255,7 +262,7 @@ loopbridge/
 │   ├── make_figs.py            # Recomputes 26.4B paired bootstrap CIs & draws Figures 15-16
 │   └── results/                # Official-exact per-item eval JSONs & isolated Day-0 vLLM Blackwell timing logs
 ├── paper/
-│   ├── loopbridge.pdf          # Compiled 31-page arXiv preprint (8-page ACL main body + Appendices A-O)
+│   ├── loopbridge.pdf          # Compiled 32-page arXiv preprint (exact 8-page ACL main body + Appendices A-O)
 │   ├── latex/                  # Single-source ACL LaTeX & bibliography
 │   ├── figs/                   # All 16 paper figures (PDF/PNG) & generated LaTeX table fragments
 │   └── build_arxiv.py          # Reproducible arXiv tarball & PDF builder

@@ -1,7 +1,8 @@
 # Archive
 
-The project finished on 2026-11-19. The two 8-GPU boxes it ran on were released, and their working directories
-(`/dev/shm`, a tmpfs) were deleted. This file says what survived, and where.
+The Ouro phase finished on 2026-11-19 and the 26.4B sparse-MoE vLLM phase (including the 10-arm `avg@4` evaluation)
+finished on 2026-11-26. The 8-GPU B300 boxes' tmpfs working directories (`/dev/shm`) were cleaned once all results and
+winning checkpoints were archived. This file says what survived, and where.
 
 The tag `paper-arxiv` is the commit the arXiv version was built from. Dead/dropped model lines and non-paper artifacts
 were pruned during release cleanup while keeping every module, launcher, and score file required to reproduce the paper
@@ -10,19 +11,21 @@ source tree snapshots from the training boxes are archived as they stood when th
 
 ## In this repository
 
-Everything the paper's numbers are made of: the source, the launcher for every run the paper uses, the per-item scores
-(`ouro/results/items/`), the per-request timings (`ouro/results/e2e/`), the Lev outputs (`ouro/results/lev/`), the
-provenance records (`ouro/results/provenance/`: run manifests, logs, and per-item outputs, plus training configs and
-checkpoint hashes for the main and ablation models), the figures and the LaTeX source. `python ouro/scripts/paper_numbers.py compute` recomputes every printed value
-from them on a CPU, and `ouro/scripts/paper_figs.py` redraws every figure. The environment is pinned in
+Everything the paper's numbers are made of: the source, the launcher for every run the paper uses, the Ouro per-item scores
+(`ouro/results/items/`), per-request timings (`ouro/results/e2e/`), Lev outputs (`ouro/results/lev/`), and provenance records
+(`ouro/results/provenance/`), plus the complete 26.4B sparse-MoE official-exact `avg@4` & `avg@1` per-item records and
+isolated single-GPU Day-0 vLLM Blackwell timing logs (`inkling/results/`), all figures, and the LaTeX source.
+`python ouro/scripts/paper_numbers.py compute` and `python inkling/make_figs.py` recompute every printed value on a CPU,
+and `ouro/scripts/paper_figs.py` + `inkling/make_figs.py` redraw every figure. The environment is pinned in
 `environments/ouro/` (`pyproject.toml`, `uv.lock`).
 
 ## Public release on ModelScope
 
-All 14 core LoopBridge adapter checkpoints (8 Ouro adapters SHA256-matched to `ouro/results/provenance/training/` plus 6
-26.4B sparse-MoE adapters for `TML-d24-varloop-research` and `Inkling-2-Mini`, SHA256-verified in `SHA256SUMS.txt` on
-ModelScope) and the GPQA-free 48M-token Ouro distillation mix + prepared RULER/HELMET evaluation sets are publicly
-available on ModelScope:
+All 16 core LoopBridge adapter checkpoints (8 Ouro adapters SHA256-matched to `ouro/results/provenance/training/` plus 8
+26.4B sparse-MoE adapters for `TML-d24-varloop-research` and `Inkling-2-Mini`—including the flagship zero-LoRA KV-Only
+adapters `tml-d24-varloop/loopbridge-4x3-kvonly-12m` [`e9ec592eb2e4e403...`] and `loopbridge-4x2-kvonly-12m`
+[`fbcc7502a27076da...`], SHA256-verified in `SHA256SUMS.txt` on ModelScope) and the GPQA-free 48M-token Ouro
+distillation mix + prepared RULER/HELMET evaluation sets are publicly available on ModelScope:
 
 - **Checkpoints:** [`https://modelscope.cn/models/torushy/LoopBridge`](https://modelscope.cn/models/torushy/LoopBridge)
 - **Data:** [`https://modelscope.cn/datasets/torushy/LoopBridge-Data`](https://modelscope.cn/datasets/torushy/LoopBridge-Data)

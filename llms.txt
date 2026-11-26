@@ -2,9 +2,9 @@
 
 > Looped (recurrent-depth) language models use the same number of loops to read the prompt (prefill) and to generate
 > each answer token (decode), although generation is almost all decoding. We untie the two loop counts (prefill m
-> loops, decode n < m) and introduce LoopBridge (2.4% of parameters on Ouro-2.6B; 0.13-0.25% on 26.4B sparse-MoE
-> looped models: decoder LoRA + cache-foldable prompt KV maps), a lightweight adapter distilled from the full-loop
-> model that folds into the prompt cache once at prefill with virtually zero per-token decode overhead.
+> loops, decode n < m) and introduce LoopBridge (2.4% of parameters on Ouro-2.6B; 0.017-0.25% on 26.4B sparse-MoE
+> looped models: cache-foldable prompt KV maps + optional decoder LoRA), a lightweight adapter distilled from the
+> full-loop model that folds into the prompt cache once at prefill with virtually zero per-token decode overhead.
 > Evaluated on Ouro-2.6B, Ouro-1.4B, Thinking models, Lev decision models, and 26.4B sparse-MoE looped models
 > (TML-d24-varloop-research and Inkling-2-Mini) in Day-0 vLLM. Every number is recomputed from released per-item scores
 > by ouro/scripts/paper_numbers.py (Ouro) and inkling/make_figs.py (26.4B MoE).
@@ -25,30 +25,37 @@ Main findings (95% paired bootstrap intervals in the paper):
   Original 4/4 on all 1,319 GSM8K problems at 2.0x throughput and 0.47-0.57x wall time), and Lev decision models.
 - Scales 10x to 26.4B sparse-MoE looped models in Day-0 vLLM (TML-d24-varloop-research & Inkling-2-Mini) on five
   official reasoning and 256K-1M benchmarks (GPQA Diamond, LiveCodeBench v6, MRCR v2 8n 256K-512K, GraphWalks BFS 256K,
-  LongBench v2 1M): folded NoPE global-3 KV maps (0.13-0.25% params) add <1% decode overhead (1.33-1.39x at n=2,
-  1.87-2.18x batched at n=1 up to 256K). Under locked 24M controls, LoopBridge sweeps Distilled 5/5 on both
-  TML-d24-varloop 3/1 (51.2 vs 43.4, +7.8 [4.4, 11.2]; 3-Long +11.7 [7.1, 16.4]; 3.55x faster training) and
-  Inkling-2-Mini 3/2 (56.6 vs 51.5, +5.1 [2.0, 8.1]; 4.5x faster training). Scaling to 48M hybrid GKD/SFT (r=128)
-  lifts TML-d24-varloop 3/2 to 70.7 (96.2% of Original 3/3's 73.5, -2.8 [-5.7, 0.0]; +7.4 [1.7, 13.1] on LiveCodeBench
-  over Original 2/2 at equal 1.37x decode speed).
+  LongBench v2 1M), establishing a two-regime law:
+  * Regime I (variable-depth TML-d24-varloop at n >= 2, 10 pre-registered arms, 4x avg@4 + LBv2@1 = 27,950 rollouts):
+    training-free untying works natively (4/2: 68.3-68.9 vs 67.1 Orig 2/2; 4/3: 73.2-74.1 vs 73.1 Orig 3/3), and
+    pure-prompt KV-Only maps (lora_rank=0, 4.46M-6.55M params = 17-25 MiB = 0.017-0.025%, 0% decode overhead) rank #1 on
+    every composite: LB 4/2 KV-Only reaches 69.7% (+2.62 [+0.56, +4.65] 5-Bench, +4.03 [+0.81, +7.10] 3-Long, +9.54
+    [+2.91, +16.49] MRCR 512K over Orig 2/2, all surviving k=3 Holm-Bonferroni 98.33% CIs, at 1.75x decode vs 4/4);
+    LB 4/3 KV-Only reaches 74.5% (sweeping Orig 3/3 5/5 and recovering 99.8% of Orig 4/4's 74.7% at 1.27-1.29x decode;
+    both beat Orig 4/4 end-to-end across all lengths up to 262K).
+  * Regime II (fixed-depth Inkling-2-Mini 3/2 or un-gated n=1 VarLoop 3/1): training-free untying collapses (Mini 3/2:
+    2.2%, 93.2% trunc; VarLoop 3/1: 40.8%), while parametric LoopBridge rescues accuracy and sweeps parameter-advantaged
+    tied distillation 5/5 under locked 24M controls (+7.8 [4.4, 11.2] on VarLoop 3/1; +5.1 [2.0, 8.1] on Mini 3/2,
+    climbing to 58.3% at 48M v2).
 - Baselines: the Ouro distilled baselines move by at most 0.9 points over 0.3x-3x learning rates (0.7 at rank 16, 0.9 at rank 80).
 
 Limitations stated by the author: timing on one GPU architecture (B300) up to batch 32; on short-output 128K-256K
-prompts (G=512), m-pass prefill attenuates end-to-end speedup (1.14-1.19x for 3/1 vs 2.18x pure decode); under
+prompts (G=512), deeper m-pass prefill attenuates end-to-end speedup relative to shallower-m baselines (1.14-1.19x for
+3/1 over 3/3 vs 2.18x pure decode; though 4/3 and 4/2 still beat equal-m Orig 4/4 end-to-end at 262K); under
 unconstrained single-stream (B=1) high-effort reasoning on 26.4B models, n=1 decoders inflate chain-of-thought length
-by 1.4-1.8x so n=2 (LoopBridge 3/2) dominates n=1 in both single-request wall time and accuracy whereas n=1 leads in
-batched throughput cost; our current vLLM prototype retains m global KV slots (matching 3/3's KV footprint); prefill
-depth is fixed per setting rather than per prompt; English benchmarks only.
+by 1.4-1.8x so n >= 2 (LoopBridge 4/3, 4/2, 3/2) dominates n=1 in single-request wall time and accuracy whereas n=1
+leads in batched throughput cost; our current vLLM prototype retains m global KV slots; prefill depth is fixed per
+setting rather than per prompt; English benchmarks only.
 
 ## Docs
-- README.md: findings, 26.4B vLLM results, quick start, repository map
+- README.md: findings, 26.4B vLLM two-regime results, quick start, repository map
 - REPRODUCE.md: every table and figure -> script -> result file; Ouro and 26.4B vLLM commands
-- paper/loopbridge.pdf: the 31-page paper (8-page ACL main body + Appendices A-O)
+- paper/loopbridge.pdf: the 32-page paper (exact 8-page ACL main body + Appendices A-O)
 - ouro/results/items/: Ouro per-item scores; ouro/results/paper_numbers.json: recomputed Ouro statistics
-- inkling/results/: 26.4B sparse-MoE official-exact per-item JSONs & isolated Day-0 vLLM Blackwell timing logs
+- inkling/results/: 26.4B sparse-MoE official-exact avg@4 & avg@1 per-item JSONs & isolated Day-0 vLLM Blackwell timing logs
 - ouro/results/provenance/: Ouro run manifests, logs, configs, and checkpoint hashes
 - docs/ARCHIVE.md: public ModelScope checkpoints/data (`torushy/LoopBridge`, `torushy/LoopBridge-Data`) and cold-archive notes
-- Checkpoints (ModelScope, 14 adapters: 8 Ouro + 6 26.4B MoE): https://modelscope.cn/models/torushy/LoopBridge
+- Checkpoints (ModelScope, 16 adapters: 8 Ouro + 8 26.4B MoE): https://modelscope.cn/models/torushy/LoopBridge
 - Data (ModelScope): https://modelscope.cn/datasets/torushy/LoopBridge-Data
 - docs/DEPRECATED.md: pruned legacy scripts/arms and remaining optional branches
 - The tag paper-arxiv points to the exact commit the arXiv PDF and all figures/tables were built from.
