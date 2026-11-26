@@ -144,9 +144,9 @@ directly lowers decode depth per token. Serving systems disaggregate prefill and
 hardware~\citep{distserve,splitwise}; untying disaggregates their loop depth as well.
 
 \paragraph{Asymmetric KV producers and consumers.} YOCO~\citep{yoco} pairs a self-decoder building one global KV cache
-with a cross-decoder reading it, and KITE~\citep{kite} splits a checkpoint into two towers for bulk prefill. Rather than
-redesigning pretraining or splitting a model into two towers, we adapt one looped backbone with a small adapter and choose
-$m$ and $n$ at inference (extended related work: Appendix~\ref{app:related}).
+with a cross-decoder reading it, and KITE~\citep{kite} splits a checkpoint into two towers for bulk prefill. Rather than redesigning pretraining or splitting a model into two towers, we adapt one looped backbone with a small
+adapter---extending linear key alignment~\citep{platoskey} from cross-model factual recall to intra-model multi-depth KV
+caches---and choose $m$ and $n$ at inference (extended related work: Appendix~\ref{app:related}).
 
 \section{Method}
 \label{sec:method}
@@ -926,9 +926,13 @@ compresses KV across loops, while BeNice!\@~\citep{benice} and LSTM-style looped
 KV cache.
 PLatour~\citep{platour} injects a larger model's prefill states into a smaller decoder. Cache-to-Cache~\citep{c2c},
 HeteroFold~\citep{heterofold}, Swarm Telepathy~\citep{swat}, and CacheLink~\citep{cachelink} transfer KV between
-models. BellowsKV~\citep{bellows} shares one latent across adjacent layers. Like CacheLink, we train our maps through the
-decoder's output. Within one model, tokens, layers, and positions align, so a RoPE-commuting scale and a value map
-suffice. For hybrid attention / linear-recurrence models~\citep{gdn,hymba}, state-swap interventions~\citep{afendulev}
+models, while Plato's Key~\citep{platoskey} shows that a closed-form orthogonal rotation and global scale transfer
+single-token factual keys across frozen LLMs and unlock 18\% of a recipient's ``dark memories'' (facts stored in weights
+yet missed without a better key). BellowsKV~\citep{bellows} shares one latent across adjacent layers. Like CacheLink, we
+train our maps through the decoder's output, but within one looped model across loop depths rather than across distinct
+models: tokens, layers, and positions align natively, so RoPE-commuting key scales (Ouro) or near-isometric global-3
+cross-pass maps (Inkling) scale representation alignment to 256K--1M reasoning and real Day-0 vLLM speedups
+(Appendix~\ref{app:inkling}). For hybrid attention / linear-recurrence models~\citep{gdn,hymba}, state-swap interventions~\citep{afendulev}
 and LatentPort~\citep{latentport} study the two kinds of state.
 
 
@@ -1436,6 +1440,21 @@ matching TF~4/2 Anchored while gaining on GraphWalks 53.4\% and LBv2 65.6\%).
 \item \emph{Hybrid v2 3/2 frontier:} Scaling to 48M hybrid GKD+SFT ($r{=}128$) lifts \texttt{TML-d24-varloop} 3/2 to
 70.7\% (@1, 96.2\% of Orig~3/3's 73.5\% @1; $+7.4$\ci{1.7}{13.1} LCB~v6 vs.\ 2/2's 68.0\% @1) and \texttt{Inkling-2-Mini} 3/2 to 58.3\% (88.1\%
 of 3/3, $+6.8$\ci{3.6}{9.8} over Distilled~2/2).
+\item \emph{KV-map geometry \& intra-model ``dark memories'' (connection to Plato's Key~\citep{platoskey}):}
+Inspecting our unconstrained $128{\times}128$ \texttt{KV-Only} maps ($r{=}0$) reveals three striking geometric invariants
+echoing Plato's Key's cross-model Procrustes findings:
+(i)~aligned-pass maps $I{+}\Delta_{j\to j}$ spontaneously converge to near-orthogonal, unit-scale transforms
+(median singular value $s{=}1.0001\text{--}1.0002$, condition number $1.04\text{--}1.11$, scaled orthogonality error
+$\|F^\top F / s^2 - I\|_F/\sqrt{d} \le 0.023$), preserving the frozen decoder's expected KV norm;
+(ii)~the top 16 of 128 singular directions ($12.5\%$ of head width) capture $66\text{--}78\%$ of delta energy, paralleling
+Plato's Key's low-dimensional shared subspace; yet
+(iii)~$74.4\text{--}75.2\%$ of total delta energy resides in off-diagonal cross-pass terms ($p{\neq}j$), confirming that
+$m{\to}n$ depth untying performs genuine many-to-few pass fusion rather than $1{\to}1$ rotation alone.
+Functionally, across the 30 Pure-4 items where Original~4/4 succeeds ($\ge 75\%$) yet Original~2/2 fails ($<50\%$),
+100\%-frozen-decoder \texttt{LB 4/2 KV-Only} ($r{=}0$) unlocks \textbf{25/30 (83.3\%, $+43.5$~pp mean gain)}---vs.\
+17/30 (56.7\%, $+28.1$~pp) for unmapped TF~4/2---showing that shallow decoders retain latent reasoning and 512K retrieval
+capability in their weights and fail primarily from weaker shallow-prefill keys (closed-form Procrustes baseline in
+\path{inkling/fit_procrustes_kv.py}).
 \end{enumerate}
 
 \begin{table*}[t]
