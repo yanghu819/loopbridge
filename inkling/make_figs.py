@@ -85,12 +85,14 @@ AVG4_ARMS = [
     "vl_tf_4_3_anchored",
     "vl_lb_4_3_kvonly_12m",
     "vl_native_4_4",
-    # Wave-2B Regime II & n=1 full 5xavg@4 arms
+    # Wave-2B Regime II & n=1 full 5xavg@4 arms (all 7 controls)
     "mini_orig_3_3_cap57k",
     "mini_distilled_2_2_v3",
     "mini_lb_3_2_24m",
-    "vl_lb_3_1_24m",
+    "vl_distilled_1_1_24m",
     "vl_abl_3_1_no_kvmaps",
+    "vl_abl_3_1_singlepass_kv",
+    "vl_lb_3_1_24m",
 ]
 
 
@@ -104,8 +106,8 @@ def save(fig, name: str) -> None:
 def load_evals() -> tuple[dict[str, dict[str, dict]], dict[str, dict[str, dict]]]:
     """Load (evals_avg1, evals_avg4) directly from archived official-exact JSONs.
 
-    evals_avg4 holds all 19 full 5xavg@4 arms (81,776 rollouts: 14 Regime I arms,
-    3 Inkling-2-Mini arms, and 2 TML-varloop n=1 ablation arms) evaluated with 4x symmetric sampling.
+    evals_avg4 holds all 21 full 5xavg@4 arms (90,384 rollouts: 14 Regime I arms,
+    3 Inkling-2-Mini arms, and 4 TML-varloop n=1 control/ablation arms) evaluated with 4x symmetric sampling.
     evals_avg1 holds all single-sample (seed=42) official-exact arms across
     TML-d24-varloop and Inkling-2-Mini.
     """
@@ -410,8 +412,8 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
     ax1.set_title("(a) Regime I: Variable-depth TML-d24-varloop (n ≥ 2)", fontsize=7.8, fontweight="bold", pad=6)
 
     # =========================================================================
-    # Panel (b): Regime II — Fixed-depth Inkling-2-Mini (5xavg@4) & n=1 (avg@1)
-    # Strictly locked 24M-token matched controls
+    # Panel (b): Regime II — Fixed-depth Inkling-2-Mini & TML-varloop n=1 (5xavg@4)
+    # Strictly locked 24M-token matched controls (only collapse baselines @1)
     # =========================================================================
     mini_b = [
         (evals_avg1, "mini_tf_3_2_anchored", "No-train\n3/2 (@1)", NAT_LIGHT, False),
@@ -419,9 +421,9 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
         (evals_avg4, "mini_lb_3_2_24m", "LB\n3/2", OURS_DARK, True),
     ]
     vl1_b = [
-        (evals_avg1, "vl_native_1_1", "Orig\n1/1", NAT_LIGHT, False),
-        (evals_avg1, "vl_distilled_1_1_24m", "Distilled\n1/1", DIST, False),
-        (evals_avg1, "vl_lb_3_1_24m", "LB\n3/1", OURS_DARK, True),
+        (evals_avg1, "vl_native_1_1", "Orig\n1/1 (@1)", NAT_LIGHT, False),
+        (evals_avg4, "vl_distilled_1_1_24m", "Distilled\n1/1", DIST, False),
+        (evals_avg4, "vl_lb_3_1_24m", "LB\n3/1", OURS_DARK, True),
     ]
     pos2 = [0.0, 1.08, 2.16, 3.66, 4.74, 5.82]
     all_b = mini_b + vl1_b
@@ -484,11 +486,11 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
     d3_vl1 = m3_b[5] - m3_b[4]
     ax2.axvline(2.91, color=GRID, lw=1.0)
     ax2.text(1.08, 79.8, f"Inkling-2-Mini 3/2 (avg@4)\n+{d5_mini:.1f}* avg / +{d3_mini:.1f}* long", fontsize=5.6, fontweight="bold", color=OURS_DARK, ha="center", va="top", linespacing=1.15)
-    ax2.text(4.74, 79.8, f"TML-varloop 3/1 (avg@1)\n+{d5_vl1:.1f}* avg / +{d3_vl1:.1f}* long", fontsize=5.6, fontweight="bold", color=OURS_DARK, ha="center", va="top", linespacing=1.15)
+    ax2.text(4.74, 79.8, f"TML-varloop 3/1 (avg@4)\n+{d5_vl1:.1f}* avg / +{d3_vl1:.1f}* long", fontsize=5.6, fontweight="bold", color=OURS_DARK, ha="center", va="top", linespacing=1.15)
 
     ax2.set_xticks(pos2)
     ax2.set_xticklabels([lab for _, _, lab, _, _ in all_b], fontsize=5.9)
-    ax2.set_ylabel("Accuracy (%)", fontsize=7.6)
+    ax2.set_ylabel("Accuracy (%, 5×avg@4)", fontsize=7.6)
     ax2.set_ylim(0.0, 82.0)
     ax2.grid(axis="y", color=GRID, lw=0.6)
     ax2.set_axisbelow(True)
@@ -511,7 +513,7 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
 
 
 def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
-    print("=== 19-ARM TRUE 5/5 SYMMETRIC AVG@4 SCORES (81,776 ROLLOUTS) ===")
+    print(f"=== {len(AVG4_ARMS)}-ARM TRUE 5/5 SYMMETRIC AVG@4 SCORES ({len(AVG4_ARMS)*4304:,} ROLLOUTS) ===")
     for arm in AVG4_ARMS:
         vals = [score_pct(evals_avg4, arm, bk) for bk in BENCH_KEYS]
         p4 = macro_pct(evals_avg4, arm, PURE4_KEYS)
@@ -522,7 +524,7 @@ def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
             f"GW {vals[3]:5.2f} | LBv2 {vals[4]:5.2f} | Pure4 {p4:5.2f} | 3L {l3:5.2f} | 5B {m5:5.2f}"
         )
 
-    print("\n=== VERIFIED AVG@4 CLUSTERED PAIRED BOOTSTRAP (5,000 resamples, seed=0) ===")
+    print("\n=== VERIFIED AVG@4 CLUSTERED PAIRED BOOTSTRAP (5,000 resamples, seed=0, two-sided p) ===")
     avg4_pairs = [
         ("vl_native_4_4", "vl_native_3_3"),
         ("vl_lb_4_3_kvonly_12m", "vl_native_4_4"),
@@ -547,7 +549,12 @@ def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
         ("vl_tf_5_2_anchored", "vl_native_2_2"),
         ("mini_lb_3_2_24m", "mini_distilled_2_2_v3"),
         ("mini_lb_3_2_24m", "mini_orig_3_3_cap57k"),
+        ("vl_lb_3_1_24m", "vl_distilled_1_1_24m"),
+        ("vl_abl_3_1_singlepass_kv", "vl_distilled_1_1_24m"),
+        ("vl_abl_3_1_no_kvmaps", "vl_distilled_1_1_24m"),
         ("vl_lb_3_1_24m", "vl_abl_3_1_no_kvmaps"),
+        ("vl_abl_3_1_singlepass_kv", "vl_abl_3_1_no_kvmaps"),
+        ("vl_lb_3_1_24m", "vl_abl_3_1_singlepass_kv"),
     ]
     for a, b in avg4_pairs:
         o5, l5, h5, l5_2, h5_2, l5_3, h5_3, p5 = paired_boot_clustered(evals_avg4, a, b, BENCH_KEYS)

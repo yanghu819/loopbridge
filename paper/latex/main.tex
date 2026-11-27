@@ -52,17 +52,17 @@ serving costs: on batch-1 chain-of-thought tasks, prefill takes under 3\% of wal
 We ask whether prefill and decode should loop equally, and find they should not: reading prompts with more loops ($m$)
 and decoding with fewer ($n{<}m$) shifts the frontier across Thinking Machines' 26.4B sparse-MoE Inkling-2 models
 (\texttt{TML-d24-varloop}, \texttt{Inkling-2-Mini}; 1M context in Day-0 vLLM) and dense 1.4B--2.6B Ouro backbones,
-revealing a \emph{two-regime law} (81,776 four-sample rollouts across 19 five-benchmark arms). On variable-depth 26.4B
+revealing a \emph{two-regime law} (90,384 four-sample rollouts across 21 five-benchmark arms). On variable-depth 26.4B
 MoEs at $n\ge2$ (14 arms, 60,256 rollouts), training-free untying works natively, and 0.017--0.025\%-parameter prompt
 \emph{KV-only} maps ($r{=}0$, zero decode overhead) lift 4/2 by +2.8 points (+4.3 on 256K--1M tasks, +9.5 on 512K MRCR,
 +2.0 on 1M LongBench~v2) over 2/2 at $1.75\times$ decode speed vs.\ 4/4 while 4/3 recovers 99.0\% of 4/4 (74.1 vs.\ 74.9)
 at $1.27\times$--$1.29\times$ speed; a $2\times2$ causal control proves +2.7 ($p{<}10^{-3}$) over matched-data KV-only
 2/2, with zero-synthetic 4/2 still winning by +1.7. On fixed-depth backbones or $n{=}1$, naive untying collapses; our
 \emph{LoopBridge} adapter (0.13--0.25\% on 26.4B MoEs; 2.4\% on Ouro-2.6B) folds prompt KV maps once at prefill with
-merged decode LoRA, beating tied distillation on 26.4B MoEs (+5.7 points and +9.4 on 256K--1M tasks on
-\texttt{Inkling-2-Mini} 3/2 at $5\times$avg@4, $p{<}10^{-4}$, rescuing a 2.2\% collapse; +7.8 on \texttt{TML-varloop}
-3/1), lifting Ouro-2.6B 4/1 from 44.2 to 58.2 (vs.\ 49.5 distilled), and matching Ouro-2.6B-Thinking 4/4 on GSM8K at
-$2.0\times$ throughput.
+merged decode LoRA, beating tied distillation across five benchmarks at $5\times$avg@4 on both 26.4B MoEs (+5.7 points
+and +9.4 on 256K--1M tasks on \texttt{Inkling-2-Mini} 3/2, rescuing a 2.2\% collapse; +5.3 and +8.5 long on
+\texttt{TML-varloop} 3/1, both $p{<}10^{-4}$), lifting Ouro-2.6B 4/1 from 44.2 to 58.2 (vs.\ 49.5 distilled), and
+matching Ouro-2.6B-Thinking 4/4 on GSM8K at $2.0\times$ throughput.
 \end{abstract}
 
 \section{Introduction}
@@ -77,8 +77,9 @@ and 26.4B sparse-MoE models} (notation $m/n$: $m$ prefill / $n$ decode loops; on
 batch~1, 4 CoT tasks; $n{=}3$: 400 reqs, others: 800; LoopBridge 4/1 = 27.7, 4/2 = 14.3): raising $m$ to 4 adds $+14.0$
 at $n{=}1$ ($4.2\times$ speed) and $+5.4$ at $n{=}2$ ($2.0\times$), while $m{<}n$ hurts; tied $n/n$ bypasses the adapter.
 (b)~$10\times$ scale-up to 26.4B Inkling-2 (\texttt{TML-d24-varloop} in vLLM, 5 reasoning \& 256K--1M benchmarks;
-$5\times$avg@4 at $n{\ge}2$, avg@1 at $n{=}1$; E2E at $L{=}512, B{=}16$): 4/3 recovers 99.0\% of 4/4, 4/2 beats 2/2 by
-$+2.8$ at $1.7\times$ speed (no-train TF: 74.0/68.9; Figure~\ref{fig:inkling_main}a), and 3/1 beats Distilled~1/1 by $+7.8$.}
+all trained and $n{\ge}2$ points at $5\times$avg@4, Orig~1/1 at @1; E2E at $L{=}512, B{=}16$): 4/3 recovers 99.0\% of
+4/4, 4/2 beats 2/2 by $+2.8$ at $1.7\times$ speed (no-train TF: 74.0/68.9; Figure~\ref{fig:inkling_main}a), and 3/1
+beats Distilled~1/1 by $+5.3$ ($p{<}10^{-4}$).}
 \label{fig:teaser}
 \end{figure}
 
@@ -116,9 +117,9 @@ Because maps fold once at prefill and LoRA merges into base projections, decodin
 
 Across all four model families---26.4B sparse-MoEs, Ouro-2.6B/1.4B, Thinking models, and Lev decision models---LoopBridge
 substantially shifts the accuracy--throughput frontier (Figure~\ref{fig:teaser}). On 26.4B Regime~II under locked 24M
-budgets, LoopBridge beats tied distillation on both fixed-3 \texttt{Inkling-2-Mini} 3/2 ($+5.7$ points and $+9.4$ on
-256K--1M tasks at full $5\times$avg@4, $p{<}10^{-4}$, $4.5\times$ faster training; Figure~\ref{fig:inkling_main}b) and
-\texttt{TML-d24-varloop} 3/1 ($+7.8$ points, $3.55\times$ faster; avg@1). On
+budgets at full $5\times$avg@4, LoopBridge beats tied distillation on both fixed-3 \texttt{Inkling-2-Mini} 3/2 ($+5.7$
+points and $+9.4$ on 256K--1M tasks, $4.5\times$ faster training; Figure~\ref{fig:inkling_main}b) and
+\texttt{TML-d24-varloop} 3/1 ($+5.3$ points and $+8.5$ long, $3.55\times$ faster; both $p{<}10^{-4}$). On
 Ouro-2.6B at $n{=}1$, LoopBridge~4/1 lifts the 11-benchmark average from 44.2 to 58.2 (8.7 above Distilled~1/1 at rank
 16 or 80; Figure~\ref{fig:teaser}a, Table~\ref{tab:main}), adding $+17.2$ points on timed CoT tasks at ${\sim}28$~\mbox{tok/s}
 and $+10.5$ over a time-matched 1/1--2/2 mix (Figure~\ref{fig:batched}); at 4/2 it reaches
@@ -382,10 +383,10 @@ $n{=}2$ ($1.75\times$ decode), matched-data Tied~KV~2/2 ($m{=}2$) stays flat at 
 $m{=}4$ lifts real-only 4/2 to 68.7\%$^\ast$ (matching no-training 4/2 at 68.9\%$^\ast$) and full KV-only 4/2 to
 69.6\%$^\ast$ ($+2.7^\ast$ [$p{<}10^{-3}$] over Tied~KV~2/2; $+2.8^\ast$ Holm over Orig~2/2); at $n{=}3$ ($1.27\times$),
 KV-only 4/3 recovers 99.0\% of Original~4/4.
-(b)~\emph{Regime~II (fixed-depth \texttt{Inkling-2-Mini} 3/2 at full $5\times$avg@4 \& \texttt{TML-varloop} 3/1 at
-avg@1; locked 24M tokens):} no-training 3/2 (@1) collapses (2.2\%, 93\% trunc.), while LoopBridge beats Distilled by
-$+5.7^\ast$ ($+9.4^\ast$ long, $p{<}10^{-4}$) on Mini~3/2 and $+7.8^\ast$ ($+11.7^\ast$ long) on VarLoop~3/1. Full
-tables: Tables~\ref{tab:varloop}--\ref{tab:vllm_speed}.}
+(b)~\emph{Regime~II (fixed-depth \texttt{Inkling-2-Mini} 3/2 \& \texttt{TML-varloop} 3/1, full $5\times$avg@4, locked
+24M tokens; only unadapted baselines at @1):} no-training 3/2 collapses (2.2\%, 93\% trunc.), while LoopBridge
+beats Distilled by $+5.7^\ast$ ($+9.4^\ast$ long) on Mini~3/2 and $+5.3^\ast$ ($+8.5^\ast$ long) on VarLoop~3/1 (both
+$p{<}10^{-4}$). Full tables: Tables~\ref{tab:varloop}--\ref{tab:vllm_speed}.}
 \label{fig:inkling_main}
 \end{figure*}
 
@@ -454,12 +455,13 @@ vLLM~\citep{vllm} across five official reasoning and 256K--1M splits establishes
 \paragraph{Regime II (fixed-depth or un-gated $n{=}1$).}
 Fixed-3 \texttt{Inkling-2-Mini} collapses under all unadapted $n{=}2$ setups (TF~3/2 Anchored 2.2\%, 93.2\% trunc.;
 Orig~2/2 \& TF~3/2 Tail 5.6\% GPQA) and \texttt{TML-d24-varloop} stalls at $n{=}1$ (40.8\%). Parametric LoopBridge
-rescues both under locked 24M controls: on \texttt{Inkling-2-Mini} 3/2 at full $5\times$avg@4 (Figure~\ref{fig:inkling_main}b,
-Table~\ref{tab:mini}), LoopBridge reaches 57.7\% vs.\ 52.0\% for Distilled~2/2 ($+5.7$\ci{4.1}{7.3} 5-Bench,
-$+9.4$\ci{7.0}{11.8} 3-Long, $p{<}10^{-4}$; $+11.7$ MRCR, $+11.1$ GW, $+5.4$ LBv2; $4.5\times$ faster train; 58.3\% at
-48M v2 @1), and on \texttt{TML-varloop} 3/1 (@1) beats Distilled~1/1 5/5 by $+7.8$\ci{4.4}{11.2} ($+11.7$\ci{7.1}{16.4}
-3-Long; $3.55\times$ faster), where $5\times$avg@4 ablation confirms global-3 KV maps drive $+4.70$\ci{0.84}{8.53} on
-512K MRCR ($p{=}0.017$, paralleling Ouro's RULER-16K KV-map finding at $10\times$ scale).
+rescues both under locked 24M controls at full $5\times$avg@4 (Figure~\ref{fig:inkling_main}b, Tables~\ref{tab:varloop}b
+\& \ref{tab:mini}): on \texttt{Inkling-2-Mini} 3/2, LoopBridge reaches 57.7\% vs.\ 52.0\% for Distilled~2/2
+($+5.7$\ci{4.1}{7.3} 5-Bench, $+9.4$\ci{7.0}{11.8} 3-Long, $p{<}10^{-4}$; $+11.7$ MRCR, $+11.1$ GW, $+5.4$ LBv2;
+$4.5\times$ faster train; 58.3\% at 48M v2 @1), and on \texttt{TML-varloop} 3/1 it sweeps Distilled~1/1 5/5 (50.0\% vs.\
+44.7\%, $+5.3$\ci{3.5}{7.1} 5-Bench, $+8.5$\ci{5.8}{11.2} 3-Long, $p{<}10^{-4}$; $+7.1$ MRCR, $+11.0$ GW, $+7.5$ LBv2;
+$3.55\times$ faster), where 3-step $5\times$avg@4 ablation ($48.9\to 49.7\to 50.0$) confirms global-3 KV maps drive
+$+4.70$\ci{0.84}{8.53} on 512K MRCR ($p{=}0.017$, paralleling Ouro's RULER-16K KV-map finding at $10\times$ scale).
 
 \paragraph{Regime I (variable-depth $n\ge2$) \& $2\times2$ causal proof.}
 Across 60,256 four-sample rollouts (14 full $5\times$avg@4 arms on \texttt{TML-d24-varloop}), TF untying works natively
@@ -1377,14 +1379,14 @@ LoopBridge 4/2 KV-Only (12M \texttt{0\% nosynth}, $r{=}0$) & 4.46M & 79.4 & 68.7
 \rowcolor{oursbg}
 \textbf{LoopBridge 4/2 KV-Only} (12M, $r{=}0$, $1.75\times$) & 4.46M & 80.9 & 69.4 & \textbf{82.2}$^\dagger$ & 51.9 & 63.7 & \textbf{71.1}$^\dagger$ & \textbf{65.9}$^\dagger$ & \textbf{69.6}$^\dagger$ \\
 \midrule
-\multicolumn{10}{@{}l}{\emph{(b) Controlled 24M $n{=}1$ sweep \& mechanistic ablations (avg@1, seed 42; identical v3 corpus, $r{=}64$, $2.76\times$ vs.\ 4/4)}} \\
-Original 1/1 / Training-free 3/1 & 0 & 74.7 / 72.7 & 39.4 / 40.6 & 20.7 / 19.5 & 20.0 / 14.4 & 48.9 / 56.7 & 38.7 / 36.8 & 29.9 / 30.2 & 40.8 / 40.8 \\
-Distilled 1/1 (24M, 312.9m train) & 43.7M & 69.2 & 44.6 & 24.3 & 25.3 & 53.5 & 40.8 & 34.3 & 43.4 \\
-LB 3/1, no KV maps (\texttt{-\/-freeze-maps}) & 32.8M & 72.7 & 44.6 & 28.3 & 38.1 & 61.4 & 45.9 & 42.6 & 49.0 \\
-LB 3/1, 1-pass KV map (\texttt{-\/-no-cross-pass}) & 33.6M & 73.2 & 42.9 & 33.7 & 43.6 & 60.8 & 48.4 & 46.1 & 50.9 \\
+\multicolumn{10}{@{}l}{\emph{(b) Controlled 24M $n{=}1$ sweep \& mechanistic ablations (full $5\times$avg@4, 17,216 rollouts; identical v3 corpus, $r{=}64$, $2.76\times$ vs.\ 4/4)}} \\
+Original 1/1 / Training-free 3/1 (@1) & 0 & 74.7 / 72.7 & 39.4 / 40.6 & 20.7 / 19.5 & 20.0 / 14.4 & 48.9 / 56.7 & 38.7 / 36.8 & 29.9 / 30.2 & 40.8 / 40.8 \\
+Distilled 1/1 (24M, 312.9m train) & 43.7M & 73.1 & 45.0 & 24.3 & 28.0 & 53.2 & 42.6 & 35.2 & 44.7 \\
+LB 3/1, no KV maps (\texttt{-\/-freeze-maps}) & 32.8M & \textbf{74.1} & 44.4 & 26.7 & 39.1 & 60.2 & 46.1 & 42.0 & 48.9 \\
+LB 3/1, 1-pass KV map (\texttt{-\/-no-cross-pass}) & 33.6M & 71.7 & 43.7 & 29.6 & \textbf{42.9} & \textbf{60.6} & 47.0 & \textbf{44.4} & 49.7 \\
 \rowcolor{oursbg}
-\textbf{LoopBridge 3/1} (24M, 88.1m, $3.55\times$ faster) & 34.6M & 70.7 & \textbf{46.9} & 30.2 & \textbf{46.0} & \textbf{62.0} & \textbf{48.4} & \textbf{46.1}$^\star$ & \textbf{51.2}$^\star$ \\
-LoopBridge 4/1 (24M, $m{>}m_{\text{teacher}}$) & 35.1M & 71.2 & 43.4 & 30.3 & 38.3 & 61.8 & 45.8 & 43.5 & 49.0 \\
+\textbf{LoopBridge 3/1} (24M, 88.1m, $3.55\times$ faster) & 34.6M & 73.7 & \textbf{45.4} & \textbf{31.4} & 39.0 & \textbf{60.6} & \textbf{47.4} & 43.7$^\star$ & \textbf{50.0}$^\star$ \\
+LoopBridge 4/1 (24M, $m{>}m_{\text{teacher}}$, @1) & 35.1M & 71.2 & 43.4 & 30.3 & 38.3 & 61.8 & 45.8 & 43.5 & 49.0 \\
 \midrule
 \multicolumn{10}{@{}l}{\emph{(c) Additional avg@1 diagnostics: $m{=}5$ saturation, recipe ablations (v5/on-policy/KV-Only), and v2 hybrid frontier}} \\
 Orig 5/5 ($0.83\times$) / Orig 4/4 (@1) & 0 & 85.4 / 83.8 & 77.1 / 80.6 & 93.3 / 95.3 & 61.0 / 57.0 & 64.8 / 63.8 & 79.2 / 79.2 & 73.1 / 72.1 & 76.3 / 76.1 \\
@@ -1418,11 +1420,15 @@ $^\dagger$LoopBridge~4/2 KV-Only clears zero vs.\ Original~2/2 under both 95\% a
 MRCR $+9.54$\ci{2.91}{16.49}; plus uncloned 1M LBv2 $+1.99$, 95\% \ci{0.25}{3.73}, cutting trunc.\ $1.64\%\to 0.45\%$;
 $s_1$--$s_3$: $+3.77$ 5-Bench, $+2.34$ Holm-sig.\ vs.\ TF~Anch.). At $n{=}3$, LoopBridge~4/3 KV-Only recovers 99.0\% of
 Original~4/4 ($-0.77$\ci{-2.04}{0.52}; 99.4\% on $s_1$--$s_3$) and sweeps Original~3/3 5/5 ($+1.00$\ci{-0.37}{2.33}).
-Panel~(b) reports strict 24M $n{=}1$ controls
-($^\star$95\% CI excludes zero vs.\ Distilled~1/1: $+7.81$\ci{4.43}{11.16} 5-Bench, $+11.74$\ci{7.05}{16.40} 3-Long;
-full $5\times$avg@4 ablation of LB~3/1 [50.0\%] vs.\ \texttt{-\/-freeze-maps} [48.9\%] further confirms global-3 KV maps
-significantly lift 512K MRCR by $+4.70$\ci{0.84}{8.53}, $p{=}0.017$, bringing total archived $5\times$avg@4 rollouts to
-81,776 across 19 arms).
+Panel~(b) reports strict 24M $n{=}1$ controls at full $5\times$avg@4 (17,216 rollouts across all 4 trained arms,
+bringing total archived $5\times$avg@4 rollouts to 90,384 across 21 arms; only unadapted Orig~1/1 / TF~3/1 and diagnostic
+LB~4/1 are @1). $^\star$95\% CI excludes zero vs.\ Distilled~1/1 ($p{<}10^{-4}$): $+5.31$\ci{3.53}{7.14} 5-Bench,
+$+4.78$\ci{2.62}{6.95} Pure-4, $+8.50$\ci{5.83}{11.23} 3-Long (sweeping 5/5 splits: $+7.09$ MRCR [$p{=}0.0084$],
+$+10.97$ GW, $+7.46$ LBv2, lower micro trunc.\ 12.9\% vs.\ 14.5\%); the 3-step KV-map ladder climbs monotonically
+($48.9\to 49.7\to 50.0$ 5-Bench; $26.7\to 29.6\to 31.4$ MRCR), with 1-pass KV adding $+2.37$\ci{0.25}{4.48} 3-Long
+($p{=}0.030$) and full cross-pass KV adding $+4.70$\ci{0.84}{8.53} MRCR ($p{=}0.017$) over \texttt{-\/-freeze-maps}
+(cross-pass vs.\ 1-pass are statistically tied overall: $+0.32$\ci{-1.45}{2.10} 5-Bench [$p{=}0.69$], $-0.72$ 3-Long,
+trading 1-pass's GW lead [42.9\% vs.\ 39.0\%] for top MRCR/GPQA/LCB).
 Panel~(c) transparently archives single-sample (\texttt{avg@1}) diagnostics, illustrating both the
 $m_{\text{student}}\le m_{\text{teacher}}$ law (LB~5/3 from $t{=}4$ dips below TF~5/3) and why $5\times$avg@4 is critical
 under $T{=}1.0$ sampling (LB~4/2 KV-Only $\#\text{s0}$ was 68.0\% vs.\ 69.6\% avg@4).}
@@ -1471,19 +1477,25 @@ TF~Tail). At $n{=}3$ ($1.27$--$1.29\times$ decode vs.\ 4/4), zero-training TF~4/
 (0 params), while LoopBridge~4/3 KV-Only (6.55M params, 0.025\%) reaches 74.1\% ($+0.17$\ci{-1.23}{1.52} vs.\ TF~4/3
 Anchored), sweeping Original~3/3 5/5 ($+1.00$\ci{-0.37}{2.33}) and recovering 99.0\% of Original~4/4 (74.1\% vs.\
 74.9\%, $-0.77$\ci{-2.04}{0.52}; 56.4\% of the 3/3--4/4 gap; 99.4\% on $s_1$--$s_3$).
-\item \emph{Strict 24M sweeps in Regime~II:} Under identical 24M \texttt{v3} budgets, LoopBridge beats parameter-advantaged
-tied distillation on fixed-3 \texttt{Inkling-2-Mini} 3/2 at full $5\times$avg@4 ($+5.70$\ci{4.10}{7.34} 5-Bench,
+\item \emph{Strict 24M sweeps in Regime~II:} Under identical 24M \texttt{v3} budgets at full $5\times$avg@4, LoopBridge
+beats parameter-advantaged tied distillation on fixed-3 \texttt{Inkling-2-Mini} 3/2 ($+5.70$\ci{4.10}{7.34} 5-Bench,
 $+9.36$\ci{6.95}{11.84} 3-Long, $p{<}10^{-4}$; $+11.66$ MRCR, $+11.05$ GW, $+5.37$ LBv2, $4.5\times$ faster training;
 avg@1: $+5.1$\ci{2.0}{8.1} and $+54.4$\ci{51.3}{57.6} over TF~3/2 collapse), sweeps tied distillation 5/5 on
-\texttt{TML-d24-varloop} 3/1 (@1: $+7.8$\ci{4.4}{11.2} 5-Bench, $+11.7$\ci{7.1}{16.4} 3-Long, $3.55\times$ faster
-training, 21\% fewer params), and beats Distilled~1/1 on \texttt{Inkling-2-Mini} 3/1 (@1: $+3.8$\ci{1.2}{6.3} 5-Bench,
-$+15.3$\ci{10.5}{20.3} LBv2~1M). On the zero 13-gram overlap LongBench~v2 subset ($N{=}303$), LoopBridge preserves its
-full lead.
+\texttt{TML-d24-varloop} 3/1 ($+5.31$\ci{3.53}{7.14} 5-Bench, $+8.50$\ci{5.83}{11.23} 3-Long, $+4.78$\ci{2.62}{6.95}
+Pure-4, $p{<}10^{-4}$; $+7.09$ MRCR [$p{=}0.0084$], $+10.97$ GW, $+7.46$ LBv2, micro trunc.\ 12.9\% vs.\ 14.5\%,
+$3.55\times$ faster training, 21\% fewer params; avg@1: $+7.8$\ci{4.4}{11.2}), and beats Distilled~1/1 on
+\texttt{Inkling-2-Mini} 3/1 (@1: $+3.8$\ci{1.2}{6.3} 5-Bench, $+15.3$\ci{10.5}{20.3} LBv2~1M). On the zero 13-gram
+overlap LongBench~v2 subset ($N{=}303$), LoopBridge preserves its full lead.
 \item \emph{Recipe ablations \& teacher-depth law ($m_{\text{student}}\le m_{\text{teacher}}$):} On \texttt{TML-d24-varloop}
-3/1 (24M), untying with frozen maps accounts for 73\% of the @1 gain over Distilled~1/1 ($+5.7$\ci{2.3}{9.2}), while
-full $5\times$avg@4 ablation of LoopBridge~3/1 (50.0\%) vs.\ \texttt{-\/-freeze-maps} (48.9\%) confirms global-3 KV
-maps significantly boost 512K MRCR verbatim retrieval by $+4.70$\ci{0.84}{8.53} ($p{=}0.017$; $+1.65$\ci{-0.39}{3.66}
-3-Long; $+1.12$\ci{-0.37}{2.63} 5-Bench), mirroring Ouro-2.6B's RULER-16K KV-map mechanism at $10\times$ scale. On 4/3
+3/1 (24M, full $5\times$avg@4), untying with frozen maps (\texttt{-\/-freeze-maps}, 48.9\%) accounts for 79\% of the
+gain over Distilled~1/1 ($+4.20$\ci{2.45}{5.93} 5-Bench, $+6.85$\ci{4.30}{9.32} 3-Long, $p{<}10^{-4}$), while adding
+global-3 KV maps climbs monotonically across 5-Bench ($48.9\to 49.7\to 50.0$), Pure-4 ($46.1\to 47.0\to 47.4$), and
+512K MRCR ($26.7\to 29.6\to 31.4$): single-pass KV (\texttt{-\/-no-cross-pass}) adds $+2.37$\ci{0.25}{4.48} 3-Long
+($p{=}0.030$) and full cross-pass KV adds $+4.70$\ci{0.84}{8.53} on 512K MRCR verbatim retrieval ($p{=}0.017$;
+$+1.65$\ci{-0.39}{3.66} 3-Long; $+1.12$\ci{-0.37}{2.63} 5-Bench), while cross-pass and 1-pass KV are statistically tied
+overall ($+0.32$\ci{-1.45}{2.10} 5-Bench, $p{=}0.69$; $-0.72$ 3-Long), trading 1-pass's GraphWalks lead (42.9\% vs.\
+39.0\%) for top MRCR (31.4\% vs.\ 29.6\%), GPQA, and LCB---mirroring Ouro-2.6B's RULER-16K KV-map mechanism at
+$10\times$ scale. On 4/3
 and 4/2 (Table~\ref{tab:varloop}c), mixing off-policy R1-style SFT (\texttt{v5}) with full LoRA inflates coding truncation
 (LCB~v6 73.1\% on 4/3~\texttt{v5} vs.\ 77.7\% on KV-Only), whereas pure on-policy KV-Only eliminates decode drift.
 Finally, distilling $m{>}m_{\text{teacher}}$ consistently degrades quality (LB~4/1 from $t{=}3$: $-2.1$ vs.\ 3/1; LB~5/3
@@ -1648,7 +1660,7 @@ lower peak concurrency until post-fold $m{-}n$ slot freeing is implemented) and 
 \item \emph{Dual-regime CoT wall clock:} Combining Table~\ref{tab:vllm_speed}'s isolated hardware
 rates with each model's real 5-benchmark generation lengths removes concurrent-eval batch variance. Within $n{=}1$,
 LoopBridge~3/1 strictly dominates Distilled~1/1 and Original~1/1 in both accuracy and wall time because deeper prefill
-curtails rambling loops (mean 26.7K vs.\ 29.5K / 34.1K tokens; normalized $B{=}1$: 76.6~s vs.\ 84.4~s / 97.5~s; batched
+curtails rambling loops (mean 26.7K vs.\ 29.5K / 34.1K tokens @1 [27.6K vs.\ 29.6K at avg@4]; normalized $B{=}1$: 76.6~s vs.\ 84.4~s / 97.5~s; batched
 GPU-s/item: 31.2~s vs.\ 34.3~s / 40.3~s). Under batched throughput cost (GPU-s/item), LoopBridge~3/1 (31.2~s; 3/1~v2:
 27.7~s) forms the fastest frontier point ahead of Original~2/2 (32.9~s). However, under \emph{unconstrained single-stream
 ($B{=}1$) high-effort reasoning}, all $n{=}1$ decoders inflate output length by $1.4$--$1.8\times$ over $n{=}2$, so

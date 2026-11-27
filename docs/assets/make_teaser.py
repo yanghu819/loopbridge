@@ -128,18 +128,22 @@ def draw(theme):
     for x, y, lab in nat4:
         ox, oy = {"4/4": (0, -12.0), "3/3": (-4, -12.0), "2/2": (-9, -11.0)}[lab]
         ax1.annotate(lab, (x, y), xytext=(ox, oy), textcoords="offset points", fontsize=7.4, color=c["nat"], ha="center")
-    ax1.annotate("1/1", (x11, y11), xytext=(-7.0, -1.5), textcoords="offset points", fontsize=7.2, color=c["nat"], ha="right", va="center")
+    ax1.annotate("1/1 (@1)", (x11, y11), xytext=(-7.0, -1.5), textcoords="offset points", fontsize=7.0, color=c["nat"], ha="right", va="center")
 
     ax1.scatter([xd11], [yd11], marker="^", s=40, color=c["dist"], edgecolor=c["bg"], lw=0.5, zorder=4, label="Distilled 1/1")
-    ax1.annotate("Distilled 1/1", (xd11, yd11), xytext=(-15.0, 0.5), textcoords="offset points", fontsize=7.1, color=c["dist"], ha="right", va="center")
+    ax1.annotate(
+        "Distilled 1/1", (xd11, yd11), xytext=(-24.0, 0.0), textcoords="offset points",
+        fontsize=7.1, color=c["dist"], ha="right", va="center",
+        bbox=dict(fc=c["bg"], ec="none", alpha=0.88, pad=0.45), zorder=6,
+    )
 
     ax1.plot([x43, x42, x31], [y43, y42, y31], "-", color=c["ours"], lw=1.9, zorder=3)
     ax1.scatter([x43, x42, x31], [y43, y42, y31], marker="s", s=44, color=c["ours"], edgecolor=c["bg"], lw=0.6, zorder=5, label="LoopBridge m/n (ours)")
 
     ax1.annotate("", xy=(x42, y42 - 1.4), xytext=(nx4[2], ny4[2] + 1.4),
                  arrowprops=dict(arrowstyle="-|>", color=c["ours"], lw=1.1, mutation_scale=8.5), zorder=4)
-    ax1.annotate("", xy=(x31, y31 - 1.5), xytext=(x31, yd11 + 0.6),
-                 arrowprops=dict(arrowstyle="-|>", color=c["ours"], lw=1.1, mutation_scale=8.0), zorder=4)
+    ax1.annotate("", xy=(x31, y31 - 1.2), xytext=(x31, yd11 - 0.2),
+                 arrowprops=dict(arrowstyle="-|>", color=c["ours"], lw=1.1, mutation_scale=6.8), zorder=4)
 
     rec43 = 100.0 * y43 / ny4[0]
     ax1.annotate(f"4/3: {y43:.1f}% ({rec43:.0f}% of 4/4)", (x43, y43), xytext=(10, 10.0), textcoords="offset points",

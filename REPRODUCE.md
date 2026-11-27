@@ -13,9 +13,9 @@ The paper's numbers come from these places, all in this commit:
 3. **Decision-model records** (`ouro/results/lev/`): per-depth LevBench development outputs for the Lev appendix.
 4. **26.4B sparse-MoE Day-0 vLLM records** (`inkling/results/eval_official_exact_avg4.json`, `eval_official_exact.json`, `eval_vllm_*.json`, `vllm_sse_*.json`, `systems_rebuttal/`):
    per-item official-exact scores (`GPQA Diamond` 198, `LiveCodeBench v6` 175, `MRCR v2 8n 256K–512K` 100,
-   `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; **19 full `5×avg@4` arms = 81,776 rollouts**: 14 Regime I arms
+   `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; **21 full `5×avg@4` arms = 90,384 rollouts**: 14 Regime I arms
    [60,256 rollouts including the `2×2` causal factorial and 3-way Plato's Key ablation], 3 `Inkling-2-Mini` arms
-   [12,912 rollouts], and 2 `TML-varloop n=1` KV-map ablation arms [8,608 rollouts]), isolated single-GPU Day-0 vLLM
+   [12,912 rollouts], and 4 `TML-varloop n=1` control & KV-map ablation arms [17,216 rollouts]), isolated single-GPU Day-0 vLLM
    Blackwell timing (`512..256K`), PyTorch–vLLM numerical parity (`9/9` step-0, `96.8–97.9%` 31-step), async Poisson
    serving (`4K`/`64K`), and measured KV-cache capacity (`0` preemptions).
    `uv run --with numpy --with matplotlib python inkling/make_figs.py` recomputes every 26.4B item-clustered paired

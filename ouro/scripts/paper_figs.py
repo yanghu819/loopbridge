@@ -124,17 +124,17 @@ def _load_inkling_teaser_data():
             ("orig_2_2", "vl_native_2_2", "2/2"),
         )],
         "orig_11": (e2e_cot("orig_1_1"), m5_mix("vl_native_1_1", fb_vl="vl_native_1_1")),
-        "dist_11": (e2e_cot("orig_1_1"), m5_mix("vl_distilled_1_1_24m")),
+        "dist_11": (e2e_cot("orig_1_1"), m5(ea4, "vl_distilled_1_1_24m")),
         "lb_43": (e2e_cot("lb_4_3_kvonly_12m"), m5(ea4, "vl_lb_4_3_kvonly_12m"), dec_256k("lb_4_3_kvonly_12m") / d44),
         "lb_42": (e2e_cot("lb_4_2_kvonly_12m"), m5(ea4, "vl_lb_4_2_kvonly_12m"), dec_256k("lb_4_2_kvonly_12m") / d44),
-        "lb_31": (e2e_cot("lb_3_1_24m"), m5_mix("vl_lb_3_1_24m"), dec_256k("lb_3_1_24m") / d44),
+        "lb_31": (e2e_cot("lb_3_1_24m"), m5(ea4, "vl_lb_3_1_24m"), dec_256k("lb_3_1_24m") / d44),
         "tf_43": (e2e_cot("tf_4_3_anchored"), m5(ea4, "vl_tf_4_3_anchored")),
         "tf_42": (e2e_cot("tf_4_2_anchored"), m5(ea4, "vl_tf_4_2_tail")),
         "e2e_42_vs_44": e2e_cot("lb_4_2_kvonly_12m") / e2e_cot("orig_4_4"),
         "mrcr_gain_42": 100.0 * (ea4["vl_lb_4_2_kvonly_12m"]["mrcr_8n_256k_512k"]["score"] - ea4["vl_native_2_2"]["mrcr_8n_256k_512k"]["score"]),
         "mini_tf": m5_mix("mini_tf_3_2_anchored"),
-        "mini_dist": m5_mix("mini_distilled_2_2_v3", fb_v3="distilled_2_2_v3"),
-        "mini_lb": m5_mix("mini_lb_3_2_24m", fb_v3="lb_3_2_24m", fb_lcb="lb_3_2_24m"),
+        "mini_dist": m5(ea4, "mini_distilled_2_2_v3"),
+        "mini_lb": m5(ea4, "mini_lb_3_2_24m"),
     }
 
 
@@ -258,11 +258,15 @@ def fig_tps_teaser():
     for x, y, lab in nat4:
         ox, oy = nat_offs[lab]
         ax1.annotate(lab, (x, y), xytext=(ox, oy), textcoords="offset points", fontsize=6.3, color=NAT, ha="center")
-    ax1.annotate("1/1", (x11, y11), xytext=(-6.0, -1.5), textcoords="offset points", fontsize=6.2, color=NAT, ha="right", va="center")
+    ax1.annotate("1/1 (@1)", (x11, y11), xytext=(-6.0, -1.5), textcoords="offset points", fontsize=6.0, color=NAT, ha="right", va="center")
 
     # Distilled 1/1
     ax1.scatter([xd11], [yd11], marker="^", s=30, color=DIST, edgecolor="white", lw=0.45, zorder=4, label="Distilled 1/1")
-    ax1.annotate("Distilled 1/1", (xd11, yd11), xytext=(-14.0, 0.5), textcoords="offset points", fontsize=6.0, color=DIST, ha="right", va="center")
+    ax1.annotate(
+        "Distilled 1/1", (xd11, yd11), xytext=(-22.0, 0.0), textcoords="offset points",
+        fontsize=6.0, color=DIST, ha="right", va="center",
+        bbox=dict(fc="white", ec="none", alpha=0.88, pad=0.35), zorder=6,
+    )
 
     # Ours LoopBridge (4/3, 4/2, 3/1)
     ax1.plot([x43, x42, x31], [y43, y42, y31], "-", color=OURS, lw=1.65, zorder=3)
@@ -271,8 +275,8 @@ def fig_tps_teaser():
     # Crisp vertical gain arrows
     ax1.annotate("", xy=(x42, y42 - 1.3), xytext=(nx4[2], ny4[2] + 1.3),
                  arrowprops=dict(arrowstyle="-|>", color=OURS, lw=0.95, mutation_scale=7.0), zorder=4)
-    ax1.annotate("", xy=(x31, y31 - 1.2), xytext=(x31, yd11 + 0.3),
-                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=0.95, mutation_scale=6.5), zorder=4)
+    ax1.annotate("", xy=(x31, y31 - 1.1), xytext=(x31, yd11 - 0.2),
+                 arrowprops=dict(arrowstyle="-|>", color=OURS, lw=0.95, mutation_scale=5.8), zorder=4)
 
     rec43 = 100.0 * y43 / ny4[0]
     ax1.annotate(

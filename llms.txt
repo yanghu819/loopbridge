@@ -49,14 +49,16 @@ Main findings (95% paired bootstrap intervals in the paper):
     4/4's 74.9% at 1.27-1.29x decode; both beat Orig 4/4 end-to-end across all lengths up to 262K with 9/9 step-0 &
     96.8-97.9% 31-step PyTorch-vLLM parity, 1.29-2.80x async Poisson ITL speedup, and 0 preemptions under tested load
     matching equal-m KV occupancy).
-  * Regime II (fixed-depth Inkling-2-Mini 3/2 at full 5x avg@4 & un-gated n=1 VarLoop 3/1 at avg@1; 81,776 total four-sample
-    rollouts across 19 archived 5x avg@4 arms): all unadapted n=2 variants collapse (Mini TF 3/2 Anchored: 2.2%, 93.2% trunc;
+  * Regime II (fixed-depth Inkling-2-Mini 3/2 & un-gated n=1 VarLoop 3/1, BOTH full 5x avg@4; 90,384 total four-sample
+    rollouts across 21 archived 5x avg@4 arms): all unadapted n=2 variants collapse (Mini TF 3/2 Anchored: 2.2%, 93.2% trunc;
     Mini Orig 2/2 & TF 3/2 Tail: 5.6% GPQA; Mini Procrustes 3/2: 11.1% GPQA, 81.8% trunc; VarLoop TF 3/1: 40.8%), while
-    parametric LoopBridge rescues accuracy and beats parameter-advantaged tied distillation under locked 24M controls:
-    Inkling-2-Mini 3/2 reaches 57.7% vs 52.0% Distilled 2/2 (+5.70 [+4.10, +7.34] 5-Bench, +9.36 [+6.95, +11.84] 3-Long,
-    p<1e-4, lower truncation on all 5 splits, vs 67.5% Original 3/3 at full 5x avg@4; climbing to 58.3% @1 at 48M v2),
-    and VarLoop 3/1 sweeps Distilled 1/1 5/5 (+7.8 [4.4, 11.2] @1; full 5x avg@4 KV-map ablation confirms global-3 KV maps
-    significantly lift 512K MRCR by +4.70 [+0.84, +8.53], two-sided p=0.017).
+    parametric LoopBridge rescues accuracy and beats parameter-advantaged tied distillation under locked 24M controls on
+    both backbones: Inkling-2-Mini 3/2 reaches 57.7% vs 52.0% Distilled 2/2 (+5.70 [+4.10, +7.34] 5-Bench, +9.36
+    [+6.95, +11.84] 3-Long, p<1e-4, lower truncation on all 5 splits, vs 67.5% Original 3/3; 58.3% @1 at 48M v2), and
+    VarLoop 3/1 sweeps Distilled 1/1 5/5 at full 5x avg@4 (50.0% vs 44.7%, +5.31 [+3.53, +7.14] 5-Bench, +8.50
+    [+5.83, +11.23] 3-Long, +4.78 [+2.62, +6.95] Pure-4, p<1e-4, lower micro trunc 12.9% vs 14.5%; 3-step KV-map ladder
+    climbs monotonically 48.9 -> 49.7 -> 50.0 5-Bench and 26.7 -> 29.6 -> 31.4 MRCR, with single-pass KV adding +2.37
+    [+0.25, +4.48] 3-Long [p=0.030] and full cross-pass KV adding +4.70 [+0.84, +8.53] on 512K MRCR [two-sided p=0.017]).
 - Baselines: the Ouro distilled baselines move by at most 0.9 points over 0.3x-3x learning rates (0.7 at rank 16, 0.9 at rank 80).
 
 Limitations stated by the author: timing on one GPU architecture (B300) up to batch 32; on short-output 128K-256K
