@@ -200,20 +200,26 @@ async def main_async(args) -> None:
         w_p = _build_distinct_prompts(tok, args.prompt_source, 512, 2, seed=999)
         await asyncio.gather(*[_stream_req(session, args.url.rstrip("/") + "/v1/completions", str(args.model), p, 32, 0.0) for p in w_p])
 
-        for L, G, N, rps in [
-            (4096, 512, 24, 1.5),
-            (65536, 512, 12, 0.25),
-        ]:
+        specs = []
+        for item in args.poisson_specs.split(","):
+            item = item.strip()
+            if not item:
+                continue
+            L_s, G_s, N_s, rps_s = item.split(":")
+            specs.append((int(L_s), int(G_s), int(N_s), float(rps_s)))
+
+        for L, G, N, rps in specs:
             res = await run_poisson(session, args.url, str(args.model), tok, args.prompt_source, L, G, N, rps, seed=42)
             res["label"] = args.label
             out_rows.append(res)
             print("POISSON", json.dumps(res), flush=True)
 
-        for L, B in [(65536, 4), (262144, 2)]:
-            res = await run_kv_probe(session, args.url, str(args.model), tok, args.prompt_source, L, B, seed=77)
-            res["label"] = args.label
-            out_rows.append(res)
-            print("KV_CAP", json.dumps(res), flush=True)
+        if not args.skip_kv_probe:
+            for L, B in [(65536, 4), (262144, 2)]:
+                res = await run_kv_probe(session, args.url, str(args.model), tok, args.prompt_source, L, B, seed=77)
+                res["label"] = args.label
+                out_rows.append(res)
+                print("KV_CAP", json.dumps(res), flush=True)
 
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -230,6 +236,12 @@ def main() -> None:
         type=Path,
         default=Path("/dev/shm/inkling/data/eval_sec5_high/longbench_v2_128k.jsonl"),
     )
+    parser.add_argument(
+        "--poisson-specs",
+        default="4096:512:24:1.5,65536:512:12:0.25",
+        help="Comma-separated L:G:N:rps tuples",
+    )
+    parser.add_argument("--skip-kv-probe", action="store_true")
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
     asyncio.run(main_async(args))
