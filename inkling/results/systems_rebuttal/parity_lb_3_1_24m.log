@@ -1,0 +1,4 @@
+PARITY {"step0_match": 1, "decode_steps": 31, "decode_top1_eq": 0.9355, "mean_top1_lp_gap": 0.01648, "case": "short_128", "prompt_tokens": 36}
+PARITY {"step0_match": 1, "decode_steps": 31, "decode_top1_eq": 0.9677, "mean_top1_lp_gap": 0.04067, "case": "med_2048", "prompt_tokens": 2551}
+PARITY {"step0_match": 1, "decode_steps": 31, "decode_top1_eq": 1.0, "mean_top1_lp_gap": 0.0, "case": "logscale_9000", "prompt_tokens": 11760}
+{"mean_decode_top1_eq": 0.9677, "mean_lp_gap": 0.01905}

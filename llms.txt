@@ -26,7 +26,7 @@ Main findings (95% paired bootstrap intervals in the paper):
 - Scales 10x to 26.4B sparse-MoE looped models in Day-0 vLLM (TML-d24-varloop-research & Inkling-2-Mini) on five
   official reasoning and 256K-1M benchmarks (GPQA Diamond, LiveCodeBench v6, MRCR v2 8n 256K-512K, GraphWalks BFS 256K,
   LongBench v2 1M), establishing a two-regime law:
-  * Regime I (variable-depth TML-d24-varloop at n >= 2, 12 arms, full 5x avg@4 = 51,648 rollouts):
+  * Regime I (variable-depth TML-d24-varloop at n >= 2, 14 arms, full 5x avg@4 = 60,256 rollouts):
     training-free untying works natively (4/2: 68.4-68.9 vs 66.9 Orig 2/2; 4/3: 73.3-74.0 vs 73.1 Orig 3/3), and
     pure-prompt KV-Only maps (lora_rank=0, 4.46M-6.55M params = 17-25 MiB = 0.017-0.025%, 0% decode overhead) rank #1 on
     5-Bench and Pure-4 at both depths: LB 4/2 KV-Only reaches 69.6% (+2.78 [+0.82, +4.67] 5-Bench, +4.29 [+1.37, +7.18]
@@ -41,12 +41,19 @@ Main findings (95% paired bootstrap intervals in the paper):
     4/2, 68.7%, matching zero-training TF 4/2 Tail 68.9%, cos=+0.684 across 64.7% shared natural prompts) still beats
     full-synthetic KV-Only 2/2 by +1.71 [+0.05, +3.35] 5-Bench (+2.60 3-Long, +2.39 LBv2) and Orig 2/2 by +1.83
     [+0.19, +3.43] (+3.99 on 13-gram-clean LBv2 N=307), while synthetic recall/BFS lifts m=4 (69.6%) ahead of both.
-    LB 4/3 KV-Only reaches 74.1% (sweeping Orig 3/3 5/5 and recovering 99.0% of Orig 4/4's 74.9% at 1.27-1.29x decode;
-    both beat Orig 4/4 end-to-end across all lengths up to 262K).
+    In a 3-way closed-form Plato's Key test (192 unlabeled prompts / 240K tokens, 0 gradients), orthogonal 1->1
+    Procrustes 4/2 (121s, 0.79M non-identity active out of 1.31M 1->1 slots) reaches 68.4% (70.4% LCB #1 at n=2, 41.9%
+    dark-memory CV; matching TF 4/2 Anchored 68.4%) and beats the unconstrained Cross-Ridge 4/2 diagnostic (60.7%,
+    -7.63*), yet behavioral KL LB 4/2 KV-Only significantly beats Procrustes 4/2 on 3-Long (+2.45*) and MRCR 512K
+    (+6.06*, 59.2% dark-memory CV). LB 4/3 KV-Only reaches 74.1% (sweeping Orig 3/3 5/5 and recovering 99.0% of Orig
+    4/4's 74.9% at 1.27-1.29x decode; both beat Orig 4/4 end-to-end across all lengths up to 262K with 9/9 step-0 &
+    96.8-97.9% 31-step PyTorch-vLLM parity, 1.29-2.80x async Poisson ITL speedup, and 0 preemptions under tested load
+    matching equal-m KV occupancy).
   * Regime II (fixed-depth Inkling-2-Mini 3/2 or un-gated n=1 VarLoop 3/1, avg@1): all unadapted n=2 variants collapse (Mini
-    TF 3/2 Anchored: 2.2%, 93.2% trunc; Mini Orig 2/2 & TF 3/2 Tail: 5.6% GPQA; VarLoop TF 3/1: 40.8%), while parametric
-    LoopBridge rescues accuracy and sweeps parameter-advantaged tied distillation 5/5 under locked 24M controls
-    (+7.8 [4.4, 11.2] on VarLoop 3/1; +5.1 [2.0, 8.1] on Mini 3/2, climbing to 58.3% = 87.7% of symmetric 57K-cap 3/3 at 48M v2).
+    TF 3/2 Anchored: 2.2%, 93.2% trunc; Mini Orig 2/2 & TF 3/2 Tail: 5.6% GPQA; Mini Procrustes 3/2: 11.1% GPQA, 81.8%
+    trunc; VarLoop TF 3/1: 40.8%), while parametric LoopBridge rescues accuracy and sweeps parameter-advantaged tied
+    distillation 5/5 under locked 24M controls (+7.8 [4.4, 11.2] on VarLoop 3/1; +5.1 [2.0, 8.1] on Mini 3/2, climbing
+    to 58.3% = 87.7% of symmetric 57K-cap 3/3 at 48M v2).
 - Baselines: the Ouro distilled baselines move by at most 0.9 points over 0.3x-3x learning rates (0.7 at rank 16, 0.9 at rank 80).
 
 Limitations stated by the author: timing on one GPU architecture (B300) up to batch 32; on short-output 128K-256K
@@ -60,9 +67,9 @@ setting rather than per prompt; English benchmarks only.
 ## Docs
 - README.md: findings, 26.4B vLLM two-regime results, quick start, repository map
 - REPRODUCE.md: every table and figure -> script -> result file; Ouro and 26.4B vLLM commands
-- paper/loopbridge.pdf: the 33-page paper (8-page ACL main body + Appendices A-O)
+- paper/loopbridge.pdf: the 34-page paper (8-page ACL main body + Appendices A-O)
 - ouro/results/items/: Ouro per-item scores; ouro/results/paper_numbers.json: recomputed Ouro statistics
-- inkling/results/: 26.4B sparse-MoE official-exact avg@4 & avg@1 per-item JSONs & isolated Day-0 vLLM Blackwell timing logs
+- inkling/results/: 26.4B sparse-MoE official-exact avg@4 & avg@1 per-item JSONs, isolated Day-0 vLLM Blackwell timing logs, and systems_rebuttal/ (parity, warmed timing, Poisson serving, KV capacity)
 - ouro/results/provenance/: Ouro run manifests, logs, configs, and checkpoint hashes
 - docs/ARCHIVE.md: public ModelScope checkpoints/data (`torushy/LoopBridge`, `torushy/LoopBridge-Data`) and cold-archive notes
 - Checkpoints (ModelScope, 16 adapters: 8 Ouro + 8 26.4B MoE): https://modelscope.cn/models/torushy/LoopBridge

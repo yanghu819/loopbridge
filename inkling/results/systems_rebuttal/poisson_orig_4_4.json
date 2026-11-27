@@ -1,0 +1,59 @@
+{
+  "label": "orig_4_4",
+  "results": [
+    {
+      "kind": "poisson",
+      "L": 4096,
+      "gen_len": 512,
+      "n_reqs": 24,
+      "rate_rps": 1.5,
+      "total_wall_s": 13.98,
+      "agg_e2e_tok_s": 878.99,
+      "ttft_p50_ms": 81.78,
+      "ttft_p95_ms": 128.33,
+      "itl_p50_ms": 7.24,
+      "itl_p95_ms": 8.48,
+      "itl_p99_ms": 55.36,
+      "req_max_itl_p50_ms": 121.52,
+      "req_max_itl_p95_ms": 121.6,
+      "label": "orig_4_4"
+    },
+    {
+      "kind": "poisson",
+      "L": 65536,
+      "gen_len": 512,
+      "n_reqs": 12,
+      "rate_rps": 0.25,
+      "total_wall_s": 35.349,
+      "agg_e2e_tok_s": 173.81,
+      "ttft_p50_ms": 1884.06,
+      "ttft_p95_ms": 2191.62,
+      "itl_p50_ms": 7.7,
+      "itl_p95_ms": 8.52,
+      "itl_p99_ms": 9.76,
+      "req_max_itl_p50_ms": 1049.09,
+      "req_max_itl_p95_ms": 3223.76,
+      "label": "orig_4_4"
+    },
+    {
+      "kind": "kv_capacity",
+      "L": 65536,
+      "probe_B": 4,
+      "peak_kv_usage_frac": 0.7085,
+      "est_max_concurrent_seqs": 5.6,
+      "max_running_observed": 4,
+      "preemptions_delta": 0.0,
+      "label": "orig_4_4"
+    },
+    {
+      "kind": "kv_capacity",
+      "L": 262144,
+      "probe_B": 2,
+      "peak_kv_usage_frac": 0.42244,
+      "est_max_concurrent_seqs": 4.7,
+      "max_running_observed": 2,
+      "preemptions_delta": 0.0,
+      "label": "orig_4_4"
+    }
+  ]
+}

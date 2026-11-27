@@ -11,10 +11,12 @@ The paper's numbers come from these places, all in this commit:
 2. **Timing records** (`ouro/results/e2e/`, `ouro/results/throughput-sb4/`): the end-to-end timing table, time ratios
    and decode throughput, also recomputed by `paper_numbers.py compute`.
 3. **Decision-model records** (`ouro/results/lev/`): per-depth LevBench development outputs for the Lev appendix.
-4. **26.4B sparse-MoE Day-0 vLLM records** (`inkling/results/eval_official_exact_avg4.json`, `eval_official_exact.json`, `eval_vllm_*.json`, `vllm_sse_*.json`):
+4. **26.4B sparse-MoE Day-0 vLLM records** (`inkling/results/eval_official_exact_avg4.json`, `eval_official_exact.json`, `eval_vllm_*.json`, `vllm_sse_*.json`, `systems_rebuttal/`):
    per-item official-exact scores (`GPQA Diamond` 198, `LiveCodeBench v6` 175, `MRCR v2 8n 256K–512K` 100,
-   `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; including the 12-arm full `5×avg@4` evaluation and
-   `2×2` causal factorial totaling 51,648 rollouts) and isolated single-GPU Day-0 vLLM Blackwell timing (`512..256K`).
+   `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; including the 14-arm Regime I full `5×avg@4` evaluation,
+   `2×2` causal factorial, and 3-way Plato's Key ablation totaling 60,256 rollouts), isolated single-GPU Day-0 vLLM
+   Blackwell timing (`512..256K`), PyTorch–vLLM numerical parity (`9/9` step-0, `96.8–97.9%` 31-step), async Poisson
+   serving (`4K`/`64K`), and measured KV-cache capacity (`0` preemptions).
    `uv run --with numpy --with matplotlib python inkling/make_figs.py` recomputes every 26.4B item-clustered paired
    bootstrap 95% / Holm-Bonferroni CI (5,000 resamples, seed 0) and redraws Figures 6, 16, and 17.
 

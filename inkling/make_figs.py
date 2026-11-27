@@ -73,6 +73,8 @@ LONG_KEYS = BENCH_KEYS[2:]
 AVG4_ARMS = [
     "vl_native_2_2",
     "vl_kvonly_2_2_t4_12m",
+    "vl_crossridge_4_2",
+    "vl_procrustes_4_2",
     "vl_tf_4_2_tail",
     "vl_tf_4_2_anchored",
     "vl_tf_5_2_anchored",
@@ -96,8 +98,8 @@ def save(fig, name: str) -> None:
 def load_evals() -> tuple[dict[str, dict[str, dict]], dict[str, dict[str, dict]]]:
     """Load (evals_avg1, evals_avg4) directly from archived official-exact JSONs.
 
-    evals_avg4 holds all 12 full 5xavg@4 TML-d24-varloop arms (51,648 rollouts,
-    including the 2x2 causal factorial controls) evaluated with 4x symmetric sampling.
+    evals_avg4 holds all 14 full 5xavg@4 TML-d24-varloop Regime I arms (60,256 rollouts,
+    including the 2x2 causal factorial controls and 3-way Plato's Key ablation) evaluated with 4x symmetric sampling.
     evals_avg1 holds all single-sample (seed=42) official-exact arms across
     TML-d24-varloop and Inkling-2-Mini.
     """
@@ -170,7 +172,7 @@ def load_evals() -> tuple[dict[str, dict[str, dict]], dict[str, dict[str, dict]]
     add1("mini_lb_3_1_24m", "mini_lb_3_1_24m", fb_v3="lb_3_1_24m")
     add1("mini_distilled_1_1_v3", "mini_distilled_1_1_v3", fb_v3="distilled_1_1_v3", fb_lcb="distilled_1_1_v3")
 
-    # TML-d24-varloop-research (12-arm TRUE 5/5 symmetric avg@4 across ALL 5 benchmarks = 51,648 rollouts)
+    # TML-d24-varloop-research (14-arm Regime I TRUE 5/5 symmetric avg@4 across ALL 5 benchmarks = 60,256 rollouts)
     evals_avg4: dict[str, dict[str, dict]] = {}
     for arm in AVG4_ARMS:
         entry = {}
@@ -318,7 +320,18 @@ def make_pareto_and_speed_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dict)
     # Distilled 1/1 (24M, @1)
     y_d11 = macro_pct(evals_avg1, "vl_distilled_1_1_24m")
     ax1.scatter([x11], [y_d11], s=38, marker="^", color=DIST, edgecolor="white", linewidth=0.5, zorder=4, label="Distilled 1/1 (24M, @1)")
-    ax1.annotate(f"Dist. 1/1 ({y_d11:.1f})", (x11, y_d11), xytext=(-7, 3), textcoords="offset points", fontsize=6.1, color=DIST, ha="right", va="center")
+    ax1.annotate(
+        f"Dist. 1/1 ({y_d11:.1f})",
+        (x11, y_d11),
+        xytext=(-13, 0),
+        textcoords="offset points",
+        fontsize=6.0,
+        color=DIST,
+        ha="right",
+        va="center",
+        bbox=dict(facecolor="white", edgecolor="none", pad=0.4, alpha=0.88),
+        zorder=6,
+    )
 
     # LoopBridge flagship tiers: 4/3 KV-Only, 4/2 KV-Only, 3/1 (24M)
     x_43, y_43 = e2e["lb_4_3_kvonly_12m"], macro_pct(evals_avg4, "vl_lb_4_3_kvonly_12m")
@@ -380,12 +393,14 @@ def make_pareto_and_speed_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dict)
     ax1.annotate(
         f"LB 3/1 ({y_31:.1f}*)\n+7.8* vs Dist.",
         (x_31, y_31),
-        xytext=(-6, 7),
+        xytext=(-4, 9),
         textcoords="offset points",
-        fontsize=6.3,
+        fontsize=6.2,
         fontweight="bold",
         color=OURS,
-        ha="right",
+        ha="center",
+        bbox=dict(facecolor="white", edgecolor="none", pad=0.5, alpha=0.90),
+        zorder=6,
     )
 
     ax1.set_xlabel("Day-0 vLLM E2E throughput (k tok/s, $L$=512, $B$=16)")
@@ -444,7 +459,7 @@ def make_pareto_and_speed_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dict)
 def make_ablate_and_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
     """Two-panel figure proving the Two-Regime Law on 26.4B sparse-MoEs:
     (a) Regime I (variable-depth TML-d24-varloop, n >= 2, symmetric avg@4,
-        51,648 rollouts): n=2 (1.75x) and n=3 (1.27x) ladders comparing Orig n/n,
+        60,256 rollouts across 14 arms): n=2 (1.75x) and n=3 (1.27x) ladders comparing Orig n/n,
         matched KV-Only 2/2, zero-training Tail/Anchored, and pure-prompt KV-Only (17-25 MiB, r=0).
     (b) Regime II (fixed-depth Inkling-2-Mini 3/2 & un-gated VarLoop 3/1, avg@1):
         training-free collapse (Mini TF 3/2 = 2.2%, 93% trunc; VarLoop TF 3/1 = 40.8%)
@@ -483,23 +498,25 @@ def make_ablate_and_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
 
     for i, bar in enumerate(bars5_a):
         h = bar.get_height()
-        suf = "*" if i in (3, 4) else ""
+        suf = "*" if i in (2, 3, 4) else ""
+        dx = -2.2 if i == 2 else (0.5 if i == 3 else (-1.2 if i not in (6, 7) else (-2.0 if i == 6 else 1.2)))
+        dy = 2.0 if i not in (6, 7) else 2.2
         ax1.annotate(
             f"{h:.1f}{suf}",
             (bar.get_x() + bar.get_width() / 2, h),
-            xytext=(-1.2, 1.8),
+            xytext=(dx, dy),
             textcoords="offset points",
             ha="center",
             va="bottom",
-            fontsize=5.2,
+            fontsize=5.0,
             fontweight="bold" if i in (3, 4, 7) else "normal",
             color=OURS_DARK if i in (3, 4, 7) else INK,
-            bbox=dict(facecolor="white", edgecolor="none", pad=0.35, alpha=0.88) if i in (6, 7) else None,
-            zorder=6,
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.35, alpha=0.92) if i in (6, 7) else None,
+            zorder=7,
         )
     for i, bar in enumerate(bars3_a):
         h = bar.get_height()
-        suf = "*" if i in (3, 4) else ""
+        suf = "*" if i in (2, 3, 4) else ""
         ax1.annotate(
             f"{h:.1f}{suf}",
             (bar.get_x() + bar.get_width() / 2, h),
@@ -648,7 +665,18 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
 
     # Distilled 1/1
     ax1.scatter([x11], [y_d11], s=32, marker="^", color=DIST, edgecolor="white", lw=0.45, zorder=4, label="Distilled 1/1")
-    ax1.annotate("Dist. 1/1", (x11, y_d11), xytext=(-6, 2), textcoords="offset points", fontsize=5.6, color=DIST, ha="right", va="center")
+    ax1.annotate(
+        "Dist. 1/1",
+        (x11, y_d11),
+        xytext=(-11, 0),
+        textcoords="offset points",
+        fontsize=5.5,
+        color=DIST,
+        ha="right",
+        va="center",
+        bbox=dict(facecolor="white", edgecolor="none", pad=0.3, alpha=0.88),
+        zorder=6,
+    )
 
     # LoopBridge frontier
     x_43, y_43 = e2e["lb_4_3_kvonly_12m"], macro_pct(evals_avg4, "vl_lb_4_3_kvonly_12m")
@@ -687,12 +715,14 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
     ax1.annotate(
         f"LB 3/1 ({y_31:.1f}*)\n2.76x decode",
         (x_31, y_31),
-        xytext=(-4, 7),
+        xytext=(-3, 9),
         textcoords="offset points",
-        fontsize=5.6,
+        fontsize=5.5,
         fontweight="bold",
         color=OURS,
-        ha="right",
+        ha="center",
+        bbox=dict(facecolor="white", edgecolor="none", pad=0.45, alpha=0.90),
+        zorder=6,
     )
 
     ax1.set_xlabel("Day-0 vLLM E2E throughput (k tok/s)", fontsize=7.2)
@@ -735,20 +765,22 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
     ax2.text(-0.35, ceil44 + 0.35, f"Orig 4/4 ({ceil44:.1f}%)", fontsize=5.0, color=NAT, ha="left", va="bottom")
 
     for i, (bar, v5, v3, (_, _, _, is_ours)) in enumerate(zip(bars_b, vals_5b, vals_3l, all_b)):
-        suf = "*" if i in (3, 4) else ""
+        suf = "*" if i in (2, 3, 4) else ""
         is_dark = i in (4, 7)
+        dx = -2.2 if i == 2 else (1.5 if i == 3 else (-1.8 if i == 6 else (2.2 if i == 7 else 0.0)))
+        dy = 3.2 if i == 2 else (2.0 if i not in (6, 7) else (2.2 if i == 6 else 4.2))
         ax2.annotate(
             f"{v5:.1f}{suf}",
             (bar.get_x() + bar.get_width() / 2, v5),
-            xytext=(0, 2.0),
+            xytext=(dx, dy),
             textcoords="offset points",
             ha="center",
             va="bottom",
-            fontsize=4.7,
+            fontsize=4.4,
             fontweight="bold" if is_ours else "normal",
             color=OURS_DARK if is_ours else INK,
-            bbox=dict(facecolor="white", edgecolor="none", pad=0.25, alpha=0.88) if i in (6, 7) else None,
-            zorder=6,
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.25, alpha=0.92) if i in (2, 3, 6, 7) else None,
+            zorder=7,
         )
         ax2.annotate(
             f"{v3:.1f}",
@@ -872,14 +904,14 @@ def make_main_body_triptych_fig(evals_avg1: dict, evals_avg4: dict, vllm_vl: dic
 
 
 def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
-    print("=== 12-ARM TRUE 5/5 SYMMETRIC AVG@4 SCORES (51,648 ROLLOUTS) ===")
+    print("=== 14-ARM REGIME I TRUE 5/5 SYMMETRIC AVG@4 SCORES (60,256 ROLLOUTS) ===")
     for arm in AVG4_ARMS:
         vals = [score_pct(evals_avg4, arm, bk) for bk in BENCH_KEYS]
         p4 = macro_pct(evals_avg4, arm, PURE4_KEYS)
         l3 = macro_pct(evals_avg4, arm, LONG_KEYS)
         m5 = macro_pct(evals_avg4, arm, BENCH_KEYS)
         print(
-            f"  {arm:22s} | GPQA {vals[0]:5.2f} | LCB {vals[1]:5.2f} | MRCR {vals[2]:5.2f} | "
+            f"  {arm:28s} | GPQA {vals[0]:5.2f} | LCB {vals[1]:5.2f} | MRCR {vals[2]:5.2f} | "
             f"GW {vals[3]:5.2f} | LBv2 {vals[4]:5.2f} | Pure4 {p4:5.2f} | 3L {l3:5.2f} | 5B {m5:5.2f}"
         )
 
@@ -891,9 +923,19 @@ def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
         ("vl_lb_4_3_kvonly_12m", "vl_tf_4_3_anchored"),
         ("vl_tf_4_3_anchored", "vl_tf_4_3_tail"),
         ("vl_lb_4_2_kvonly_12m", "vl_native_2_2"),
+        ("vl_lb_4_2_kvonly_12m", "vl_kvonly_2_2_t4_12m"),
+        ("vl_lb_4_2_kvonly_nosynth_12m", "vl_kvonly_2_2_t4_12m"),
+        ("vl_lb_4_2_kvonly_nosynth_12m", "vl_native_2_2"),
+        ("vl_lb_4_2_kvonly_12m", "vl_procrustes_4_2"),
+        ("vl_lb_4_2_kvonly_12m", "vl_crossridge_4_2"),
+        ("vl_procrustes_4_2", "vl_crossridge_4_2"),
+        ("vl_procrustes_4_2", "vl_native_2_2"),
+        ("vl_procrustes_4_2", "vl_tf_4_2_anchored"),
+        ("vl_procrustes_4_2", "vl_tf_4_2_tail"),
         ("vl_lb_4_2_kvonly_12m", "vl_tf_4_2_anchored"),
         ("vl_lb_4_2_kvonly_12m", "vl_tf_4_2_tail"),
         ("vl_tf_4_2_tail", "vl_native_2_2"),
+        ("vl_tf_4_2_tail", "vl_kvonly_2_2_t4_12m"),
         ("vl_tf_4_2_anchored", "vl_native_2_2"),
         ("vl_tf_5_2_anchored", "vl_native_2_2"),
     ]
@@ -901,9 +943,13 @@ def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
         o5, l5, h5, l5_2, h5_2, l5_3, h5_3, p5 = paired_boot_clustered(evals_avg4, a, b, BENCH_KEYS)
         o3, l3, h3, l3_2, h3_2, l3_3, h3_3, p3 = paired_boot_clustered(evals_avg4, a, b, LONG_KEYS)
         print(
-            f"  {a:22s} vs {b:19s} | 5B {o5:+6.2f} 95%[{l5:+6.2f},{h5:+6.2f}] H2[{l5_2:+6.2f},{h5_2:+6.2f}] H3[{l5_3:+6.2f},{h5_3:+6.2f}]"
-            f" | 3L {o3:+6.2f} 95%[{l3:+6.2f},{h3:+6.2f}] H2[{l3_2:+6.2f},{h3_2:+6.2f}] H3[{l3_3:+6.2f},{h3_3:+6.2f}]"
+            f"  {a:28s} vs {b:22s} | 5B {o5:+6.2f} 95%[{l5:+6.2f},{h5:+6.2f}] p={p5:.4f}"
+            f" | 3L {o3:+6.2f} 95%[{l3:+6.2f},{h3:+6.2f}] p={p3:.4f}"
         )
+    om, lm, hm, *_, pm = paired_boot_clustered(evals_avg4, "vl_lb_4_2_kvonly_12m", "vl_procrustes_4_2", ["mrcr_8n_256k_512k"])
+    print(f"  [MRCR] vl_lb_4_2_kvonly_12m vs vl_procrustes_4_2: {om:+6.2f} 95%[{lm:+6.2f},{hm:+6.2f}] p={pm:.4f}")
+    ol, ll, hl, *_, pl = paired_boot_clustered(evals_avg4, "vl_procrustes_4_2", "vl_tf_4_2_tail", ["longbench_v2_1m"])
+    print(f"  [LBv2] vl_procrustes_4_2 vs vl_tf_4_2_tail      : {ol:+6.2f} 95%[{ll:+6.2f},{hl:+6.2f}] p={pl:.4f}")
 
     print("\n=== VERIFIED AVG@1 CONTROLLED 24M & ABLATION BOOTSTRAP (5,000 resamples, seed=0) ===")
     avg1_pairs = [
