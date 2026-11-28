@@ -250,14 +250,15 @@ def _fold_request_kv_maps(
     req_idx: int,
     prompt_len: int,
     pass_pairing: str = "tail",
+    start_pos: int = 0,
 ) -> None:
     """Apply LoopBridge Cross-Pass Global-3 KV Fusion ONCE for a request right after its final prefill chunk.
 
-    Operates over ALL prompt token positions 0..prompt_len-1 via the request's physical block table,
-    so chunked prefill works with 100% mathematical exactness for any prompt length (1..1M tokens)
-    and zero CUDA Graph interference.
+    Operates over prompt token positions start_pos..prompt_len-1 via the request's physical block table,
+    so chunked prefill and suffix-only APC folding (start_pos = n_comp, never mutating cached prefix blocks)
+    work with 100% mathematical exactness for any prompt length (1..1M tokens) and zero CUDA Graph interference.
     """
-    if kv_bundle is None or n not in kv_bundle["k_loop"] or prompt_len <= 0:
+    if kv_bundle is None or n not in kv_bundle["k_loop"] or prompt_len <= 0 or start_pos >= prompt_len:
         return
 
     cross_pass = kv_bundle["cross_pass"]
@@ -296,8 +297,12 @@ def _fold_request_kv_maps(
         if bo is None:
             continue
         blk, off = bo
+        # Belt-and-suspenders block-alignment guard: never mutate any shared APC prefix block
+        s0 = ((int(start_pos) + block_size - 1) // block_size) * block_size if start_pos > 0 else 0
+        if s0 >= prompt_len:
+            continue
         chunk_sz = 32768
-        for c_start in range(0, prompt_len, chunk_sz):
+        for c_start in range(s0, prompt_len, chunk_sz):
             c_end = min(prompt_len, c_start + chunk_sz)
             cb, co = blk[c_start:c_end], off[c_start:c_end]
             paired_passes = _aligned_pass_indices(m, n, pass_pairing)
@@ -336,12 +341,16 @@ def _fold_request_kv_maps(
         if p0_cache.numel() == 0:
             continue
         kc, vc = attn._split_kv_cache(p0_cache)
-        bo = _get_blk_off(p0_name, kc.shape[1], kc.device)
+        block_size = kc.shape[1]
+        bo = _get_blk_off(p0_name, block_size, kc.device)
         if bo is None:
             continue
         blk, off = bo
+        s0 = ((int(start_pos) + block_size - 1) // block_size) * block_size if start_pos > 0 else 0
+        if s0 >= prompt_len:
+            continue
         chunk_sz = 32768
-        for c_start in range(0, prompt_len, chunk_sz):
+        for c_start in range(s0, prompt_len, chunk_sz):
             c_end = min(prompt_len, c_start + chunk_sz)
             cb, co = blk[c_start:c_end], off[c_start:c_end]
             ks = kc[cb, co].float()
@@ -366,6 +375,7 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
     n = int(cfg.get("n", 1))
     ckpt_path = cfg.get("checkpoint")
     cfg_pairing = cfg.get("pass_pairing")
+    mt_policy = cfg.get("multi_turn_policy", "reprefill")  # "reprefill" or "d0"
 
     from vllm.distributed import tensor_model_parallel_all_reduce
     from vllm.forward_context import get_forward_context
@@ -639,9 +649,15 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
 
     ink_loop_mod.Inkling2LoopModel.forward = _patched_loop_forward
 
-    # --- 3. Patch vLLM V1 Scheduler to enforce strict Pure-Prefill / Pure-Decode batch separation ---
+    # --- 3. Patch vLLM V1 Scheduler to enforce strict phase separation ---
     # Guarantees decode tokens NEVER co-batch with prefill tokens (eliminating stale pass-0/1 KV holes
     # and enabling 100% pure-decode Blackwell CUDA Graph replay at any concurrency B=1..128).
+    # Across all multi-turn policies (`reprefill`, `d0`, `suffix_fold`), every prefill chunk runs m passes
+    # identically under both CUDA graphs and `--enforce-eager`, while decode steps run pure n-pass CUDA graphs;
+    # the policies differ purely in which prompt blocks receive in-place KV-bridge folding:
+    #   - `reprefill`   (APC off): full m-pass prefill + fold [0..plen] on every turn.
+    #   - `d0`          (APC on) : Turn-0 folds [0..plen]; Turn t>=1 writes unfolded m-pass KV on [n_comp..plen].
+    #   - `suffix_fold` (APC on) : Turn-0 folds [0..plen]; Turn t>=1 folds block-aligned new blocks [n_comp..plen].
     from vllm.v1.core.sched import scheduler as sched_mod
 
     orig_schedule = sched_mod.Scheduler.schedule
@@ -715,9 +731,11 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
         if not hasattr(self, "_lb_req_prompt_len"):
             self._lb_req_prompt_len = {}
             self._lb_req_computed = {}
+            self._lb_req_should_fold = {}
+            self._lb_req_fold_start = {}
             self._lb_layer_to_gid = None
 
-        completed_prefills: list[tuple[str, int]] = []
+        completed_prefills: list[tuple[str, int, int]] = []
         if dummy_run:
             max_q = max(scheduler_output.num_scheduled_tokens.values(), default=0)
             # Decode CUDA graph capture runs dummy_run with uniform 1 token/req and prepared attn metadata
@@ -726,9 +744,28 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
             for rid in scheduler_output.finished_req_ids:
                 self._lb_req_prompt_len.pop(rid, None)
                 self._lb_req_computed.pop(rid, None)
+                self._lb_req_should_fold.pop(rid, None)
+                self._lb_req_fold_start.pop(rid, None)
             for new_req in scheduler_output.scheduled_new_reqs:
-                self._lb_req_prompt_len[new_req.req_id] = len(new_req.prompt_token_ids)
-                self._lb_req_computed[new_req.req_id] = int(new_req.num_computed_tokens)
+                rid = new_req.req_id
+                n_comp = int(new_req.num_computed_tokens)
+                self._lb_req_prompt_len[rid] = len(new_req.prompt_token_ids)
+                self._lb_req_computed[rid] = n_comp
+                # Policy behaviors on multi-turn APC hits (n_comp > 0):
+                #   'reprefill'  : APC off (n_comp==0); full m-pass prefill + fold [0..plen] every turn.
+                #   'd0'         : APC on; Turn-0 folds [0..plen], follow-ups run incremental m-pass prefill
+                #                  over [n_comp..plen] without re-folding (zero dual-KV overhead; eager == CG).
+                #   'suffix_fold': APC on; incremental m-pass prefill over [n_comp..plen] + suffix-only KV fold
+                #                  strictly on newly uncached blocks [n_comp..plen] (never mutates cached prefix).
+                if mt_policy == "d0":
+                    self._lb_req_should_fold[rid] = (n_comp == 0)
+                    self._lb_req_fold_start[rid] = 0
+                elif mt_policy == "suffix_fold":
+                    self._lb_req_should_fold[rid] = True
+                    self._lb_req_fold_start[rid] = n_comp
+                else:
+                    self._lb_req_should_fold[rid] = True
+                    self._lb_req_fold_start[rid] = 0
             # Reset computed counter if a request was preempted and resumed from scratch
             cached = getattr(scheduler_output, "scheduled_cached_reqs", None)
             if cached is not None:
@@ -738,6 +775,8 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
                     for rid, is_res in zip(req_ids, resumed):
                         if is_res and rid in self._lb_req_computed:
                             self._lb_req_computed[rid] = 0
+                            self._lb_req_should_fold[rid] = True
+                            self._lb_req_fold_start[rid] = 0
 
             any_prefill = False
             any_decode = False
@@ -748,12 +787,13 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
                     any_prefill = True
                     new_c = prev_c + int(n_sched)
                     self._lb_req_computed[rid] = new_c
-                    if new_c >= plen:
-                        completed_prefills.append((rid, plen))
+                    if new_c >= plen and self._lb_req_should_fold.get(rid, True):
+                        completed_prefills.append((rid, self._lb_req_fold_start.get(rid, 0), plen))
                 else:
                     any_decode = True
                     if rid in self._lb_req_computed:
                         self._lb_req_computed[rid] = prev_c + int(n_sched)
+            # Every prefill chunk runs m passes (identical under CUDA graphs and --enforce-eager); decode runs n
             step_is_decode = any_decode and (not any_prefill)
 
         prev_flag = _state["step_is_decode"]
@@ -784,7 +824,7 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
                         for lname in grp.layer_names:
                             l2g[lname] = gid
                     self._lb_layer_to_gid = l2g
-                for rid, plen in completed_prefills:
+                for rid, fstart, plen in completed_prefills:
                     req_idx = self.req_states.req_id_to_index.get(rid)
                     if req_idx is not None:
                         _fold_request_kv_maps(
@@ -797,6 +837,7 @@ def install_vllm_patch(cfg_path: str | Path | None = None) -> None:
                             req_idx,
                             plen,
                             pass_pairing=getattr(inner, "_lb_pass_pairing", "tail"),
+                            start_pos=fstart,
                         )
         return ret
 
@@ -833,6 +874,10 @@ def main() -> None:
     p_srv.add_argument("--checkpoint", default=None)
     p_srv.add_argument("--pass-pairing", choices=("tail", "anchored"), default=None,
                        help="Override pass pairing (defaults to checkpoint system_config or 'tail')")
+    p_srv.add_argument("--enable-prefix-caching", action="store_true",
+                       help="Enable vLLM Automatic Prefix Caching (APC) for multi-turn serving")
+    p_srv.add_argument("--multi-turn-policy", choices=("reprefill", "d0", "suffix_fold"), default="reprefill",
+                       help="Multi-turn policy: 'reprefill' (full m-pass re-prefill, APC off), 'd0' (Turn-0 fold + APC incremental m-pass continuation), or 'suffix_fold' (APC incremental m-pass + suffix-only KV fold)")
     p_srv.add_argument("--port", type=int, default=8000)
     p_srv.add_argument("--max-model-len", type=int, default=196608)
     p_srv.add_argument("--gpu-memory-utilization", type=float, default=0.90)
@@ -846,14 +891,16 @@ def main() -> None:
         return
 
     assert args.m >= args.n, f"LoopBridge requires m >= n (got m={args.m}, n={args.n})"
+    use_apc = bool(args.enable_prefix_caching or args.multi_turn_policy in ("d0", "suffix_fold"))
     cfg = {
         "mode": args.mode,
         "m": args.m,
         "n": args.n,
         "checkpoint": args.checkpoint,
         "pass_pairing": args.pass_pairing,
+        "multi_turn_policy": args.multi_turn_policy,
     }
-    cfg_file = Path(tempfile.gettempdir()) / f"lb_vllm_{args.mode}_{args.m}_{args.n}_{args.port}.json"
+    cfg_file = Path(tempfile.gettempdir()) / f"lb_vllm_{args.mode}_{args.m}_{args.n}_{args.multi_turn_policy}_{args.port}.json"
     cfg_file.write_text(json.dumps(cfg, indent=2) + "\n")
 
     env = os.environ.copy()
@@ -890,9 +937,8 @@ def main() -> None:
             }
         )
         cmd += ["--hf-overrides", overrides]
-    # Symmetric scheduler/cache flags across ALL modes (loopbridge, training_free, distilled) for apples-to-apples timing
     cmd += [
-        "--no-enable-prefix-caching",
+        "--enable-prefix-caching" if use_apc else "--no-enable-prefix-caching",
         "--max-num-batched-tokens",
         "16384",
     ]

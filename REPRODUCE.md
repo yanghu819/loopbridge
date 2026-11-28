@@ -11,30 +11,32 @@ The paper's numbers come from these places, all in this commit:
 2. **Timing records** (`ouro/results/e2e/`, `ouro/results/throughput-sb4/`): the end-to-end timing table, time ratios
    and decode throughput, also recomputed by `paper_numbers.py compute`.
 3. **Decision-model records** (`ouro/results/lev/`): per-depth LevBench development outputs for the Lev appendix.
-4. **26.4B sparse-MoE Day-0 vLLM records** (`inkling/results/eval_official_exact_avg4.json`, `eval_official_exact.json`, `eval_vllm_*.json`, `vllm_sse_*.json`, `poisson_saturated_rebuttal.json`, `systems_rebuttal/`):
+4. **26.4B sparse-MoE Day-0 vLLM & multi-turn agentic records** (`inkling/results/eval_official_exact_avg4.json`, `eval_official_exact.json`, `eval_vllm_*.json`, `vllm_sse_*.json`, `poisson_saturated_rebuttal.json`, `systems_rebuttal/`, `multiturn_systems_b300.json`, `eval_bfcl_multiturn.json`, `eval_swebench_verified_n50.json`):
    per-item official-exact scores (`GPQA Diamond` 198, `LiveCodeBench v6` 175, `MRCR v2 8n 256K–512K` 100,
-   `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; **26 full `5×avg@4` arms = 111,904 rollouts**: 19 Regime I arms
-   [81,776 rollouts including the `2×2` causal factorial, matched `r=64` full-LoRA twins, one `0.042%` `0%`-synthetic
+   `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; **29 full `5×avg@4` arms = 124,816 rollouts**: 22 variable-depth `n≥2` arms
+   [94,688 rollouts including the complete 4-cell `2×2` causal factorial, matched `r=64`/`r=128` full-LoRA twins, one `0.042%` `0%`-synthetic
    universal multi-depth adapter serving `4/3`, `4/2`, `3/2`, and 3-way Plato's Key ablation], 3 `Inkling-2-Mini` arms
    [12,912 rollouts], and 4 `TML-varloop n=1` control & KV-map ablation arms [17,216 rollouts]), isolated single-GPU Day-0 vLLM
    Blackwell timing (`512..256K`), PyTorch–vLLM numerical parity (`9/9` step-0, `96.8–97.9%` 31-step), moderate & engine-saturated
-   async Poisson serving (`4K`/`64K`), and measured KV-cache capacity (`0` preemptions).
-   `uv run --with numpy --with matplotlib python inkling/make_figs.py` recomputes every 26.4B item-clustered paired
-   bootstrap 95% / Holm-Bonferroni CI (5,000 resamples, seed 0) and redraws Figures 4 and 15.
+   async Poisson serving (`4K`/`64K`), measured KV-cache capacity (`0` preemptions), plus our 8-scenario 1×B300 multi-turn
+   grid, 19-arm **BFCL v4 Multi-Turn** (15,200 executable episodes), and 19-arm official zero-Docker **SWE-bench Verified** (`N=50`).
+   `uv run --with numpy --with matplotlib python inkling/make_figs.py` recomputes every 26.4B and multi-turn item-clustered paired
+   bootstrap 95% / Holm-Bonferroni CI (5,000 resamples, seed 0) and redraws Figures 3, 4, and 15.
 
-`ouro/scripts/paper_figs.py` draws Figures 1–3, 5–9, and 11–14 (plus generated Ouro tables) from `paper_numbers.json`.
+`ouro/scripts/paper_figs.py` draws Figures 1–2, 5–9, and 11–14 (plus generated Ouro tables) from `paper_numbers.json`.
 
 ## Main-text results and where they come from
 
 | Paper item | `paper_numbers.py` function | Runs (launcher in `ouro/runs_scripts/`) |
 |---|---|---|
 | Figure 1 (`fig_tps_teaser`: Ouro-2.6B 11-bench avg + overall TPS & 26.4B Inkling-2 Pareto) | `aligned_cells`, `time_breakdown`, `inkling/results/eval_official_exact_avg4.json`, `vllm_sse_vl_*.json` | `launch_aligned.sh`, `time_controls.sh`, `time_sweep.sh`, Inkling Day-0 vLLM evals/timing (`paper_figs.fig_tps_teaser`) |
-| Figure 2 (Why & How LoopBridge works `fig0_method`, pseudocode in Figure 10 / Appendix E) | `time_breakdown` | `ouro/adapter_model.py`, `ouro/batched.py`, `inkling/vllm_loopbridge.py` |
-| Table 1, Section 5.2 (`tab_main`, LoopBridge vs. Original & Distilled baselines) and its seeds | `main_table`, `main_gains` | `launch_aligned.sh` (LoopBridge), `seed_main.sh`, `launch_x26_distill.sh` (`RANK`, `SEED`) |
-| Figure 3, Section 5.4 (`fig_depth_main`; full: Figure 7 / Tables 5–7) | `depth_sweep`, `depth_gains`, `same_weights`, `same_weights_seeds`, `plateau`, `plateau_seeds` | `sweep_depth.sh`, `launch_variant.sh wide`, `seed_main.sh ARM=a CELLS="11 12"` |
-| Table 2, Section 5.6 (a: `tab_build`, b: `tab_tokens`, c: `tab_lr`) | `main_table`, `ablations`, `lr_check`, `lora80` | `launch_variant.sh lora` (`RANK=80`: parameter-matched control), `ablate_tokens.sh`, `LRS=0.3/3 launch_x26_distill.sh`, `LRS=... launch_variant.sh lr` |
-| Figure 4, Section 5.8 (`fig:inkling_main`: 26.4B sparse-MoE Two-Regime Law & `2×2` causal proof; full tables/speed: Appendix N) | `inkling/make_figs.py` | `inkling/train_inkling.py`, `inkling/eval_vllm.py`, `inkling/bench_vllm_timing.py` |
+| Figure 2 (Asymmetric loop inference & LoopBridge architecture `fig0_method`, pseudocode in Figure 10 / Appendix E) | `time_breakdown` | `ouro/adapter_model.py`, `ouro/batched.py`, `inkling/vllm_loopbridge.py` |
+| Figure 3, Section 5.2 (`fig_inkling_main`: 26.4B Inkling-2 contextual shift & causal controls; full tables/speed: Appendix N) | `inkling/make_figs.py` | `inkling/train_inkling.py`, `inkling/eval_vllm.py`, `inkling/bench_vllm_timing.py` |
+| Figure 4, Section 5.3 (`fig_multiturn_agentic`: 1×B300 multi-turn grid, BFCL v4 Multi-Turn, SWE-bench Verified; Tables 20–22: Appendix O) | `inkling/make_figs.py` | `inkling/bench_multiturn_systems.py`, `inkling/eval_bfcl_multiturn.py`, `inkling/eval_swebench_verified.py`, `inkling/swe_gold_verify.py` |
+| Table 1, Section 5.4 (`tab_main`, LoopBridge vs. Original & Distilled baselines) and its seeds | `main_table`, `main_gains` | `launch_aligned.sh` (LoopBridge), `seed_main.sh`, `launch_x26_distill.sh` (`RANK`, `SEED`) |
+| Table 2, Section 5.4 (a: `tab_build`, b: `tab_tokens`, c: `tab_lr`) | `main_table`, `ablations`, `lr_check`, `lora80` | `launch_variant.sh lora` (`RANK=80`: parameter-matched control), `ablate_tokens.sh`, `LRS=0.3/3 launch_x26_distill.sh`, `LRS=... launch_variant.sh lr` |
 | Appendix Figures 5–6 & Table 4 (per-request time split & batch-1 1-loop bar check) | `time_breakdown`, `budget_pairs`, `time_matched` | `time_controls.sh` (folded maps `a<m>x<n>pm`) |
+| Appendix Figure 7 & Tables 5–7 (prefill depth sweep & trainable prefill, Appendix B) | `depth_sweep`, `depth_gains`, `same_weights`, `plateau`, `prefill_trainable` | `sweep_depth.sh`, `launch_variant.sh wide / w8 / prefill`, `seed_main.sh ARM=a CELLS="11 12"` |
 | Appendix Figure 8 & Table 9 (per-domain 4×4 breakdown `fig_taskmap_domains` & all 11 benchmarks) | `aligned_cells` | `launch_aligned.sh` grid evaluations |
 | Appendix Tables 11–13 & Figure 9 (Ouro-1.4B & Thinking models) | `main_table_14`, `equal_aligned`, `same_weights` | `launch_aligned_more.sh`, `eval_think_aligned.sh`, `launch_t26df.sh` |
 | Appendix Figures 11–13 & Tables 14–15 (B=1/8/32 wall-time frontiers, Thinking batched GSM8K & 8K decode microbenchmark) | `time_breakdown`, `batched_serving`, `thinking_batched`, `think_frontier`, `throughput` | `time_controls.sh`, `time_batch.sh`, Thinking continuous-batching runs, `tput_*.sh` |
@@ -142,7 +144,8 @@ figure and table to its runs and generators.
 | Appendix L: design variants (unrestricted key maps vs. one-cache LoopBridge; fixed-depth `m=4` LoRA) | `launch_v.sh`, `launch_s.sh`, `launch_variant.sh fixed4`, `fixed14.sh` | `main_table`, `CMP` (`Table 5`), `time_breakdown`, `batched_serving` |
 | Appendix M: Table 16 (`tab_lev`) & Figure 14 (`fig_lev`, Lev decision models, both directions) | `ouro/lev/train_rd.sh`, `ouro/lev/after_train.sh`, `lev_mn.sh`, `lev_mn_seeds.sh` | `lev` → `tab_lev`, `fig_lev` |
 | Appendix N: Figure 15 (`fig_inkling_speed`), Tables 17–19 (26.4B sparse-MoE `TML-d24-varloop` & `Inkling-2-Mini` in Day-0 vLLM) | `inkling/prepare_data_v3.py`, `prepare_data_v4_gkd.py`, `train_inkling.py`, `prepare_official_exact.py`, `eval_vllm.py`, `bench_vllm_timing.py` | `inkling/make_figs.py` (reads `inkling/results/eval_official_exact_avg4.json`, `eval_official_exact.json`, `eval_vllm_*.json`, `vllm_sse_*.json`) |
-| Appendix O: from-scratch re-runs & single-bank exactness checks | `verify_q.sh`, `ouro/scripts/verify_compare.py`, `check_aligned_runner.py`, `single_bank_check.py`, `check_replay_scorer.py` | `ouro/results/verify_rerun.txt` |
+| Appendix O: Tables 20–22 (Multi-turn & agentic serving: 1×B300 grid, BFCL v4 Multi-Turn, official SWE-bench Verified) | `inkling/bench_multiturn_systems.py`, `eval_bfcl_multiturn.py`, `eval_swebench_verified.py`, `swe_gold_verify.py`, `run_multiturn_agentic.sh`, `run_swebench_verified.sh` | `inkling/make_figs.py` (reads `multiturn_systems_b300.json`, `eval_bfcl_multiturn.json`, `eval_swebench_verified_n50.json`) |
+| Appendix P: Reproducibility, from-scratch re-runs & single-bank exactness checks | `verify_q.sh`, `ouro/scripts/verify_compare.py`, `check_aligned_runner.py`, `single_bank_check.py`, `check_replay_scorer.py` | `ouro/results/verify_rerun.txt` |
 | Paper PDF and arXiv package | — | in order: `paper_numbers.py compute`, `paper_figs.py`, `inkling/make_figs.py`, `tectonic -X compile main.tex`, `paper/build_arxiv.py` |
 
 ### 26.4B Sparse-MoE Day-0 vLLM Commands (`inkling/`)

@@ -73,6 +73,7 @@ LONG_KEYS = BENCH_KEYS[2:]
 AVG4_ARMS = [
     "vl_native_2_2",
     "vl_kvonly_2_2_t4_12m",
+    "vl_kvonly_2_2_nosynth_12m",
     "vl_distilled_2_2_t4_12m",
     "vl_crossridge_4_2",
     "vl_procrustes_4_2",
@@ -82,15 +83,17 @@ AVG4_ARMS = [
     "vl_lb_univ_4_2_nosynth",
     "vl_lb_4_2_kvonly_nosynth_12m",
     "vl_lb_4_2_lora64_t4_12m",
+    "vl_lb_4_2_onpolicy_24m",
     "vl_lb_4_2_kvonly_12m",
     "vl_lb_univ_3_2_nosynth",
     "vl_native_3_3",
     "vl_tf_4_3_tail",
     "vl_tf_4_3_anchored",
     "vl_lb_univ_4_3_nosynth",
+    "vl_lb_4_3_kvonly_nosynth_12m",
     "vl_lb_4_3_kvonly_12m",
     "vl_native_4_4",
-    # Wave-2B Regime II & n=1 full 5xavg@4 arms (all 7 controls)
+    # Fixed-depth Inkling-2-Mini & TML-varloop n=1 full 5xavg@4 controls
     "mini_orig_3_3_cap57k",
     "mini_distilled_2_2_v3",
     "mini_lb_3_2_24m",
@@ -111,9 +114,10 @@ def save(fig, name: str) -> None:
 def load_evals() -> tuple[dict[str, dict[str, dict]], dict[str, dict[str, dict]]]:
     """Load (evals_avg1, evals_avg4) directly from archived official-exact JSONs.
 
-    evals_avg4 holds all 26 full 5xavg@4 arms (111,904 rollouts: 19 Regime I arms including
-    the 3-cell single universal 0%-synth adapter and matched r=64 Distilled 2/2 vs LB 4/2 twins,
-    3 Inkling-2-Mini arms, and 4 TML-varloop n=1 control/ablation arms) evaluated with 4x symmetric sampling.
+    evals_avg4 holds all 29 full 5xavg@4 arms (124,816 rollouts: 22 variable-depth n>=2 arms
+    including the complete 4-cell 2x2 causal factorial, 3-cell single universal 0%-synth adapter,
+    and matched full-LoRA twins, plus 3 Inkling-2-Mini arms and 4 TML-varloop n=1 arms)
+    evaluated with 4x symmetric sampling.
     evals_avg1 holds all single-sample (seed=42) official-exact arms across
     TML-d24-varloop and Inkling-2-Mini.
     """
@@ -186,7 +190,7 @@ def load_evals() -> tuple[dict[str, dict[str, dict]], dict[str, dict[str, dict]]
     add1("mini_lb_3_1_24m", "mini_lb_3_1_24m", fb_v3="lb_3_1_24m")
     add1("mini_distilled_1_1_v3", "mini_distilled_1_1_v3", fb_v3="distilled_1_1_v3", fb_lcb="distilled_1_1_v3")
 
-    # 26-arm (Regimes I & II) TRUE 5/5 symmetric avg@4 across ALL 5 benchmarks = 111,904 rollouts
+    # 29-arm TRUE 5/5 symmetric avg@4 across ALL 5 benchmarks = 124,816 rollouts
     evals_avg4: dict[str, dict[str, dict]] = {}
     for arm in AVG4_ARMS:
         entry = {}
@@ -237,8 +241,9 @@ def paired_boot_clustered(
         ms = [sum(ds[rng.randrange(len(ds))] for _ in range(len(ds))) / len(ds) for ds in diffs_by_bk]
         boots.append(sum(ms) / len(ms))
     boots.sort()
-    p1 = sum(1 for x in boots if x <= 0.0) / n_boot
-    p2 = 2.0 * min(p1, 1.0 - p1)
+    p_le = sum(1 for x in boots if x <= 0.0) / n_boot
+    p_ge = sum(1 for x in boots if x >= 0.0) / n_boot
+    p2 = min(1.0, 2.0 * min(p_le, p_ge))
     return (
         obs,
         boots[int(0.025 * n_boot)],
@@ -334,9 +339,9 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
     """Spacious, zero-duplication, zero-jargon 2-panel Main-Body Figure 4 (replaces old Fig 6 AND deletes
     duplicate Appendix Fig 17!). Uses crisp side-by-side paired bars (solid = 5-Bench Avg, hatched = 3-Long
     Avg 256K-1M) with plain-English labels readable without prose:
-      (a) Regime I (variable-depth TML-d24-varloop, n >= 2, full 5xavg@4): 2x2 causal proof at n=2 (1.75x)
+      (a) Variable-depth TML-d24-varloop (n >= 2, full 5xavg@4): 2x2 causal proof at n=2 (1.75x)
           plus n=3 (1.27x) recovering 99.0% of Original 4/4.
-      (b) Regime II (fixed-depth Inkling-2-Mini 3/2 at full 5xavg@4 & TML-varloop n=1 at avg@1, locked 24M tok):
+      (b) Fixed-depth Inkling-2-Mini 3/2 & un-gated TML-varloop n=1 (locked 24M tok, full 5xavg@4):
           no-training collapse rescued by LoopBridge, beating tied Distilled across both backbones.
     """
     fig, (ax1, ax2) = plt.subplots(
@@ -344,7 +349,7 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
     )
 
     # =========================================================================
-    # Panel (a): Regime I — Variable-depth TML-d24-varloop (n >= 2, 5xavg@4)
+    # Panel (a): Variable-depth TML-d24-varloop (n >= 2, 5xavg@4)
     # Includes matched full-LoRA Distilled 2/2 (r=64, 46.9M) & 0%-synth Universal 3/2 (1 wt)!
     # =========================================================================
     n2_arms = [
@@ -419,10 +424,10 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
     ax1.set_ylim(56.0, 83.4)
     ax1.grid(axis="y", color=GRID, lw=0.6)
     ax1.set_axisbelow(True)
-    ax1.set_title("(a) Regime I: Variable-depth TML-d24-varloop (n ≥ 2)", fontsize=7.7, fontweight="bold", pad=6)
+    ax1.set_title("(a) Variable-depth TML-d24-varloop (n ≥ 2): KV Bridge (r=0)", fontsize=7.5, fontweight="bold", pad=6)
 
     # =========================================================================
-    # Panel (b): Regime II — Fixed-depth Inkling-2-Mini & TML-varloop n=1 (5xavg@4)
+    # Panel (b): Fixed-depth Inkling-2-Mini & TML-varloop n=1 (5xavg@4)
     # Strictly locked 24M-token matched controls (only collapse baselines @1)
     # =========================================================================
     mini_b = [
@@ -504,7 +509,7 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
     ax2.set_ylim(0.0, 82.0)
     ax2.grid(axis="y", color=GRID, lw=0.6)
     ax2.set_axisbelow(True)
-    ax2.set_title("(b) Regime II: Fixed-depth & n = 1 (locked 24M tok)", fontsize=7.8, fontweight="bold", pad=6)
+    ax2.set_title("(b) Fixed-depth & n = 1 (locked 24M): +Merged LoRA", fontsize=7.5, fontweight="bold", pad=6)
 
     # Crisp shared 4-item legend across the top of the figure
     from matplotlib.patches import Patch
@@ -520,6 +525,211 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
     )
     fig.subplots_adjust(left=0.07, right=0.99, top=0.83, bottom=0.14, wspace=0.22)
     save(fig, "fig_inkling_main")
+
+
+def make_multiturn_agentic_fig() -> None:
+    """Publication-grade 3-panel Main-Body Multi-Turn & Agentic Serving Figure:
+      (a) Isolated 1x B300 Multi-Turn Speedup vs. Output Length L_A (L0=32K-64K, T=6-8):
+          shows naive Policy R dropping to 0.52x-0.75x on short outputs (crossing 1.0x at L_A=256),
+          while Policy APC-D0 sustains 1.50x-1.76x across the entire range with 0% extra dual-KV memory.
+      (b) Official BFCL v4 Multi-Turn (long_context, 400 eps/arm, 15,200 eps total, 91.5% APC):
+          shows Policy APC-D0 (+8.0* vs Policy R, +6.2* vs Distilled 2/2, 1.69x vs Orig 4/4) on TML-d24-varloop
+          and Fixed-depth Inkling-2-Mini collapse rescue (0.0% -> 39.2% APC-D0 -> 44.5%* Policy R/I).
+      (c) Official SWE-bench Verified (mini-swe-agent bash-only, 45-55 steps, 96.4% APC):
+          shows frozen-decoder r=0 Univ 3/2 (70%, 50s, 1.78x vs 4/4) & LB 4/2 (68-70%) beating Distilled 2/2 (60%),
+          plus the n=1 causal ladder (Orig 1/1 32% -> APC-D0 44% -> APC-S -> Policy R/I 70%*, +38* p<1e-4).
+    """
+    sys_p = RES / "multiturn_systems_b300.json"
+    bfcl_p = RES / "eval_bfcl_multiturn.json"
+    swe_p = RES / "eval_swebench_verified.json"
+    if not swe_p.exists():
+        swe_p = RES / "eval_swebench_verified_n50.json"
+    if not (sys_p.exists() and bfcl_p.exists() and swe_p.exists()):
+        return
+
+    sys_d = json.load(open(sys_p))["arms"]
+    bfcl_d = json.load(open(bfcl_p))["arms"]
+    swe_root = json.load(open(swe_p))
+    swe_d = swe_root["arms"]
+    swe_n = int(swe_root.get("n_tasks", 50))
+
+    fig, (ax1, ax2, ax3) = plt.subplots(
+        1, 3, figsize=(7.30, 2.60), gridspec_kw={"width_ratios": [0.95, 1.15, 1.26], "wspace": 0.22}
+    )
+
+    # =========================================================================
+    # Panel (a): Isolated 1x B300 Multi-Turn Speedup vs. Prefix-Cached Orig 4/4
+    # =========================================================================
+    sc_order = [
+        ("L0=65536_LU=2048_LA=128_T=8", "64K\n128"),
+        ("L0=32768_LU=2048_LA=128_T=8", "32K\n128"),
+        ("L0=32768_LU=2048_LA=256_T=8", "32K\n256"),
+        ("L0=32768_LU=2048_LA=1024_T=6", "32K\n1024"),
+        ("L0=32768_LU=2048_LA=2048_T=6", "32K\n2048"),
+    ]
+    xs = np.arange(len(sc_order))
+
+    def get_ms(arm: str, sc: str) -> float:
+        for row in sys_d[arm]["scenarios"]:
+            if row["scenario"] == sc:
+                return float(row["median_sum_total_ms"])
+        raise KeyError((arm, sc))
+
+    def sp_vs_44(arm: str) -> list[float]:
+        return [get_ms("vl_orig_4_4_apc", sc) / get_ms(arm, sc) for sc, _ in sc_order]
+
+    y_22 = sp_vs_44("vl_orig_2_2_apc")
+    y_d0_42 = sp_vs_44("vl_lb_4_2_policy_d0")
+    y_d0_43 = sp_vs_44("vl_lb_4_3_policy_d0")
+    y_r_42 = sp_vs_44("vl_lb_4_2_policy_r")
+
+    ax1.axhline(1.0, color=NAT, ls=":", lw=0.85, zorder=1)
+    ax1.fill_between([-0.3, 4.3], 0.35, 1.0, color="#FDECEC", alpha=0.45, zorder=0)
+    ax1.text(-0.18, 0.96, "Slower than APC 4/4", fontsize=4.9, color="#A02020", ha="left", va="top", style="italic")
+
+    ax1.plot(xs, y_22, ":", color=NAT_LIGHT, lw=1.0, marker="o", ms=3.0, label="Orig 2/2 (APC)")
+    ax1.plot(xs, y_d0_42, "-", color=OURS_DARK, lw=1.7, marker="s", ms=4.1, label="LB 4/2 (APC-D0)")
+    ax1.plot(xs, y_d0_43, "-", color=OURS_LIGHT, lw=1.35, marker="s", mfc="white", mec=OURS_DARK, mew=1.0, ms=3.7, label="LB 4/3 (APC-D0)")
+    ax1.plot(xs, y_r_42, "--", color="#666666", lw=1.3, marker="x", ms=4.2, label="LB 4/2 (Policy R)")
+
+    ax1.annotate(f"{y_d0_42[0]:.2f}×", (xs[0], y_d0_42[0]), xytext=(2, 4.5), textcoords="offset points", fontsize=5.5, fontweight="bold", color=OURS_DARK, ha="left")
+    ax1.annotate(f"{y_d0_42[-1]:.2f}×", (xs[-1], y_d0_42[-1]), xytext=(-8, -11.5), textcoords="offset points", fontsize=5.5, fontweight="bold", color=OURS_DARK, ha="right")
+    ax1.annotate(f"{y_r_42[0]:.2f}×", (xs[0], y_r_42[0]), xytext=(7, -5.0), textcoords="offset points", fontsize=5.3, fontweight="bold", color="#A02020", ha="left")
+    ax1.annotate(f"{y_r_42[2]:.2f}×", (xs[2], y_r_42[2]), xytext=(5, -8.5), textcoords="offset points", fontsize=5.1, color="#555555", ha="left")
+
+    ax1.set_xticks(xs)
+    ax1.set_xticklabels([lab for _, lab in sc_order], fontsize=5.35)
+    ax1.set_xlabel("Initial prompt $L_0$ / output $L_A$ (tok)", fontsize=6.3, labelpad=2.5)
+    ax1.set_ylabel("Multi-turn speedup vs. APC 4/4", fontsize=6.7)
+    ax1.set_xlim(-0.28, 4.28)
+    ax1.set_ylim(0.37, 2.05)
+    ax1.grid(axis="y", color=GRID, lw=0.55)
+    ax1.set_axisbelow(True)
+    ax1.set_title("(a) 1×B300 Multi-Turn Speedup", fontsize=6.95, fontweight="bold", pad=5)
+    ax1.legend(loc="lower right", fontsize=4.95, handlelength=1.25, handletextpad=0.35, labelspacing=0.22, borderaxespad=0.25)
+
+    # =========================================================================
+    # Panel (b): Official BFCL v4 Multi-Turn (long_context, 400 eps/arm)
+    # =========================================================================
+    bfcl_bars = [
+        ("vl_orig_4_4_apc", "Orig\n4/4", NAT_LIGHT, False, ""),
+        ("vl_orig_2_2_apc", "Orig\n2/2", "#B5B5B5", False, ""),
+        ("vl_distilled_2_2_apc", "Dist\n2/2", DIST, False, ""),
+        ("vl_lb_4_2_kv_policy_ri", "4/2\nPol. R", "#8F8F8F", False, ""),
+        ("vl_lb_4_2_kv_policy_d0", "4/2\nD0", OURS_DARK, True, "*"),
+        ("mini_orig_2_2_apc", "Orig\n2/2", "#C0C0C0", False, ""),
+        ("mini_distilled_2_2_apc", "Dist\n2/2", DIST, False, ""),
+        ("mini_lb_3_2_policy_d0", "3/2\nD0", OURS_LIGHT, True, ""),
+        ("mini_lb_3_2_policy_ri", "3/2\nPol. R", OURS_DARK, True, "*"),
+    ]
+    n_bl = 5
+    pos_b = [0.0 + 0.90 * i for i in range(n_bl)]
+    pos_b += [pos_b[-1] + 0.56 + 0.90 * (i + 1) for i in range(len(bfcl_bars) - n_bl)]
+    vals_b = [100.0 * bfcl_d[a]["splits"]["multi_turn_long_context"]["accuracy"] for a, *_ in bfcl_bars]
+    lats_b = [bfcl_d[a]["splits"]["multi_turn_long_context"]["mean_ep_llm_s"] for a, *_ in bfcl_bars]
+    cols_b = [c for _, _, c, _, _ in bfcl_bars]
+
+    bars_b = ax2.bar(pos_b, vals_b, width=0.64, color=cols_b, edgecolor="white", lw=0.45, zorder=3)
+    mini33_lc = 100.0 * bfcl_d["mini_orig_3_3_apc"]["splits"]["multi_turn_long_context"]["accuracy"]
+    split_b = 0.5 * (pos_b[n_bl - 1] + pos_b[n_bl])
+    ax2.hlines(mini33_lc, split_b + 0.18, pos_b[-1] + 0.42, colors=NAT, linestyles=":", lw=0.9, zorder=2)
+    ax2.text(0.5 * (pos_b[n_bl] + pos_b[-1]) - 0.30, mini33_lc + 1.0, f"Mini 3/3 ({mini33_lc:.1f}%)", fontsize=4.75, color=NAT, ha="center", va="bottom")
+
+    for i, (bar, (_, _, _, is_ours, suf)) in enumerate(zip(bars_b, bfcl_bars)):
+        h = bar.get_height()
+        ax2.annotate(
+            f"{h:.1f}{suf}",
+            (bar.get_x() + bar.get_width() / 2, h),
+            xytext=(0, 1.6), textcoords="offset points",
+            ha="center", va="bottom",
+            fontsize=4.75, fontweight="bold" if is_ours else "normal",
+            color=OURS_DARK if is_ours else INK, zorder=6,
+        )
+        if h >= 14.0:
+            ax2.text(
+                bar.get_x() + bar.get_width() / 2, 2.5, f"{lats_b[i]:.0f}s",
+                ha="center", va="bottom", fontsize=4.45,
+                color="white" if (is_ours and cols_b[i] != OURS_LIGHT) or cols_b[i] == DIST else INK,
+                fontweight="bold" if is_ours else "normal", zorder=5,
+            )
+    ax2.annotate("0%\ncollapse", (pos_b[n_bl], 3.2), xytext=(pos_b[n_bl], 15.8),
+                 fontsize=4.45, color="#A02020", fontweight="bold", ha="center", linespacing=1.05,
+                 arrowprops=dict(arrowstyle="->", color="#A02020", lw=0.65))
+
+    ax2.axvline(split_b, color=GRID, lw=1.0)
+    ax2.text(0.5 * (pos_b[0] + pos_b[n_bl - 1]), 58.2, "TML-varloop (r=0)\n+8.0* vs R · +6.3* vs Dist", fontsize=4.75, fontweight="bold", color=OURS_DARK, ha="center", va="top", linespacing=1.15)
+    ax2.text(0.5 * (pos_b[n_bl] + pos_b[-1]), 58.2, "Inkling-2-Mini (fixed)\n+7.8* vs Dist 2/2", fontsize=4.75, fontweight="bold", color=OURS_DARK, ha="center", va="top", linespacing=1.15)
+
+    ax2.set_xticks(pos_b)
+    ax2.set_xticklabels([lab for _, lab, _, _, _ in bfcl_bars], fontsize=4.65)
+    ax2.set_ylabel("BFCL v4 long-ctx acc. (%)", fontsize=6.7)
+    ax2.set_ylim(0.0, 60.0)
+    ax2.grid(axis="y", color=GRID, lw=0.55)
+    ax2.set_axisbelow(True)
+    ax2.set_title("(b) BFCL v4 Multi-Turn (400 eps/arm)", fontsize=6.95, fontweight="bold", pad=5)
+
+    # =========================================================================
+    # Panel (c): Official SWE-bench Verified (mini-swe-agent bash-only)
+    # =========================================================================
+    swe_bars = [
+        ("vl_orig_4_4_apc", "Orig\n4/4", NAT_LIGHT, False, ""),
+        ("vl_orig_2_2_apc", "Orig\n2/2", "#B5B5B5", False, ""),
+        ("vl_distilled_2_2_apc", "Dist\n2/2", DIST, False, ""),
+        ("vl_lb_4_2_kv_policy_d0", "4/2\nD0", OURS, True, ""),
+        ("vl_univ_3_2_policy_d0", "Univ\n3/2", OURS_DARK, True, ""),
+        ("vl_orig_1_1_apc", "Orig\n1/1", NAT_LIGHT, False, ""),
+    ]
+    if "vl_distilled_1_1_apc" in swe_d:
+        swe_bars.append(("vl_distilled_1_1_apc", "Dist\n1/1", DIST, False, ""))
+    swe_bars.append(("vl_lb_3_1_policy_d0", "3/1\nD0", OURS_LIGHT, True, ""))
+    if "vl_lb_3_1_policy_apcs" in swe_d:
+        swe_bars.append(("vl_lb_3_1_policy_apcs", "3/1\nAPC-S", OURS, True, ""))
+    swe_bars.append(("vl_lb_3_1_policy_ri", "3/1\nPol. R", OURS_DARK, True, "*"))
+
+    n_left = 5
+    pos_c = [0.0 + 0.88 * i for i in range(n_left)]
+    n_right = len(swe_bars) - n_left
+    pos_c += [pos_c[-1] + 0.56 + 0.88 * (i + 1) for i in range(n_right)]
+
+    vals_c = [100.0 * swe_d[a]["resolve_rate"] for a, *_ in swe_bars]
+    lats_c = [swe_d[a]["mean_llm_wall_s"] for a, *_ in swe_bars]
+    cols_c = [c for _, _, c, _, _ in swe_bars]
+
+    bars_c = ax3.bar(pos_c, vals_c, width=0.63, color=cols_c, edgecolor="white", lw=0.45, zorder=3)
+    for i, (bar, (_, _, _, is_ours, suf)) in enumerate(zip(bars_c, swe_bars)):
+        h = bar.get_height()
+        ax3.annotate(
+            f"{h:.0f}{suf}",
+            (bar.get_x() + bar.get_width() / 2, h),
+            xytext=(0, 1.6), textcoords="offset points",
+            ha="center", va="bottom",
+            fontsize=4.9, fontweight="bold" if is_ours else "normal",
+            color=OURS_DARK if is_ours else INK, zorder=6,
+        )
+        ax3.text(
+            bar.get_x() + bar.get_width() / 2, 3.8, f"{lats_c[i]:.0f}s",
+            ha="center", va="bottom", fontsize=4.35,
+            color="white" if (is_ours and cols_c[i] != OURS_LIGHT) or cols_c[i] == DIST else INK,
+            fontweight="bold" if is_ours else "normal", zorder=5,
+        )
+
+    split_x = 0.5 * (pos_c[n_left - 1] + pos_c[n_left])
+    ax3.axvline(split_x, color=GRID, lw=1.0)
+    mid_l = 0.5 * (pos_c[0] + pos_c[n_left - 1])
+    mid_r = 0.5 * (pos_c[n_left] + pos_c[-1])
+    ax3.text(mid_l, 87.5, "n = 2 (r=0 frozen)\nmatches 2/2 · avoids drift", fontsize=4.65, fontweight="bold", color=OURS_DARK, ha="center", va="top", linespacing=1.15)
+    ax3.text(mid_r, 87.5, "n = 1 policy ladder\n+30* vs Dist · +38* vs 1/1", fontsize=4.65, fontweight="bold", color=OURS_DARK, ha="center", va="top", linespacing=1.15)
+
+    ax3.set_xticks(pos_c)
+    ax3.set_xticklabels([lab for _, lab, _, _, _ in swe_bars], fontsize=4.55)
+    ax3.set_ylabel(f"SWE-bench Verified (%, N={swe_n})", fontsize=6.6)
+    ax3.set_ylim(0.0, 90.0)
+    ax3.grid(axis="y", color=GRID, lw=0.55)
+    ax3.set_axisbelow(True)
+    ax3.set_title(f"(c) Official SWE-bench Verified (45–55 steps)", fontsize=6.95, fontweight="bold", pad=5)
+
+    fig.subplots_adjust(left=0.062, right=0.992, top=0.88, bottom=0.18, wspace=0.22)
+    save(fig, "fig_multiturn_agentic")
 
 
 def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
@@ -562,6 +772,16 @@ def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
         ("vl_lb_univ_4_3_nosynth", "vl_native_4_4"),
         ("vl_lb_univ_4_3_nosynth", "vl_lb_4_3_kvonly_12m"),
         ("vl_lb_4_2_kvonly_nosynth_12m", "vl_kvonly_2_2_t4_12m"),
+        ("vl_lb_4_2_kvonly_nosynth_12m", "vl_kvonly_2_2_nosynth_12m"),
+        ("vl_kvonly_2_2_nosynth_12m", "vl_native_2_2"),
+        ("vl_lb_univ_3_2_nosynth", "vl_kvonly_2_2_nosynth_12m"),
+        ("vl_lb_4_2_kvonly_12m", "vl_kvonly_2_2_nosynth_12m"),
+        ("vl_lb_4_3_kvonly_nosynth_12m", "vl_native_3_3"),
+        ("vl_lb_4_3_kvonly_nosynth_12m", "vl_tf_4_3_anchored"),
+        ("vl_lb_4_3_kvonly_nosynth_12m", "vl_lb_4_3_kvonly_12m"),
+        ("vl_lb_4_2_onpolicy_24m", "vl_native_2_2"),
+        ("vl_lb_4_2_onpolicy_24m", "vl_distilled_2_2_t4_12m"),
+        ("vl_lb_4_2_onpolicy_24m", "vl_lb_4_2_kvonly_12m"),
         ("vl_lb_4_2_kvonly_nosynth_12m", "vl_native_2_2"),
         ("vl_lb_4_2_kvonly_12m", "vl_procrustes_4_2"),
         ("vl_lb_4_2_kvonly_12m", "vl_crossridge_4_2"),
@@ -597,6 +817,34 @@ def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
     print(f"  [MRCR] vl_lb_3_1_24m vs vl_abl_3_1_no_kvmaps   : {om31:+6.2f} 95%[{lm31:+6.2f},{hm31:+6.2f}] p={pm31:.4f}")
     ol, ll, hl, *_, pl = paired_boot_clustered(evals_avg4, "vl_procrustes_4_2", "vl_tf_4_2_tail", ["longbench_v2_1m"])
     print(f"  [LBv2] vl_procrustes_4_2 vs vl_tf_4_2_tail      : {ol:+6.2f} 95%[{ll:+6.2f},{hl:+6.2f}] p={pl:.4f}")
+    om43, lm43, hm43, *_, pm43 = paired_boot_clustered(evals_avg4, "vl_lb_4_3_kvonly_nosynth_12m", "vl_tf_4_3_anchored", ["mrcr_8n_256k_512k"])
+    print(f"  [MRCR] vl_lb_4_3_nosynth vs vl_tf_4_3_anchored  : {om43:+6.2f} 95%[{lm43:+6.2f},{hm43:+6.2f}] p={pm43:.4f}")
+    om24, lm24, hm24, *_, pm24 = paired_boot_clustered(evals_avg4, "vl_lb_4_2_onpolicy_24m", "vl_distilled_2_2_t4_12m", ["mrcr_8n_256k_512k"])
+    print(f"  [MRCR] vl_lb_4_2_onpolicy_24m vs vl_dist_2_2    : {om24:+6.2f} 95%[{lm24:+6.2f},{hm24:+6.2f}] p={pm24:.4f}")
+
+    # Multi-turn & agentic summaries (Appendix O)
+    for fn, title in [
+        ("multiturn_systems_b300.json", "MULTI-TURN 1xB300 SYSTEMS GRID"),
+        ("eval_bfcl_multiturn.json", "BFCL v4 MULTI-TURN (19 ARMS, 15,200 EPISODES)"),
+        ("eval_swebench_verified_n50.json", "SWE-BENCH VERIFIED N=50 (19 ARMS)"),
+    ]:
+        fp = RES / fn
+        if not fp.exists():
+            continue
+        d = json.load(open(fp))
+        print(f"\n=== VERIFIED {title} ({len(d['arms'])} arms) ===")
+        if "systems" in fn:
+            for k, v in d["arms"].items():
+                ms = [f"{sc['scenario'].split('_')[0]}/{sc['la']}={sc['median_sum_total_ms']:.0f}ms" for sc in v["scenarios"][:4]]
+                print(f"  {k:26s} (APC={v.get('apc_hit_rate_pct')}) | " + ", ".join(ms))
+        elif "bfcl" in fn:
+            for k, v in d["arms"].items():
+                ba = v["splits"]["multi_turn_base"]
+                lc = v["splits"]["multi_turn_long_context"]
+                print(f"  {k:28s} | base={ba['accuracy']*100:5.2f}% ({ba['mean_ep_llm_s']:5.2f}s) | long={lc['accuracy']*100:5.2f}% ({lc['mean_ep_llm_s']:5.2f}s) | avg={v['avg_accuracy']*100:5.2f}% | APC={v.get('apc_hit_rate_pct')}")
+        else:
+            for k, v in d["arms"].items():
+                print(f"  {k:28s} | {v['resolved']:2d}/{v['n_tasks']} ({v['resolve_rate']*100:5.1f}%) | llm={v['mean_llm_wall_s']:5.1f}s | steps={v['avg_steps']:4.1f} | APC={v.get('apc_hit_rate_pct')}")
 
     print("\n=== VERIFIED AVG@1 CONTROLLED 24M & ABLATION BOOTSTRAP (5,000 resamples, seed=0) ===")
     avg1_pairs = [
@@ -622,8 +870,9 @@ def main() -> None:
     vllm_vl = load_vllm_vl_timing()
     make_main_body_two_regime_fig(evals_avg1, evals_avg4)
     make_speed_fig(vllm_vl)
+    make_multiturn_agentic_fig()
     print(
-        f"Generated {OUT / 'fig_inkling_main.pdf'} and {OUT / 'fig_inkling_speed.pdf'}"
+        f"Generated {OUT / 'fig_inkling_main.pdf'}, {OUT / 'fig_inkling_speed.pdf'}, and {OUT / 'fig_multiturn_agentic.pdf'}"
     )
     print_verified_summary(evals_avg1, evals_avg4)
 

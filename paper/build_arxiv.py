@@ -68,12 +68,17 @@ def main():
 def plain(t):
     """LaTeX abstract -> arXiv plain text."""
     t = re.sub(r"Code, results and per-item outputs: \\url\{[^}]*\}\.", "", t)
+    t = re.sub(r"(\d)\$\\times\$([A-Za-z0-9])", r"\1x\2", t)
     t = re.sub(r"\$([0-9.]+)\\times\$", r"\1x", t)
+    t = re.sub(r"\$([0-9.]+)\$--\$([0-9.]+)\\times\$", r"\1-\2x", t)
     t = re.sub(r"\$(\d)\\times(\d)\$", r"\1x\2", t)
     t = re.sub(r"\\(?:emph|texttt)\{([^}]*)\}", r"\1", t)
+    t = re.sub(r"\$([+-]?[0-9.]+)\$", r"\1", t)
+    t = re.sub(r"\$([a-z]/[a-z])\$", r"\1", t)
     t = re.sub(r"\$([a-z])\$", r"\1", t)
     t = re.sub(r"\$(\([a-z],\s*[a-z]\))\$", r"\1", t)        # $(m,n)$
-    t = re.sub(r"\$([a-z])\s*\\ge\s*([a-z0-9]+)\$", r"\1 >= \2", t)
+    t = re.sub(r"\$([a-z])\s*\{?\\ge\}?\s*([a-z0-9]+)\$", r"\1 >= \2", t)
+    t = re.sub(r"\$([a-z])\s*\{?\\le\}?\s*([a-z0-9]+)\$", r"\1 <= \2", t)
     t = re.sub(r"\$([a-z])\s*\{?([<>=])\}?\s*10\^\{([^}]+)\}\$", r"\1 \2 10^\3", t)
     t = re.sub(r"\$([a-z])\s*\{?([<>=])\}?\s*([a-z0-9.]+)\$", r"\1 \2 \3", t)   # $n<m$, $r{=}0$, $p{=}0.98$
     t = t.replace(r"vs.\ ", "vs. ").replace("\\%", "%")
