@@ -11,13 +11,14 @@ The paper's numbers come from these places, all in this commit:
 2. **Timing records** (`ouro/results/e2e/`, `ouro/results/throughput-sb4/`): the end-to-end timing table, time ratios
    and decode throughput, also recomputed by `paper_numbers.py compute`.
 3. **Decision-model records** (`ouro/results/lev/`): per-depth LevBench development outputs for the Lev appendix.
-4. **26.4B sparse-MoE Day-0 vLLM records** (`inkling/results/eval_official_exact_avg4.json`, `eval_official_exact.json`, `eval_vllm_*.json`, `vllm_sse_*.json`, `systems_rebuttal/`):
+4. **26.4B sparse-MoE Day-0 vLLM records** (`inkling/results/eval_official_exact_avg4.json`, `eval_official_exact.json`, `eval_vllm_*.json`, `vllm_sse_*.json`, `poisson_saturated_rebuttal.json`, `systems_rebuttal/`):
    per-item official-exact scores (`GPQA Diamond` 198, `LiveCodeBench v6` 175, `MRCR v2 8n 256K–512K` 100,
-   `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; **21 full `5×avg@4` arms = 90,384 rollouts**: 14 Regime I arms
-   [60,256 rollouts including the `2×2` causal factorial and 3-way Plato's Key ablation], 3 `Inkling-2-Mini` arms
+   `GraphWalks BFS 256K` 100, `LongBench v2 1M` 503; **26 full `5×avg@4` arms = 111,904 rollouts**: 19 Regime I arms
+   [81,776 rollouts including the `2×2` causal factorial, matched `r=64` full-LoRA twins, one `0.042%` `0%`-synthetic
+   universal multi-depth adapter serving `4/3`, `4/2`, `3/2`, and 3-way Plato's Key ablation], 3 `Inkling-2-Mini` arms
    [12,912 rollouts], and 4 `TML-varloop n=1` control & KV-map ablation arms [17,216 rollouts]), isolated single-GPU Day-0 vLLM
-   Blackwell timing (`512..256K`), PyTorch–vLLM numerical parity (`9/9` step-0, `96.8–97.9%` 31-step), async Poisson
-   serving (`4K`/`64K`), and measured KV-cache capacity (`0` preemptions).
+   Blackwell timing (`512..256K`), PyTorch–vLLM numerical parity (`9/9` step-0, `96.8–97.9%` 31-step), moderate & engine-saturated
+   async Poisson serving (`4K`/`64K`), and measured KV-cache capacity (`0` preemptions).
    `uv run --with numpy --with matplotlib python inkling/make_figs.py` recomputes every 26.4B item-clustered paired
    bootstrap 95% / Holm-Bonferroni CI (5,000 resamples, seed 0) and redraws Figures 4 and 15.
 

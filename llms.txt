@@ -26,31 +26,30 @@ Main findings (95% paired bootstrap intervals in the paper):
 - Scales 10x to 26.4B sparse-MoE looped models in Day-0 vLLM (TML-d24-varloop-research & Inkling-2-Mini) on five
   official reasoning and 256K-1M benchmarks (GPQA Diamond, LiveCodeBench v6, MRCR v2 8n 256K-512K, GraphWalks BFS 256K,
   LongBench v2 1M), establishing a two-regime law:
-  * Regime I (variable-depth TML-d24-varloop at n >= 2, 14 arms, full 5x avg@4 = 60,256 rollouts):
+  * Regime I (variable-depth TML-d24-varloop at n >= 2, 19 arms, full 5x avg@4 = 81,776 rollouts):
     training-free untying works natively (4/2: 68.4-68.9 vs 66.9 Orig 2/2; 4/3: 73.3-74.0 vs 73.1 Orig 3/3), and
-    pure-prompt KV-Only maps (lora_rank=0, 4.46M-6.55M params = 17-25 MiB = 0.017-0.025%, 0% decode overhead) rank #1 on
-    5-Bench and Pure-4 at both depths: LB 4/2 KV-Only reaches 69.6% (+2.78 [+0.82, +4.67] 5-Bench, +4.29 [+1.37, +7.18]
+    pure-prompt KV-Only maps (lora_rank=0, 4.46M-6.55M params = 17-25 MiB = 0.017-0.025%, 0% decode overhead) lead both
+    dedicated depths: LB 4/2 KV-Only reaches 69.6% (+2.78 [+0.82, +4.67] 5-Bench, +4.29 [+1.37, +7.18]
     3-Long, +9.54 [+2.91, +16.49] MRCR 512K over Orig 2/2, all surviving k=3 Holm-Bonferroni 98.33% CIs, plus +1.99
     [+0.25, +3.73] 95% CI on uncloned 1M LongBench v2 [+3.34 [+0.98, +5.78] p=0.0052 on strictly 13-gram-clean N=307
-    vs -0.13 on 196 overlapped items], at 1.75x decode vs 4/4; widening on clean non-exploratory s1-s3 to +3.77 5-Bench /
-    +6.40 3-Long vs 2/2 and +2.34 5-Bench / +3.82 3-Long Holm-sig vs TF 4/2 Anchored). A 2x2 causal control isolates
-    untying from synthetic templates: holding identical v5_onpolicy_t4 corpus, t=4 teacher, and r=0 fixed, matched
-    KV-Only 2/2 (m=2, 2.36M active params out of 4.46M allocated, 100% synth) is flat at 67.0% (+0.13 vs Orig 2/2:
-    +4.04 MRCR offset by -1.57 LCB and -1.96 GW), so untying m=2->4 causes +2.65 [+1.14, +4.16] 5-Bench (p<1e-3;
-    +2.94 Pure-4, +3.43 3-Long, +5.49 MRCR; s1-s3: +3.50 5-Bench); stripping 100% of synthetic templates (0% nosynth LB
-    4/2, 68.7%, matching zero-training TF 4/2 Tail 68.9%, cos=+0.684 across 64.7% shared natural prompts) still beats
-    full-synthetic KV-Only 2/2 by +1.71 [+0.05, +3.35] 5-Bench (+2.60 3-Long, +2.39 LBv2) and Orig 2/2 by +1.83
-    [+0.19, +3.43] (+3.99 on 13-gram-clean LBv2 N=307), while synthetic recall/BFS lifts m=4 (69.6%) ahead of both.
-    In a 3-way closed-form Plato's Key test (192 unlabeled prompts / 240K tokens, 0 gradients), orthogonal 1->1
-    Procrustes 4/2 (121s, 0.79M non-identity active out of 1.31M 1->1 slots) reaches 68.4% (70.4% LCB #1 at n=2, 41.9%
-    dark-memory CV; matching TF 4/2 Anchored 68.4%) and beats the unconstrained Cross-Ridge 4/2 diagnostic (60.7%,
-    -7.63*), yet behavioral KL LB 4/2 KV-Only significantly beats Procrustes 4/2 on 3-Long (+2.45*) and MRCR 512K
-    (+6.06*, 59.2% dark-memory CV). LB 4/3 KV-Only reaches 74.1% (sweeping Orig 3/3 5/5 and recovering 99.0% of Orig
-    4/4's 74.9% at 1.27-1.29x decode; both beat Orig 4/4 end-to-end across all lengths up to 262K with 9/9 step-0 &
-    96.8-97.9% 31-step PyTorch-vLLM parity, 1.29-2.80x async Poisson ITL speedup, and 0 preemptions under tested load
-    matching equal-m KV occupancy).
-  * Regime II (fixed-depth Inkling-2-Mini 3/2 & un-gated n=1 VarLoop 3/1, BOTH full 5x avg@4; 90,384 total four-sample
-    rollouts across 21 archived 5x avg@4 arms): all unadapted n=2 variants collapse (Mini TF 3/2 Anchored: 2.2%, 93.2% trunc;
+    vs -0.13 on 196 overlapped items], at 1.75x decode vs 4/4). Matched controls on identical 12M v5_onpolicy_t4 data and
+    t=4 teacher isolate both untying and r=0 sufficiency: (a) tied KV-Only 2/2 (m=2, 2.36M active) is flat at 67.0% (+0.13),
+    so untying m=2->4 causes +2.65 [+1.14, +4.16] 5-Bench (p<1e-3; +3.43 3-Long, +5.49 MRCR), and 0%-nosynth LB 4/2 (68.7%)
+    still beats full-synthetic KV-Only 2/2 by +1.71 [+0.05, +3.35]; (b) scaling tied 2/2 to full r=64 LoRA (Distilled 2/2,
+    46.9M, 5.8h) reaches only 68.9% (+2.02* vs 2/2, merely tying zero-shot TF Tail 68.9%, p=0.98), whereas exact-twin r=64
+    LB 4/2 (40.6M, 2.13h, 2.73x faster) reaches 69.6% (directional +0.72 [-0.90, +2.36] 5-Bench p=0.38, +4.38 MRCR,
+    significant +2.63 [+0.75, +4.52] 1M LBv2 p=0.0088) and ties 9.1x-smaller r=0 LB 4/2 KV-Only (-0.03, p=0.98);
+    (c) one single 11.01M (0.042%, 42.0 MiB fp32) 0%-synthetic universal adapter
+    (18M tokens = 6M/cell) serves 4/3 (73.8%, 98.6% of 4/4), 3/2 (69.8%, #1 overall at n=2, +2.93 [+1.39, +4.46] p=0.0004
+    and +4.64 [+2.43, +6.91] 3-Long p<1e-4 vs 2/2, +2.34 [+0.60, +4.13] LBv2 p=0.0072 vs Distilled 2/2, 25% cheaper prefill), and 4/2 (68.4%, sweeps 2/2 5/5) without reloading;
+    (d) in a 3-way closed-form Plato's Key test (192 unlabeled prompts), orthogonal 1->1 Procrustes 4/2 (68.4%, 41.9%
+    dark-memory CV) beats unconstrained Cross-Ridge 4/2 (60.7%, -7.63*), yet behavioral KL LB 4/2 KV-Only significantly
+    beats Procrustes 4/2 on 3-Long (+2.45*) and MRCR 512K (+6.06*, 59.2% dark-memory CV). LB 4/3 KV-Only reaches 74.1%
+    (99.0% of Orig 4/4's 74.9% at 1.27-1.29x decode); both beat Orig 4/4 end-to-end across all lengths up to 262K with
+    9/9 step-0 & 96.8-97.9% 31-step PyTorch-vLLM parity, 1.25-3.58x moderate & saturated async Poisson ITL speedup, and
+    0 preemptions under tested load matching equal-m KV occupancy.
+  * Regime II (fixed-depth Inkling-2-Mini 3/2 & un-gated n=1 VarLoop 3/1, BOTH full 5x avg@4; 111,904 total four-sample
+    rollouts across 26 archived 5x avg@4 arms): all unadapted n=2 variants collapse (Mini TF 3/2 Anchored: 2.2%, 93.2% trunc;
     Mini Orig 2/2 & TF 3/2 Tail: 5.6% GPQA; Mini Procrustes 3/2: 11.1% GPQA, 81.8% trunc; VarLoop TF 3/1: 40.8%), while
     parametric LoopBridge rescues accuracy and beats parameter-advantaged tied distillation under locked 24M controls on
     both backbones: Inkling-2-Mini 3/2 reaches 57.7% vs 52.0% Distilled 2/2 (+5.70 [+4.10, +7.34] 5-Bench, +9.36
@@ -72,7 +71,7 @@ setting rather than per prompt; English benchmarks only.
 ## Docs
 - README.md: findings, 26.4B vLLM two-regime results, quick start, repository map
 - REPRODUCE.md: every table and figure -> script -> result file; Ouro and 26.4B vLLM commands
-- paper/loopbridge.pdf: the 35-page paper (<8-page ACL main body + Appendices A-O)
+- paper/loopbridge.pdf: the 36-page paper (<8-page ACL main body + Appendices A-O)
 - ouro/results/items/: Ouro per-item scores; ouro/results/paper_numbers.json: recomputed Ouro statistics
 - inkling/results/: 26.4B sparse-MoE official-exact avg@4 & avg@1 per-item JSONs, isolated Day-0 vLLM Blackwell timing logs, and systems_rebuttal/ (parity, warmed timing, Poisson serving, KV capacity)
 - ouro/results/provenance/: Ouro run manifests, logs, configs, and checkpoint hashes

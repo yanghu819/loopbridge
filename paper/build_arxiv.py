@@ -75,7 +75,7 @@ def plain(t):
     t = re.sub(r"\$(\([a-z],\s*[a-z]\))\$", r"\1", t)        # $(m,n)$
     t = re.sub(r"\$([a-z])\s*\\ge\s*([a-z0-9]+)\$", r"\1 >= \2", t)
     t = re.sub(r"\$([a-z])\s*\{?([<>=])\}?\s*10\^\{([^}]+)\}\$", r"\1 \2 10^\3", t)
-    t = re.sub(r"\$([a-z])\s*\{?([<>=])\}?\s*([a-z0-9]+)\$", r"\1 \2 \3", t)   # $n<m$, $r{=}0$
+    t = re.sub(r"\$([a-z])\s*\{?([<>=])\}?\s*([a-z0-9.]+)\$", r"\1 \2 \3", t)   # $n<m$, $r{=}0$, $p{=}0.98$
     t = t.replace(r"vs.\ ", "vs. ").replace("\\%", "%")
     t = t.replace("---", " - ").replace("--", "-").replace("~", " ")
     assert "\\" not in t and "$" not in t, t

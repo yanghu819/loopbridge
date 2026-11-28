@@ -1,0 +1,236 @@
+{
+  "orig_4_4": {
+    "label": "sat_orig_4_4",
+    "results": [
+      {
+        "kind": "poisson",
+        "L": 4096,
+        "gen_len": 512,
+        "n_reqs": 48,
+        "rate_rps": 6.0,
+        "total_wall_s": 12.272,
+        "agg_e2e_tok_s": 2002.59,
+        "ttft_p50_ms": 95.68,
+        "ttft_p95_ms": 259.19,
+        "itl_p50_ms": 11.9,
+        "itl_p95_ms": 23.15,
+        "itl_p99_ms": 71.89,
+        "req_max_itl_p50_ms": 430.77,
+        "req_max_itl_p95_ms": 430.81,
+        "label": "sat_orig_4_4"
+      },
+      {
+        "kind": "poisson",
+        "L": 65536,
+        "gen_len": 512,
+        "n_reqs": 20,
+        "rate_rps": 0.8,
+        "total_wall_s": 31.153,
+        "agg_e2e_tok_s": 328.7,
+        "ttft_p50_ms": 3769.93,
+        "ttft_p95_ms": 7385.4,
+        "itl_p50_ms": 17.09,
+        "itl_p95_ms": 17.52,
+        "itl_p99_ms": 22.37,
+        "req_max_itl_p50_ms": 4468.45,
+        "req_max_itl_p95_ms": 4478.68,
+        "label": "sat_orig_4_4"
+      }
+    ]
+  },
+  "orig_3_3": {
+    "label": "sat_orig_3_3",
+    "results": [
+      {
+        "kind": "poisson",
+        "L": 4096,
+        "gen_len": 512,
+        "n_reqs": 48,
+        "rate_rps": 6.0,
+        "total_wall_s": 10.671,
+        "agg_e2e_tok_s": 2303.16,
+        "ttft_p50_ms": 71.93,
+        "ttft_p95_ms": 148.82,
+        "itl_p50_ms": 8.52,
+        "itl_p95_ms": 19.47,
+        "itl_p99_ms": 50.98,
+        "req_max_itl_p50_ms": 345.11,
+        "req_max_itl_p95_ms": 345.19,
+        "label": "sat_orig_3_3"
+      },
+      {
+        "kind": "poisson",
+        "L": 65536,
+        "gen_len": 512,
+        "n_reqs": 20,
+        "rate_rps": 0.8,
+        "total_wall_s": 25.455,
+        "agg_e2e_tok_s": 402.28,
+        "ttft_p50_ms": 2724.15,
+        "ttft_p95_ms": 4618.07,
+        "itl_p50_ms": 13.42,
+        "itl_p95_ms": 13.9,
+        "itl_p99_ms": 14.94,
+        "req_max_itl_p50_ms": 4341.07,
+        "req_max_itl_p95_ms": 5191.87,
+        "label": "sat_orig_3_3"
+      }
+    ]
+  },
+  "lb_4_3_kvonly_12m": {
+    "label": "sat_lb_4_3_kvonly_12m",
+    "results": [
+      {
+        "kind": "poisson",
+        "L": 4096,
+        "gen_len": 512,
+        "n_reqs": 48,
+        "rate_rps": 6.0,
+        "total_wall_s": 10.985,
+        "agg_e2e_tok_s": 2237.13,
+        "ttft_p50_ms": 122.79,
+        "ttft_p95_ms": 288.76,
+        "itl_p50_ms": 8.82,
+        "itl_p95_ms": 25.87,
+        "itl_p99_ms": 76.72,
+        "req_max_itl_p50_ms": 243.04,
+        "req_max_itl_p95_ms": 433.89,
+        "label": "sat_lb_4_3_kvonly_12m"
+      },
+      {
+        "kind": "poisson",
+        "L": 65536,
+        "gen_len": 512,
+        "n_reqs": 20,
+        "rate_rps": 0.8,
+        "total_wall_s": 30.285,
+        "agg_e2e_tok_s": 338.12,
+        "ttft_p50_ms": 4224.97,
+        "ttft_p95_ms": 8174.45,
+        "itl_p50_ms": 13.66,
+        "itl_p95_ms": 13.98,
+        "itl_p99_ms": 16.1,
+        "req_max_itl_p50_ms": 4641.07,
+        "req_max_itl_p95_ms": 4677.91,
+        "label": "sat_lb_4_3_kvonly_12m"
+      }
+    ]
+  },
+  "orig_2_2": {
+    "label": "sat_orig_2_2",
+    "results": [
+      {
+        "kind": "poisson",
+        "L": 4096,
+        "gen_len": 512,
+        "n_reqs": 48,
+        "rate_rps": 6.0,
+        "total_wall_s": 9.186,
+        "agg_e2e_tok_s": 2675.26,
+        "ttft_p50_ms": 50.77,
+        "ttft_p95_ms": 82.97,
+        "itl_p50_ms": 5.79,
+        "itl_p95_ms": 9.35,
+        "itl_p99_ms": 32.23,
+        "req_max_itl_p50_ms": 103.27,
+        "req_max_itl_p95_ms": 103.31,
+        "label": "sat_orig_2_2"
+      },
+      {
+        "kind": "poisson",
+        "L": 65536,
+        "gen_len": 512,
+        "n_reqs": 20,
+        "rate_rps": 0.8,
+        "total_wall_s": 20.035,
+        "agg_e2e_tok_s": 511.11,
+        "ttft_p50_ms": 1431.63,
+        "ttft_p95_ms": 2295.75,
+        "itl_p50_ms": 7.33,
+        "itl_p95_ms": 7.72,
+        "itl_p99_ms": 12.46,
+        "req_max_itl_p50_ms": 1807.46,
+        "req_max_itl_p95_ms": 5020.6,
+        "label": "sat_orig_2_2"
+      }
+    ]
+  },
+  "lb_4_2_kvonly_12m": {
+    "label": "sat_lb_4_2_kvonly_12m",
+    "results": [
+      {
+        "kind": "poisson",
+        "L": 4096,
+        "gen_len": 512,
+        "n_reqs": 48,
+        "rate_rps": 6.0,
+        "total_wall_s": 9.578,
+        "agg_e2e_tok_s": 2565.89,
+        "ttft_p50_ms": 89.07,
+        "ttft_p95_ms": 258.85,
+        "itl_p50_ms": 6.19,
+        "itl_p95_ms": 21.6,
+        "itl_p99_ms": 57.28,
+        "req_max_itl_p50_ms": 443.75,
+        "req_max_itl_p95_ms": 443.81,
+        "label": "sat_lb_4_2_kvonly_12m"
+      },
+      {
+        "kind": "poisson",
+        "L": 65536,
+        "gen_len": 512,
+        "n_reqs": 20,
+        "rate_rps": 0.8,
+        "total_wall_s": 28.205,
+        "agg_e2e_tok_s": 363.06,
+        "ttft_p50_ms": 4069.35,
+        "ttft_p95_ms": 7924.41,
+        "itl_p50_ms": 10.1,
+        "itl_p95_ms": 10.37,
+        "itl_p99_ms": 11.69,
+        "req_max_itl_p50_ms": 4594.72,
+        "req_max_itl_p95_ms": 4594.76,
+        "label": "sat_lb_4_2_kvonly_12m"
+      }
+    ]
+  },
+  "lb_3_1_24m": {
+    "label": "sat_lb_3_1_24m",
+    "results": [
+      {
+        "kind": "poisson",
+        "L": 4096,
+        "gen_len": 512,
+        "n_reqs": 48,
+        "rate_rps": 6.0,
+        "total_wall_s": 8.45,
+        "agg_e2e_tok_s": 2908.36,
+        "ttft_p50_ms": 63.27,
+        "ttft_p95_ms": 150.78,
+        "itl_p50_ms": 3.75,
+        "itl_p95_ms": 4.93,
+        "itl_p99_ms": 38.54,
+        "req_max_itl_p50_ms": 142.46,
+        "req_max_itl_p95_ms": 330.13,
+        "label": "sat_lb_3_1_24m"
+      },
+      {
+        "kind": "poisson",
+        "L": 65536,
+        "gen_len": 512,
+        "n_reqs": 20,
+        "rate_rps": 0.8,
+        "total_wall_s": 22.055,
+        "agg_e2e_tok_s": 464.3,
+        "ttft_p50_ms": 2793.2,
+        "ttft_p95_ms": 4751.56,
+        "itl_p50_ms": 4.77,
+        "itl_p95_ms": 6.55,
+        "itl_p99_ms": 8.58,
+        "req_max_itl_p50_ms": 4419.52,
+        "req_max_itl_p95_ms": 5296.0,
+        "label": "sat_lb_3_1_24m"
+      }
+    ]
+  }
+}

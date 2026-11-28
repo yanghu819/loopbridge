@@ -73,16 +73,21 @@ LONG_KEYS = BENCH_KEYS[2:]
 AVG4_ARMS = [
     "vl_native_2_2",
     "vl_kvonly_2_2_t4_12m",
+    "vl_distilled_2_2_t4_12m",
     "vl_crossridge_4_2",
     "vl_procrustes_4_2",
     "vl_tf_4_2_tail",
     "vl_tf_4_2_anchored",
     "vl_tf_5_2_anchored",
+    "vl_lb_univ_4_2_nosynth",
     "vl_lb_4_2_kvonly_nosynth_12m",
+    "vl_lb_4_2_lora64_t4_12m",
     "vl_lb_4_2_kvonly_12m",
+    "vl_lb_univ_3_2_nosynth",
     "vl_native_3_3",
     "vl_tf_4_3_tail",
     "vl_tf_4_3_anchored",
+    "vl_lb_univ_4_3_nosynth",
     "vl_lb_4_3_kvonly_12m",
     "vl_native_4_4",
     # Wave-2B Regime II & n=1 full 5xavg@4 arms (all 7 controls)
@@ -106,7 +111,8 @@ def save(fig, name: str) -> None:
 def load_evals() -> tuple[dict[str, dict[str, dict]], dict[str, dict[str, dict]]]:
     """Load (evals_avg1, evals_avg4) directly from archived official-exact JSONs.
 
-    evals_avg4 holds all 21 full 5xavg@4 arms (90,384 rollouts: 14 Regime I arms,
+    evals_avg4 holds all 26 full 5xavg@4 arms (111,904 rollouts: 19 Regime I arms including
+    the 3-cell single universal 0%-synth adapter and matched r=64 Distilled 2/2 vs LB 4/2 twins,
     3 Inkling-2-Mini arms, and 4 TML-varloop n=1 control/ablation arms) evaluated with 4x symmetric sampling.
     evals_avg1 holds all single-sample (seed=42) official-exact arms across
     TML-d24-varloop and Inkling-2-Mini.
@@ -180,7 +186,7 @@ def load_evals() -> tuple[dict[str, dict[str, dict]], dict[str, dict[str, dict]]
     add1("mini_lb_3_1_24m", "mini_lb_3_1_24m", fb_v3="lb_3_1_24m")
     add1("mini_distilled_1_1_v3", "mini_distilled_1_1_v3", fb_v3="distilled_1_1_v3", fb_lcb="distilled_1_1_v3")
 
-    # TML-d24-varloop-research (14-arm Regime I TRUE 5/5 symmetric avg@4 across ALL 5 benchmarks = 60,256 rollouts)
+    # 26-arm (Regimes I & II) TRUE 5/5 symmetric avg@4 across ALL 5 benchmarks = 111,904 rollouts
     evals_avg4: dict[str, dict[str, dict]] = {}
     for arm in AVG4_ARMS:
         entry = {}
@@ -334,27 +340,29 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
           no-training collapse rescued by LoopBridge, beating tied Distilled across both backbones.
     """
     fig, (ax1, ax2) = plt.subplots(
-        1, 2, figsize=(7.05, 2.88), gridspec_kw={"width_ratios": [1.15, 0.95], "wspace": 0.24}
+        1, 2, figsize=(7.22, 2.92), gridspec_kw={"width_ratios": [1.28, 0.90], "wspace": 0.22}
     )
 
     # =========================================================================
     # Panel (a): Regime I — Variable-depth TML-d24-varloop (n >= 2, 5xavg@4)
+    # Includes matched full-LoRA Distilled 2/2 (r=64, 46.9M) & 0%-synth Universal 3/2 (1 wt)!
     # =========================================================================
     n2_arms = [
         ("vl_native_2_2", "Orig\n2/2", NAT_LIGHT, False),
-        ("vl_kvonly_2_2_t4_12m", "Tied KV\n2/2", DIST, False),
+        ("vl_kvonly_2_2_t4_12m", "Tied KV\n2/2", "#7FB0E8", False),
+        ("vl_distilled_2_2_t4_12m", "Dist 2/2\n(r=64)", DIST, False),
         ("vl_tf_4_2_tail", "No-train\n4/2", "#A8A8A8", False),
-        ("vl_lb_4_2_kvonly_nosynth_12m", "LB 4/2\nreal-only", OURS_LIGHT, True),
-        ("vl_lb_4_2_kvonly_12m", "LB 4/2\nKV-only", OURS_DARK, True),
+        ("vl_lb_4_2_kvonly_12m", "LB 4/2\n(r=0)", OURS, True),
+        ("vl_lb_univ_3_2_nosynth", "Univ 3/2\n(0% syn)", OURS_DARK, True),
     ]
     n3_arms = [
         ("vl_native_3_3", "Orig\n3/3", NAT_LIGHT, False),
         ("vl_tf_4_3_anchored", "No-train\n4/3", "#A8A8A8", False),
-        ("vl_lb_4_3_kvonly_12m", "LB 4/3\nKV-only", OURS_DARK, True),
+        ("vl_lb_4_3_kvonly_12m", "LB 4/3\n(r=0)", OURS_DARK, True),
     ]
-    pos1 = [0.0, 1.08, 2.16, 3.24, 4.32, 5.76, 6.84, 7.92]
+    pos1 = [0.0, 1.04, 2.08, 3.12, 4.16, 5.20, 6.60, 7.64, 8.68]
     all_a = n2_arms + n3_arms
-    w = 0.36
+    w = 0.35
     m5_a = [macro_pct(evals_avg4, a, BENCH_KEYS) for a, _, _, _ in all_a]
     m3_a = [macro_pct(evals_avg4, a, LONG_KEYS) for a, _, _, _ in all_a]
     cols_a = [c for _, _, c, _ in all_a]
@@ -364,52 +372,54 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
 
     ceil44 = macro_pct(evals_avg4, "vl_native_4_4", BENCH_KEYS)
     ax1.axhline(ceil44, color=NAT, ls=":", lw=0.95, zorder=1)
-    ax1.text(-0.42, ceil44 + 0.45, f"Original 4/4 ceiling ({ceil44:.1f}%)", fontsize=5.8, color=NAT, ha="left", va="bottom")
+    ax1.text(-0.42, ceil44 + 0.45, f"Original 4/4 ceiling ({ceil44:.1f}%)", fontsize=5.7, color=NAT, ha="left", va="bottom")
 
     for i, (bar, (_, _, _, is_ours)) in enumerate(zip(bars5_a, all_a)):
         h = bar.get_height()
-        suf = "*" if i in (2, 3, 4) else ""
-        dx = -2.2 if i == 2 else (0.6 if i == 3 else (-1.8 if i == 6 else (1.4 if i == 7 else -0.8)))
+        # * denotes 95% clustered CI excludes zero vs Orig 2/2
+        suf = "*" if i in (2, 3, 4, 5) else ""
+        dx = -2.2 if i in (2, 3) else (1.0 if i == 5 else (-1.8 if i == 7 else (1.5 if i == 8 else -0.8)))
         ax1.annotate(
             f"{h:.1f}{suf}",
             (bar.get_x() + bar.get_width() / 2, h),
             xytext=(dx, 2.0),
             textcoords="offset points",
             ha="center", va="bottom",
-            fontsize=5.3,
+            fontsize=5.1,
             fontweight="bold" if is_ours else "normal",
             color=OURS_DARK if is_ours else INK,
-            bbox=dict(facecolor="white", edgecolor="none", pad=0.25, alpha=0.90) if i in (6, 7) else None,
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.22, alpha=0.90) if i in (7, 8) else None,
             zorder=7,
         )
     for i, (bar, (_, _, _, is_ours)) in enumerate(zip(bars3_a, all_a)):
         h = bar.get_height()
-        suf = "*" if i in (2, 3, 4) else ""
+        suf = "*" if i in (2, 3, 4, 5) else ""
         ax1.annotate(
             f"{h:.1f}{suf}",
             (bar.get_x() + bar.get_width() / 2, h),
-            xytext=(2.4, 1.8),
+            xytext=(2.3, 1.8),
             textcoords="offset points",
             ha="center", va="bottom",
-            fontsize=4.7,
+            fontsize=4.55,
             color=OURS_DARK if is_ours else NAT,
-            bbox=dict(facecolor="white", edgecolor="none", pad=0.15, alpha=0.80),
+            bbox=dict(facecolor="white", edgecolor="none", pad=0.14, alpha=0.82),
             zorder=6,
         )
 
-    d5_n2 = m5_a[4] - m5_a[1]
-    rec_n3 = 100.0 * m5_a[7] / ceil44
-    ax1.axvline(5.04, color=GRID, lw=1.0)
-    ax1.text(2.16, 81.8, f"n = 2 (1.75× decode)\n+{d5_n2:.1f}* over Tied KV 2/2", fontsize=5.65, fontweight="bold", color=OURS_DARK, ha="center", va="top", linespacing=1.15)
-    ax1.text(6.84, 81.8, f"n = 3 (1.27× decode)\n{rec_n3:.1f}% of Original 4/4", fontsize=5.65, fontweight="bold", color=OURS_DARK, ha="center", va="top", linespacing=1.15)
+    d5_n2 = m5_a[5] - m5_a[0]
+    d5_kv = m5_a[4] - m5_a[1]
+    rec_n3 = 100.0 * m5_a[8] / ceil44
+    ax1.axvline(5.90, color=GRID, lw=1.0)
+    ax1.text(2.60, 82.0, f"n = 2 (1.75× decode)\n+{d5_n2:.1f}* vs 2/2 · +{d5_kv:.1f}* vs Tied KV", fontsize=5.45, fontweight="bold", color=OURS_DARK, ha="center", va="top", linespacing=1.15)
+    ax1.text(7.64, 82.0, f"n = 3 (1.27× decode)\n{rec_n3:.1f}% of Original 4/4", fontsize=5.45, fontweight="bold", color=OURS_DARK, ha="center", va="top", linespacing=1.15)
 
     ax1.set_xticks(pos1)
-    ax1.set_xticklabels([lab for _, lab, _, _ in all_a], fontsize=5.7)
-    ax1.set_ylabel("Accuracy (%, 5×avg@4)", fontsize=7.6)
-    ax1.set_ylim(56.0, 83.2)
+    ax1.set_xticklabels([lab for _, lab, _, _ in all_a], fontsize=5.35)
+    ax1.set_ylabel("Accuracy (%, 5×avg@4)", fontsize=7.5)
+    ax1.set_ylim(56.0, 83.4)
     ax1.grid(axis="y", color=GRID, lw=0.6)
     ax1.set_axisbelow(True)
-    ax1.set_title("(a) Regime I: Variable-depth TML-d24-varloop (n ≥ 2)", fontsize=7.8, fontweight="bold", pad=6)
+    ax1.set_title("(a) Regime I: Variable-depth TML-d24-varloop (n ≥ 2)", fontsize=7.7, fontweight="bold", pad=6)
 
     # =========================================================================
     # Panel (b): Regime II — Fixed-depth Inkling-2-Mini & TML-varloop n=1 (5xavg@4)
@@ -502,7 +512,7 @@ def make_main_body_two_regime_fig(evals_avg1: dict, evals_avg4: dict) -> None:
         Patch(facecolor="#555555", edgecolor="white", label="Solid bar: 5-Bench Avg"),
         Patch(facecolor="#B0B0B0", edgecolor=NAT, hatch="///", alpha=0.55, label="Hatched bar: 3-Long Avg (256K–1M)"),
         Patch(facecolor=OURS_DARK, edgecolor="white", label="LoopBridge (ours)"),
-        Patch(facecolor=DIST, edgecolor="white", label="Tied baseline (same data)"),
+        Patch(facecolor=DIST, edgecolor="white", label="Tied baseline (matched data)"),
     ]
     fig.legend(
         handles=h_leg, loc="upper center", bbox_to_anchor=(0.51, 1.03),
@@ -533,6 +543,24 @@ def print_verified_summary(evals_avg1: dict, evals_avg4: dict) -> None:
         ("vl_tf_4_3_anchored", "vl_tf_4_3_tail"),
         ("vl_lb_4_2_kvonly_12m", "vl_native_2_2"),
         ("vl_lb_4_2_kvonly_12m", "vl_kvonly_2_2_t4_12m"),
+        ("vl_lb_4_2_kvonly_12m", "vl_distilled_2_2_t4_12m"),
+        ("vl_lb_4_2_lora64_t4_12m", "vl_distilled_2_2_t4_12m"),
+        ("vl_lb_4_2_lora64_t4_12m", "vl_lb_4_2_kvonly_12m"),
+        ("vl_lb_4_2_lora64_t4_12m", "vl_native_2_2"),
+        ("vl_lb_4_2_lora64_t4_12m", "vl_kvonly_2_2_t4_12m"),
+        ("vl_distilled_2_2_t4_12m", "vl_native_2_2"),
+        ("vl_distilled_2_2_t4_12m", "vl_tf_4_2_tail"),
+        ("vl_distilled_2_2_t4_12m", "vl_kvonly_2_2_t4_12m"),
+        ("vl_lb_univ_3_2_nosynth", "vl_native_2_2"),
+        ("vl_lb_univ_3_2_nosynth", "vl_kvonly_2_2_t4_12m"),
+        ("vl_lb_univ_3_2_nosynth", "vl_distilled_2_2_t4_12m"),
+        ("vl_lb_univ_3_2_nosynth", "vl_lb_4_2_kvonly_12m"),
+        ("vl_lb_univ_3_2_nosynth", "vl_lb_univ_4_2_nosynth"),
+        ("vl_lb_univ_4_2_nosynth", "vl_native_2_2"),
+        ("vl_lb_univ_4_2_nosynth", "vl_lb_4_2_kvonly_nosynth_12m"),
+        ("vl_lb_univ_4_3_nosynth", "vl_native_3_3"),
+        ("vl_lb_univ_4_3_nosynth", "vl_native_4_4"),
+        ("vl_lb_univ_4_3_nosynth", "vl_lb_4_3_kvonly_12m"),
         ("vl_lb_4_2_kvonly_nosynth_12m", "vl_kvonly_2_2_t4_12m"),
         ("vl_lb_4_2_kvonly_nosynth_12m", "vl_native_2_2"),
         ("vl_lb_4_2_kvonly_12m", "vl_procrustes_4_2"),
